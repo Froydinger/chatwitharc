@@ -1,8 +1,9 @@
+import { BoostIcon } from '@/components/BoostIcon';
 import { GOOGLE_PLAY_BOOST_PRODUCT_IDS, currentBoostCheckoutPriceId, boostBillingInterval } from '../../supabase/functions/_shared/boostCatalog';
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { GlassButton } from "@/components/ui/glass-button";
-import { Check, Zap } from "lucide-react";
+import { Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { cn } from "@/lib/utils";
@@ -45,7 +46,7 @@ interface UpgradeModalProps {
 
 export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalProps) {
   const { user, isAnonymous } = useAuth();
-  const { checkSubscription } = useSubscription();
+  const { checkSubscription, hasBoost, isAdmin } = useSubscription();
   const requireAuth = useRequireAuth();
   const { toast } = useToast();
   const [selectedPriceId, setSelectedPriceId] = useState(currentBoostCheckoutPriceId(priceId));
@@ -180,7 +181,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
       <DialogContent className="arc-upgrade-dialog flex w-[calc(100%-1.5rem)] max-w-md flex-col gap-0 overflow-hidden rounded-3xl p-0"
         style={{ maxHeight: "calc(100dvh - var(--arcai-safe-area-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px)" }}>
         <header className="shrink-0 px-5 pb-4 pt-5 pr-14 sm:px-6 sm:pr-14">
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Zap className="h-4 w-4" /> ARCAI BOOST</div>
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground"><BoostIcon hasBoost={hasBoost || isAdmin} className="h-4 w-4 shrink-0" /> ARCAI BOOST</div>
           <DialogTitle className="text-2xl font-semibold tracking-tight">{isVoiceLimit ? 'Keep the conversation going' : 'Put your agent to work.'}</DialogTitle>
           <DialogDescription className="mt-1.5 text-sm">Unlock Arc Work and App Builder, more Sol usage, a separate Astra allowance, and 250 shared monthly image credits.</DialogDescription>
         </header>

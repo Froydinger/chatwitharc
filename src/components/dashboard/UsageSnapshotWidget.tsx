@@ -1,3 +1,4 @@
+import { BoostIcon } from '@/components/BoostIcon';
 import { useTextUsage } from "@/hooks/useTextUsage";
 import { TextUsageMeters } from "@/components/TextUsageMeters";
 import { CircleGauge, ChevronRight } from "lucide-react";
@@ -59,7 +60,7 @@ export function UsageSnapshotWidget({ onOpenPlan }: { onOpenPlan: () => void }) 
           </div>
         </div>
         <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-primary">
-          {isAdmin ? "Admin" : hasBoost ? "Boost" : "Free"}
+          {isAdmin ? "Admin" : hasBoost ? <BoostIcon hasBoost className="h-3.5 w-3.5 shrink-0" /> : "Free"}
         </span>
       </div>
 

@@ -1,3 +1,6 @@
+import { useWorkspaceUI } from '@/workspace/WorkspaceContext';
+import { ChatModelPicker } from '@/components/ChatModelPicker';
+import { BoostIcon } from '@/components/BoostIcon';
 import { cancelOrdinaryChat } from '@/services/ordinaryChatPersistence';
 import { getExecutionModelChoices } from '@/store/useExecutionModelStore';
 import { AppBuilderModelChoice } from '@/components/app-builder/AppBuilderModelChoice';
@@ -81,7 +84,7 @@ import { findFirstToolCall, executeLocalToolCall, stripToolTags, hasPartialOpenT
 import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { ChatVoicePicker } from "@/components/ChatVoicePicker";
-// ChatModelPicker now lives in the chat header (MobileChatApp), not the input bar.
+// Workspace uses the same picker in its footer; legacy layout keeps the header picker.
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore, useResolvedImageModel, useEditImageModel } from "@/store/useImageGenStore";
 import { useVideoGenStore, orientationForDimensions } from "@/store/useVideoGenStore";
@@ -205,6 +208,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   { onImagesChange, rightPanelOpen = false, inline = false, cloudExecutionMode = 'ask', onCloudTextSubmit, onWorkSessionCreated, onWorkModeToggle },
   ref,
 ) {
+  const workspaceUI = useWorkspaceUI();
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
   const openBugReport = useBugReport((state) => state.openBugReport);
@@ -3038,6 +3042,13 @@ ${safeCode}
       {inline && shouldShowGitMode && <GitModeDock />}
       {shouldShowAppMode && (hasBoost || isAdmin) && <div className="mb-2 flex justify-center"><AppBuilderModelChoice ownerId={user?.id ?? null} disabled={isLoading} /></div>}
       <ComposerView
+        footer={workspaceUI ? <div className="ws-live-footer">
+          <ChatModelPicker compact placement="up" />
+          {onWorkModeToggle && <div className="ws-mode-switch" role="group" aria-label="Chat or Work">
+            <button type="button" aria-pressed={cloudExecutionMode === 'ask'} onClick={() => { if (cloudExecutionMode !== 'ask') onWorkModeToggle(); }}>Chat</button>
+            <button type="button" aria-label="Work (Boost)" aria-pressed={cloudExecutionMode === 'auto'} onClick={() => { if (cloudExecutionMode !== 'auto') onWorkModeToggle(); }}>Work <BoostIcon hasBoost={hasBoost || isAdmin} className="ws-boost-icon" /></button>
+          </div>}
+        </div> : undefined}
         inputBarRef={inputBarRef}
         active={isActive}
         voiceActive={isVoiceActive}

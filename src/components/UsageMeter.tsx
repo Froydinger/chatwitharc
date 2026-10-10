@@ -1,4 +1,5 @@
-import { Sparkles, Mic, Crown } from "lucide-react";
+import { BoostIcon } from '@/components/BoostIcon';
+import { Sparkles, Mic } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useImageQuota } from "@/hooks/useImageQuota";
 import { cn } from "@/lib/utils";
@@ -99,7 +100,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
       aria-label={isImage ? `${Math.round(pct)}% of image usage used today.` : `${voicePctLabel}. ${voicePolicyLabel}.`}
     >
       {isExhausted && !hasBoost && !isAdmin ? (
-        <Crown className="h-3.5 w-3.5 shrink-0 text-destructive animate-pulse" />
+        <BoostIcon hasBoost={hasBoost || isAdmin} className="h-3.5 w-3.5 shrink-0 text-destructive animate-pulse" />
       ) : (
         <Icon className="h-3.5 w-3.5 shrink-0" />
       )}

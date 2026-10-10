@@ -1,3 +1,6 @@
+import { WorkspaceBoundary } from '@/workspace/WorkspaceBoundary';
+import { WorkspaceDashboard } from '@/workspace/WorkspaceDashboard';
+import { useWorkspaceUI } from '@/workspace/WorkspaceContext';
 import { LegacyAndroidUpdateNotice } from '@/components/LegacyAndroidUpdateNotice';
 import { LegacyMacUpdateNotice } from '@/components/LegacyMacUpdateNotice';
 import { useEffect, useState, lazy, Suspense } from "react";
@@ -124,6 +127,7 @@ const RootGate = () => {
 };
 
 const DashboardShellGate = () => {
+  const workspaceUI = useWorkspaceUI();
   const navigate = useNavigate();
   const { user, loading: authLoading, isAnonymous } = useAuth();
   const signedOut = !authLoading && (isAnonymous || !user);
@@ -137,7 +141,7 @@ const DashboardShellGate = () => {
   }, [signedOut, navigate]);
 
   if (signedOut) return null;
-  return <DashboardPreviewPage live />;
+  return workspaceUI ? <WorkspaceDashboard /> : <DashboardPreviewPage live />;
 };
 
 const queryClient = new QueryClient();
@@ -245,6 +249,7 @@ const App = () => {
                 <AnonymousTrafficCounter />
                 <ScrollToTop />
                 <RouteSEO />
+                <WorkspaceBoundary>
                 <PageTransition>
                   <Suspense fallback={<FastLoader />}>
                   <Routes>
@@ -287,6 +292,7 @@ const App = () => {
                   </Routes>
                   </Suspense>
                 </PageTransition>
+                </WorkspaceBoundary>
               </BrowserRouter>
               <GlobalMusicPlayer />
               <CorporateMemoryConsentGate />

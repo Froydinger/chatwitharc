@@ -1,8 +1,9 @@
+import { BoostIcon } from '@/components/BoostIcon';
 import { isGooglePlayStoreTwa } from '@/services/googlePlayBilling';
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Sparkles, Zap, ShieldCheck, ExternalLink } from "lucide-react";
+import { ArrowLeft, Check, Sparkles, ExternalLink } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -26,7 +27,7 @@ import { BOOST_PLAN_FEATURES } from "@/lib/planCopy";
 export function UpgradePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, isAnonymous } = useAuth();
-  const { hasBoost, openCheckout, openCustomerPortal, loading: subLoading, currentPeriodEnd } = useSubscription();
+  const { hasBoost, isAdmin, openCheckout, openCustomerPortal, loading: subLoading, currentPeriodEnd } = useSubscription();
   const isPlayCheckout = isGooglePlayStoreTwa();
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("monthly");
 
@@ -78,7 +79,7 @@ export function UpgradePage() {
             <GlassCard className="p-8 max-w-2xl mx-auto border-primary/30 bg-primary/[0.02] shadow-[0_0_50px_rgba(var(--primary-rgb),0.05)] text-center relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/20 mb-6 animate-pulse">
-                <ShieldCheck className="h-8 w-8 text-primary" />
+                <BoostIcon hasBoost={hasBoost || isAdmin} className="h-8 w-8 text-primary" />
               </div>
               <h1 className="text-3xl font-extrabold mb-2 tracking-tight text-white">You're on ArcAI Boost!</h1>
               <p className="text-sm text-primary font-semibold mb-6 flex items-center justify-center gap-1">

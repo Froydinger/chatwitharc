@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConditionalTransition } from '@/components/transitions/ConditionalTransition';
-import { Lock, Check, ChevronDown, Crown } from 'lucide-react';
+import { BoostIcon } from '@/components/BoostIcon';
+import { Lock, Check, ChevronDown } from 'lucide-react';
 import { CHAT_MODEL_ICONS } from '@/lib/chatModelIcons';
 import { ASTRA_MODEL, canSelectAstra, useModelStore, type ArcModelSelection } from '@/store/useModelStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,7 +12,7 @@ import { cn } from '@/lib/utils';
 interface Props {
   className?: string;
   compact?: boolean;
-  /** Kept for backwards compatibility; the dropdown auto-anchors below the button. */
+  /** Workspace composer opens upward; existing header callers default downward. */
   placement?: 'up' | 'down';
   showArcWork?: boolean;
   arcWorkAvailable?: boolean;
@@ -29,6 +30,7 @@ export const PRESETS = [
 export function ChatModelPicker({
   className,
   compact = false,
+  placement = 'down',
   showArcWork = false,
   arcWorkAvailable = false,
   arcMode = 'ask',
@@ -47,7 +49,7 @@ export function ChatModelPicker({
   const setModelSelection = useModelStore((state) => state.setModelSelection);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; bottom?: number; maxHeight?: number } | null>(null);
   const activePreset = presets.find((preset) => preset.selection === modelSelection) ?? presets[0];
   const CurrentIcon = activePreset.icon;
 
@@ -65,7 +67,9 @@ export function ChatModelPicker({
       const margin = 8;
       let left = rect.left + rect.width / 2 - panelWidth / 2;
       left = Math.max(margin, Math.min(left, window.innerWidth - panelWidth - margin));
-      setCoords({ top: rect.bottom + 6, left });
+      setCoords(placement === 'up'
+        ? { top: rect.bottom + 6, left, bottom: Math.max(margin, (window.visualViewport?.height ?? window.innerHeight) - rect.top + 6), maxHeight: Math.max(44, rect.top - margin - 6) }
+        : { top: rect.bottom + 6, left });
     };
     compute();
     const dismiss = (event: KeyboardEvent) => {
@@ -79,7 +83,7 @@ export function ChatModelPicker({
       window.removeEventListener('resize', compute);
       window.removeEventListener('scroll', compute, true);
     };
-  }, [open]);
+  }, [open, placement]);
 
   const pick = (selection: ArcModelSelection) => {
     if (selection === ASTRA_MODEL && !astraAvailable) {
@@ -119,7 +123,9 @@ export function ChatModelPicker({
             {open && coords && (
               <div
                 data-testid="chat-model-menu"
-                style={{ top: coords.top, left: coords.left }}
+                style={placement === 'up'
+                  ? { bottom: coords.bottom, left: coords.left, maxHeight: coords.maxHeight, overflowY: 'auto' }
+                  : { top: coords.top, left: coords.left }}
                 className="fixed z-[9999] w-[17rem] rounded-2xl border border-border/40 glass shadow-2xl p-1.5"
               >
                 {showArcWork && (
@@ -157,7 +163,7 @@ export function ChatModelPicker({
                         }}
                       >
                         Arc Work
-                        {!arcWorkAvailable && <Crown className="h-3 w-3 ml-1 text-primary" aria-hidden="true" />}
+                        <BoostIcon hasBoost={hasVerifiedBoost || isAdmin} className="h-3 w-3 ml-1 text-primary shrink-0" />
                       </button>
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-2">
@@ -227,7 +233,7 @@ function Row({ icon, title, subtitle, badge, active, disabled, locked, onClick }
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-semibold">{title}</span>
-          {badge && (
+          {badge === 'Boost' ? <BoostIcon hasBoost={false} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : badge && (
             <span
               className={cn(
                 'text-[9px] font-mono px-1.5 py-0.5 rounded-md leading-none',

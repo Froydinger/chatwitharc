@@ -150,7 +150,7 @@ export function CyclingGreeting() {
 // Static general quick prompts - no AI, instant load
 // Uses /write, /code, /image prefix commands where appropriate
 export const GENERAL_QUICK_PROMPTS = [
-  { label: "Let's chat", prompt: "Let's have a chat — what's going on in the world right now?" },
+  { label: "Ask a question", prompt: "Help me understand something I'm curious about. Ask me what I'd like to explore." },
   { label: "Brainstorm", prompt: "I need help brainstorming ideas. Let's think through something creative together." },
   { label: "Write together", prompt: "/write Open a blank canvas so we can work on writing something together!" },
   { label: "Plan my day", prompt: "Help me plan out my day and prioritize what matters most." },
@@ -160,15 +160,15 @@ export const GENERAL_QUICK_PROMPTS = [
   { label: "Build something", prompt: "Write me a fun interactive HTML/JS demo — surprise me with something cool!" },
   { label: "Tell a story", prompt: "/write Open the canvas and let's write a short story together from scratch." },
   { label: "Research this", prompt: "I need you to research something for me. Let's dive deep into a topic." },
-  { label: "Motivate me", prompt: "Give me a motivational boost — I need some energy and inspiration right now." },
+  { label: "Reflect on today", prompt: "Help me reflect on my day. Ask me one thoughtful question at a time." },
   { label: "Role play", prompt: "Let's do a role play exercise — you pick the scenario and I'll jump in." },
   { label: "Analyze data", prompt: "/code Help me build a quick data visualization or chart for some numbers I have." },
-  { label: "World news", prompt: "What's happening in the world today? Give me a quick rundown of current events." },
+  { label: "Check the sources", prompt: "/search Help me research a question and compare reliable sources. Ask me what I want to find out." },
   { label: "Recommend music", prompt: "Recommend me some music based on a vibe — I'm open to anything." },
-  { label: "Random fact", prompt: "Hit me with a random interesting fact I probably don't know." },
+  { label: "Think it through", prompt: "I'm weighing a decision. Help me explore what matters, the trade-offs, and a useful next step." },
   { label: "Travel ideas", prompt: "Help me brainstorm travel destinations — I need a vacation." },
   { label: "Book recs", prompt: "Recommend me a book based on what I'm in the mood for right now." },
-  { label: "Solve a puzzle", prompt: "Write me a fun interactive puzzle or brain teaser I can play — include the full HTML/JS!" },
+  { label: "Solve a puzzle", prompt: "Give me a thoughtful brain teaser and let me reason it through before you reveal the answer." },
   { label: "Movie night", prompt: "Help me pick a movie to watch tonight — ask me what I'm in the mood for." },
 ];
 

@@ -34,3 +34,28 @@ export function isInstalledAppRuntime(): boolean {
     androidSource,
   });
 }
+
+/** Unlike isInstalledAppRuntime, this excludes ordinary installed PWAs,
+ * Electron and Android. Native iOS keeps the previous layout until its rewrite. */
+export function matchesNativeIOSApp(signals: {
+  native: boolean; platform?: string; userAgent: string; maxTouchPoints?: number; iosClass: boolean;
+}): boolean {
+  if (signals.iosClass) return true;
+  if (!signals.native) return false;
+  if (signals.platform) return signals.platform === 'ios';
+  return /iPhone|iPad|iPod/i.test(signals.userAgent)
+    || (/Macintosh/i.test(signals.userAgent) && (signals.maxTouchPoints ?? 0) > 1);
+}
+export function isNativeIOSAppRuntime(): boolean {
+  if (typeof window === 'undefined') return false;
+  const capacitor = (window as Window & {
+    Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string };
+  }).Capacitor;
+  return matchesNativeIOSApp({
+    native: capacitor?.isNativePlatform?.() === true,
+    platform: capacitor?.getPlatform?.(),
+    userAgent: window.navigator.userAgent,
+    maxTouchPoints: window.navigator.maxTouchPoints,
+    iosClass: document.body.classList.contains('arc-native-ios'),
+  });
+}

@@ -1,9 +1,9 @@
+import { BoostIcon } from '@/components/BoostIcon';
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   X,
-  Crown,
   Quote,
   Lock,
   Unlock,
@@ -89,7 +89,7 @@ export function RightPanel({
   const { selectedModelId, status: localStatus } = useLocalAIStore();
   const { toast } = useToast();
   const isMobileLocal = isMobileLocalDevice();
-  const { hasBoost, openCheckout } = useSubscription();
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
 
   const handleToggleCorporate = () => {
     if (isMobileLocal) return;
@@ -344,7 +344,7 @@ export function RightPanel({
                 
                 <div className="flex items-start gap-3">
                   <div className="inline-flex items-center justify-center p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                    <Crown className="h-4.5 w-4.5 text-primary" />
+                    <BoostIcon hasBoost={hasBoost || isAdmin} className="h-4.5 w-4.5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-semibold text-foreground">Upgrade to Boost</h4>

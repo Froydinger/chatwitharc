@@ -1,3 +1,4 @@
+import { BoostIcon } from '@/components/BoostIcon';
 import { useImageQuota } from '@/hooks/useImageQuota';
 import { useState, useEffect } from "react";
 import { PlanUsageBreakdown } from "@/components/PlanUsageBreakdown";
@@ -89,7 +90,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Shield, Crown, Sparkles, Activity, ExternalLink, Calendar } from "lucide-react";
+import { Shield, CircleArrowUp, CircleFadingArrowUp, Sparkles, Activity, ExternalLink, Calendar } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
@@ -842,7 +843,7 @@ export function SettingsPanel() {
 
   const PlanCard = (
     <SectionCard
-      icon={Crown}
+      icon={hasBoost || quotaAdmin ? CircleArrowUp : CircleFadingArrowUp}
       title="Your Subscription"
       subtitle="Manage your ArcAI billing tier"
     >
@@ -857,7 +858,7 @@ export function SettingsPanel() {
                 </>
               ) : hasBoost ? (
                 <>
-                  <Crown className="h-3.5 w-3.5 text-primary fill-primary" />
+                  <BoostIcon hasBoost={hasBoost || quotaAdmin} className="h-3.5 w-3.5 text-primary" />
                   <span>ArcAI Boost</span>
                 </>
               ) : (

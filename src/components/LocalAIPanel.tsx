@@ -1,5 +1,7 @@
+import { useSubscription } from '@/hooks/useSubscription';
+import { BoostIcon } from '@/components/BoostIcon';
 import { useEffect, useState, useCallback } from "react";
-import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Mail } from "lucide-react";
+import { Cpu, Download, CheckCircle2, AlertTriangle, Trash2, Sparkles, Zap, Gem, Mail } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -35,6 +37,7 @@ const DESKTOP_MODELS: ModelOption[] = [
 ];
 
 export function LocalAIPanel() {
+  const { hasBoost, isAdmin } = useSubscription();
   const {
     enabled, setEnabled,
     preferCloud, setPreferCloud,
@@ -212,7 +215,7 @@ export function LocalAIPanel() {
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-foreground">Arc Local</h3>
             <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/30 flex items-center gap-1">
-              <Crown className="h-2.5 w-2.5" /> Pro
+              <BoostIcon hasBoost={hasBoost || isAdmin} className="h-3.5 w-3.5 shrink-0" />
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">

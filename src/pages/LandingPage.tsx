@@ -1,3 +1,5 @@
+import { useSubscription } from '@/hooks/useSubscription';
+import { BoostIcon } from '@/components/BoostIcon';
 import { InstalledWelcomePage } from '@/pages/InstalledWelcomePage';
 import { isInstalledAppRuntime } from '@/lib/installedAppRuntime';
 import { FormEvent, useEffect, useState } from "react";
@@ -14,7 +16,6 @@ import {
   Image as ImageIcon,
   Code2,
   Brain,
-  Crown,
   Download,
   Search,
 } from "lucide-react";
@@ -91,6 +92,7 @@ export function LandingPage() {
 }
 
 function MarketingLandingPage() {
+  const { hasBoost, isAdmin } = useSubscription();
   const { user, isAnonymous } = useAuth();
   const navigate = useNavigate();
   const isAndroidBrowser = typeof navigator !== "undefined"
@@ -313,7 +315,7 @@ function MarketingLandingPage() {
             onClick={handleGetBoost}
             className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 hover:bg-white/[0.07] transition-colors"
           >
-            <Crown className="h-4 w-4 text-primary" /> Get Boost
+            <BoostIcon hasBoost={hasBoost || isAdmin} className="h-4 w-4 text-primary" /> Get Boost
           </button>
           {!isAndroidBrowser && (
             <Link
@@ -391,7 +393,7 @@ function MarketingLandingPage() {
           />
           <div className="relative">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.05] px-3 py-1 text-xs text-white/80">
-              <Sparkles className="h-3.5 w-3.5" /> Optional Boost Tier
+              <BoostIcon hasBoost={hasBoost || isAdmin} className="h-3.5 w-3.5" /> Optional Boost Tier
             </div>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
@@ -530,7 +532,7 @@ function MarketingLandingPage() {
             onClick={handleGetBoost}
             className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] px-7 py-3.5 text-base font-medium text-white/90 hover:bg-white/[0.06] transition-colors"
           >
-            <Crown className="h-4 w-4 text-primary" /> Get Boost
+            <BoostIcon hasBoost={hasBoost || isAdmin} className="h-4 w-4 text-primary" /> Get Boost
           </button>
         </div>
       </section>

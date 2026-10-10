@@ -1,3 +1,4 @@
+import { BoostIcon } from '@/components/BoostIcon';
 import { isGooglePlayStoreTwa } from '@/services/googlePlayBilling';
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -24,7 +25,7 @@ import { BOOST_PLAN_FEATURES, FREE_PLAN_FEATURES } from "@/lib/planCopy";
 
 export function PricingPage() {
   const { user } = useAuth();
-  const { hasBoost, openCheckout, openCustomerPortal } = useSubscription();
+  const { hasBoost, isAdmin, openCheckout, openCustomerPortal } = useSubscription();
   const isPlayCheckout = isGooglePlayStoreTwa();
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("monthly");
 
@@ -73,8 +74,8 @@ export function PricingPage() {
           <GlassCard className="p-8 flex flex-col justify-between border-primary relative overflow-hidden bg-primary/5">
             <div>
               <div className="flex justify-between items-center mb-3">
-                <div className="text-sm font-semibold text-primary tracking-wider uppercase">
-                  Boost Plan
+                <div className="flex items-center gap-2 text-sm font-semibold text-primary tracking-wider uppercase">
+                  <BoostIcon hasBoost={hasBoost || isAdmin} className="h-4 w-4 shrink-0" /> Boost Plan
                 </div>
                 {/* Billing Toggle inside Boost Card */}
                 <div className="flex items-center gap-2">

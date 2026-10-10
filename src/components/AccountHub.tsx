@@ -1,3 +1,4 @@
+import { BoostIcon } from '@/components/BoostIcon';
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -15,10 +16,10 @@ import {
   DialogTrigger as InnerDialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  ExternalLink, Heart, Crown, MessageSquare, Brain, Image,
+  ExternalLink, Heart, MessageSquare, Brain, Image,
   Sparkles, RefreshCw, Calendar, Loader2, User, Mic,
   Shield, Settings, LogOut, Trash2,
-  Mail, Key, Download, Cloud, CloudOff, WifiOff, Camera, Save, RotateCcw, Zap,
+  Mail, Key, Download, Cloud, CloudOff, WifiOff, Camera, Save, RotateCcw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -290,12 +291,12 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                 <div className="p-4 rounded-xl glass border border-border/30 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Crown className="h-4 w-4 text-primary" />
+                      <BoostIcon hasBoost={hasBoost || quotaAdmin} className="h-4 w-4 text-primary" />
                       <span className="font-medium">
                         {subLoading ? "Loading..." : quotaAdmin ? "ArcAI Admin · Boost included" : hasBoost ? "ArcAI · Boost" : "ArcAI · Free"}
                       </span>
                     </div>
-                    <span className="text-xs font-semibold text-primary">{quotaAdmin || hasBoost ? "BOOST" : "FREE"}</span>
+                    <span className="text-xs font-semibold text-primary">{quotaAdmin || hasBoost ? <BoostIcon hasBoost className="h-4 w-4 shrink-0" /> : "FREE"}</span>
                   </div>
                   {!subLoading && (
                     <div className="space-y-2">
@@ -417,7 +418,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                         <div className="text-sm font-medium flex items-center gap-1.5">
                           {hasBoost ? (
                             <>
-                              <Zap className="h-3.5 w-3.5 text-primary fill-primary" />
+                              <BoostIcon hasBoost={hasBoost || quotaAdmin} className="h-3.5 w-3.5 text-primary" />
                               <span>ArcAI Boost</span>
                             </>
                           ) : (

@@ -53,7 +53,7 @@ assert.equal(iconModule.getRecordedChatModelIcon('gemini-3.8-flash'), undefined)
 assert.equal(iconModule.getRecordedChatModelIcon(undefined), undefined);
 function picker(account) {
   let stateIndex = 0, checkoutCalls = 0;
-  const deps = { ...models, ...icons, ...iconModule, useModelStore: selector => selector(models.useModelStore.getState()), useEffect() {}, useRef: () => ({ current: null }),
+  const deps = { ...models, ...icons, ...iconModule, BoostIcon: () => React.createElement('svg', { 'data-icon': 'Boost' }), useModelStore: selector => selector(models.useModelStore.getState()), useEffect() {}, useRef: () => ({ current: null }),
     useState: initial => [stateIndex++ === 0 ? true : { top: 40, left: 20 }, () => {}],
     useAuth: () => ({ user: Object.hasOwn(account, 'user') ? account.user : { id: 'fixture' }, loading: account.authLoading ?? false }),
     useSubscription: () => ({ hasBoost: false, hasVerifiedBoost: false, isAdmin: false, loading: false, ...account, isVerifiedModelAdmin: account.isVerifiedModelAdmin ?? account.isAdmin ?? false, openCheckout: () => checkoutCalls++ }),

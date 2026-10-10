@@ -235,6 +235,7 @@ spreads this map and overrides only the typography keys.
   exception. Never change voice functionality, models, tuning, limits or audio.
 - `docs/GPT_MODEL_LINEUP.md` — approved routing, accounting coverage, verification gaps and deployment order.
 - `docs/BOOST_BILLING_CATALOG.md` — current website offers, grandfathered billing identities, Play isolation and rollback contracts.
+- `docs/WORKSPACE_ROLLOUT.md` — responsive authenticated web shell, native-iOS legacy gate, presentation invariants and build-time rollback.
 - `docs/GEMINI_HANDOFF.md` — dormant Gemini architecture, API contracts,
   historical compatibility, and GPT-only migration safeguards; not an active integration.
 - `docs/qa/arc-usage-ledger.md` — cost-accounting policy, SQL verification,

@@ -1,5 +1,6 @@
+import { BoostIcon } from '@/components/BoostIcon';
 import { useEffect } from 'react';
-import { Crown, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useExecutionModelStore } from '@/store/useExecutionModelStore';
@@ -64,7 +65,7 @@ export function AppBuilderModelChoice({ ownerId, disabled = false }: AppBuilderM
         )}
         title={canUsePro ? 'Pro · GPT-6.1 Sol' : 'Pro model requires Boost or admin access'}
       >
-        <Crown className="h-3 w-3" aria-hidden="true" />
+        <BoostIcon hasBoost={canUsePro} className="h-3 w-3" aria-hidden="true" />
         Pro
       </button>
     </div>

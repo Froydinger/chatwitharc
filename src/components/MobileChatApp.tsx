@@ -1,3 +1,5 @@
+import { BoostIcon } from '@/components/BoostIcon';
+import { useWorkspaceUI } from '@/workspace/WorkspaceContext';
 import { useOrdinaryChatRecovery } from '@/hooks/useOrdinaryChatRecovery';
 import { captureCloudLocationContext } from '@/lib/cloudLocationContext';
 import { hasSessionCloudProgress } from '@/lib/chatPresentation';
@@ -11,7 +13,7 @@ import { Transition } from "@/components/transitions/Transition";
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Plus, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX, Crown } from "lucide-react";
+import { Plus, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
@@ -336,6 +338,7 @@ function writeWorkSessions(ownerId: string | null | undefined, ids: Set<string>)
 }
 
 export function MobileChatApp() {
+  const workspaceUI = useWorkspaceUI();
   const navigate = useNavigate();
   const isLocalPreview = isLocalChatPreview();
   const themeMode = useAccentStore((s) => s.themeMode);
@@ -800,6 +803,17 @@ export function MobileChatApp() {
   const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
   const [showLibrary, setShowLibrary] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  useEffect(() => {
+    if (!workspaceUI) return;
+    const open = () => setIsShareDialogOpen(true);
+    const music = () => setIsMusicPopupOpen(true);
+    window.addEventListener('workspace-share-chat', open);
+    window.addEventListener('workspace-open-music', music);
+    return () => {
+      window.removeEventListener('workspace-share-chat', open);
+      window.removeEventListener('workspace-open-music', music);
+    };
+  }, [workspaceUI]);
   const [isWorkHandoffOpen, setIsWorkHandoffOpen] = useState(false);
   const [isHeaderTight, setIsHeaderTight] = useState(false);
   const [isCanvasResizing, setIsCanvasResizing] = useState(false);
@@ -1180,6 +1194,13 @@ export function MobileChatApp() {
 
 
 
+  useEffect(() => {
+    if (!workspaceUI) return;
+    const start = (event: Event) => { event.preventDefault(); handleNewChat(); };
+    window.addEventListener('workspace-new-chat', start);
+    return () => window.removeEventListener('workspace-new-chat', start);
+  }, [workspaceUI, handleNewChat]);
+
   const triggerPrompt = useCallback(
     (prompt: string) => {
       if (isAnonymous) {
@@ -1263,7 +1284,7 @@ export function MobileChatApp() {
   if (isLoading && !isVoiceActive && !isGeneratingImage && liveReplyId) actionReplyIds.push(liveReplyId);
   return (
     <ReplyActionsProvider scopeKey={currentSessionId ?? "new-chat"} replyIds={actionReplyIds}>
-    <div className={cn("h-screen flex relative overflow-hidden", historyDocked && "chat-layout-history-docked")}>
+    <div className={cn("h-screen flex relative overflow-hidden", workspaceUI && "ws-original-chat", historyDocked && "chat-layout-history-docked")} data-workspace-voice-active={workspaceUI && isVoiceActive ? true : undefined}>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10">
@@ -1280,7 +1301,7 @@ export function MobileChatApp() {
                 top: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
               }}
             >
-              <ChatHistorySidebar onOpenDashboard={handleOpenDashboard} onDockChange={setHistoryDocked} gestureBlocked={isCanvasOverlayActive || isSearchOpen || isVoiceActive} />
+              {!workspaceUI && <ChatHistorySidebar onOpenDashboard={handleOpenDashboard} onDockChange={setHistoryDocked} gestureBlocked={isCanvasOverlayActive || isSearchOpen || isVoiceActive} />}
 
               {messages.length > 0 && (
                 <motion.div
@@ -1350,7 +1371,7 @@ export function MobileChatApp() {
                     title="Upgrade to Boost"
                     aria-label="Upgrade to Boost"
                   >
-                    <Crown className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <BoostIcon hasBoost={hasBoost || isAdmin} className="h-3.5 w-3.5 text-primary shrink-0" />
                     <span className="hidden xs:inline">Upgrade</span>
                   </Button>
                 </motion.div>
@@ -1563,13 +1584,14 @@ export function MobileChatApp() {
           {/* Chat Messages */}
           <div
             ref={messagesContainerRef}
-            className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto"
+            className={cn("absolute inset-x-0 bottom-0 top-0 overflow-y-auto", workspaceUI && "ws-original-message-scroll")}
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
             {/* Keep the page background continuous behind the cutout. Only the
                 scrollable content gets the top clearance; fixed controls use
                 the same inset independently. */}
             <div
+              className={workspaceUI ? "ws-original-top-spacer" : undefined}
               style={{
                 paddingTop: `calc(5rem + var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
               }}
@@ -1706,6 +1728,7 @@ export function MobileChatApp() {
             ref={inputDockRef}
             className={cn(
               "fixed z-30 pointer-events-none px-4 left-0",
+              workspaceUI && "ws-original-composer-dock",
               isCanvasResizing
                 ? "transition-none"
                 : "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
@@ -1742,7 +1765,7 @@ export function MobileChatApp() {
               {/* Greeting - above input on empty state */}
               {!isVoiceActive && messages.length === 0 && (
                 <Transition preset="fade" delay={0.1}><div
-                  className="flex justify-center mb-6"
+                  className={cn("flex justify-center mb-6", workspaceUI && "ws-live-greeting")}
                 >
                   <div className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-center">
                     <span className="relative inline-block">
@@ -1826,7 +1849,7 @@ export function MobileChatApp() {
 
       {/* Side-by-side Canvas Panel on RIGHT (Desktop only) with resize handle */}
       <WidthPanel open={isCanvasOpen && !isMobile} width={canvasWidthPercent + "%"} minWidth={MIN_DESKTOP_CANVAS_WIDTH} instant={isCanvasResizing}
-        className="flex-shrink-0 overflow-hidden bg-background flex relative border-l border-border/30">
+        className={cn("flex-shrink-0 overflow-hidden bg-background flex relative border-l border-border/30", workspaceUI && "ws-original-canvas-panel")}>
             {/* Resize Handle - positioned absolutely to extend grab area into chat */}
             <div
               className="absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize z-50 group"
