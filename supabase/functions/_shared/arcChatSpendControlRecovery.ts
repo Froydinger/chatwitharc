@@ -1,13 +1,24 @@
 import { priceArcTokenUsage } from "./arcUsageAccounting.ts";
-import type { ArcModelRoute, ArcTextModel } from "./arcModelRouting.ts";
+import {
+  ARC_LUNA,
+  type ArcModelRoute,
+  arcRequestComplexity,
+  type ArcTextModel,
+  resolveArcModelRoute,
+} from "./arcModelRouting.ts";
 import type { ArcModelUsageTicket } from "./arcModelUsage.ts";
-import { CloudAgentsApiRequestError } from "./cloudAgentsProvider.ts";
+import {
+  CloudAgentsApiRequestError,
+  isDefiniteNoGenerationRejectionStatus,
+} from "./cloudAgentsProvider.ts";
 
 export const ARC_CHAT_RECOVERY_TOKEN_LIMIT = 65_536;
 export const ARC_CHAT_RECOVERY_MIN_OUTPUT_TOKENS = 128;
 export const ARC_CHAT_RECOVERY_SEARCH_CONTEXT_BYTES = 8_192;
 export const ARC_CHAT_SPEND_CONTROL_RECOVERY_ATTEMPT_ID =
   "chat:spend-control-recovery";
+export const ARC_CHAT_SPEND_CONTROL_RECOVERY_LUNA_ATTEMPT_ID =
+  "chat:spend-control-recovery:input-fit-luna";
 
 export type RecoveryChatMessage = {
   role: string;
@@ -32,6 +43,60 @@ type RecoveryUsage = {
   ticket: ArcModelUsageTicket | null;
   notice?: string;
 };
+
+type RecoveryPrepareOptions = {
+  route: ArcModelRoute;
+  attemptId: string;
+};
+
+class RecoveryAllowanceTooSmallError extends Error {
+  constructor() {
+    super(
+      "The remaining model allowance is too small for a safe recovery response.",
+    );
+    this.name = "RecoveryAllowanceTooSmallError";
+  }
+}
+
+function sameRoute(left: ArcModelRoute, right: ArcModelRoute): boolean {
+  return left.model === right.model && left.effort === right.effort &&
+    left.selection === right.selection && left.task === right.task;
+}
+
+function expectedLunaRoute(
+  route: ArcModelRoute,
+  messages: RecoveryChatMessage[],
+): ArcModelRoute {
+  return resolveArcModelRoute({
+    selection: ARC_LUNA,
+    task: route.task,
+    complexity: arcRequestComplexity({ messages }),
+  });
+}
+
+function validateRecoveryUsage(
+  usage: RecoveryUsage,
+  requestedRoute: ArcModelRoute,
+  messages: RecoveryChatMessage[],
+): asserts usage is RecoveryUsage & { ticket: ArcModelUsageTicket } {
+  if (
+    !usage.ticket || usage.ticket.reservation.replayed ||
+    usage.ticket.reservation.allowed !== true
+  ) {
+    throw new Error(
+      "A fresh, non-replayed bounded model reservation is required.",
+    );
+  }
+  if (sameRoute(usage.route, requestedRoute) && !usage.notice) return;
+  const lunaRoute = expectedLunaRoute(requestedRoute, messages);
+  if (
+    requestedRoute.model !== ARC_LUNA && sameRoute(usage.route, lunaRoute) &&
+    typeof usage.notice === "string" && usage.notice.trim()
+  ) return;
+  throw new Error(
+    "The selected model allowance is no longer available for this request.",
+  );
+}
 
 export type SpendControlRecoveryEligibility = {
   voiceCompatibility: boolean;
@@ -215,13 +280,11 @@ export function boundedCompletionTokenLimit(
   );
   const byTotalTokens = maxTotalTokens - inputTokens;
   const outputTokens = Math.min(byReservation, byTotalTokens);
-  if (
-    !Number.isSafeInteger(outputTokens) ||
-    outputTokens < ARC_CHAT_RECOVERY_MIN_OUTPUT_TOKENS
-  ) {
-    throw new Error(
-      "The remaining model allowance is too small for a safe recovery response.",
-    );
+  if (!Number.isSafeInteger(outputTokens)) {
+    throw new Error("Could not calculate a safe recovery response budget.");
+  }
+  if (outputTokens < ARC_CHAT_RECOVERY_MIN_OUTPUT_TOKENS) {
+    throw new RecoveryAllowanceTooSmallError();
   }
   return outputTokens;
 }
@@ -344,7 +407,10 @@ export async function runBoundedChatRecovery(options: {
   messages: RecoveryChatMessage[];
   searchRequested: boolean;
   searchQuery: string;
-  prepare: (messages: RecoveryChatMessage[]) => Promise<RecoveryUsage>;
+  prepare: (
+    messages: RecoveryChatMessage[],
+    options: RecoveryPrepareOptions,
+  ) => Promise<RecoveryUsage>;
   search: (query: string) => Promise<RecoverySearchResult>;
   fetcher?: typeof fetch;
   signal?: AbortSignal;
@@ -401,37 +467,51 @@ export async function runBoundedChatRecovery(options: {
           searchUsed: true,
           searchSources: [],
           searchProvider: searchResult.searchProvider,
+          route: options.route,
           notice: undefined,
         };
       }
       messages.push(evidence.message);
     }
 
-    usage = await options.prepare(messages);
-    if (
-      !usage.ticket || usage.ticket.reservation.replayed ||
-      usage.ticket.reservation.allowed !== true
-    ) {
-      throw new Error(
-        "A fresh, non-replayed bounded model reservation is required.",
-      );
-    }
-    if (
-      usage.route.model !== options.route.model ||
-      usage.route.effort !== options.route.effort || usage.notice
-    ) {
-      throw new Error(
-        "The selected model allowance is no longer available for this request.",
-      );
-    }
+    usage = await options.prepare(messages, {
+      route: options.route,
+      attemptId: ARC_CHAT_SPEND_CONTROL_RECOVERY_ATTEMPT_ID,
+    });
+    validateRecoveryUsage(usage, options.route, messages);
     if (!isBoundedTextConversation(messages)) {
       throw new Error("This request is not text-only.");
     }
-    const outputTokens = boundedCompletionTokenLimit(
-      options.route.model,
-      usage.ticket.reservation.reservedNanos,
-      messages,
-    );
+    let outputTokens: number;
+    try {
+      outputTokens = boundedCompletionTokenLimit(
+        usage.route.model,
+        usage.ticket.reservation.reservedNanos,
+        messages,
+      );
+    } catch (error) {
+      if (
+        !(error instanceof RecoveryAllowanceTooSmallError) ||
+        usage.route.model === ARC_LUNA
+      ) throw error;
+      await usage.ticket.releaseIfNotStarted();
+      const lunaRoute = expectedLunaRoute(usage.route, messages);
+      usage = await options.prepare(messages, {
+        route: lunaRoute,
+        attemptId: ARC_CHAT_SPEND_CONTROL_RECOVERY_LUNA_ATTEMPT_ID,
+      });
+      validateRecoveryUsage(usage, lunaRoute, messages);
+      if (usage.route.model !== ARC_LUNA) {
+        throw new Error("A fresh GPT 6 Luna recovery reservation is required.");
+      }
+      usage.notice ??=
+        "This response uses GPT 6 Luna because the selected model allowance could not cover the full prompt.";
+      outputTokens = boundedCompletionTokenLimit(
+        usage.route.model,
+        usage.ticket.reservation.reservedNanos,
+        messages,
+      );
+    }
     if (options.signal?.aborted) {
       throw new DOMException("Chat request cancelled.", "AbortError");
     }
@@ -454,16 +534,16 @@ export async function runBoundedChatRecovery(options: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: options.route.model,
+            model: usage.route.model,
             messages,
-            reasoning_effort: options.route.effort,
+            reasoning_effort: usage.route.effort,
             max_completion_tokens: outputTokens,
             service_tier: "default",
           }),
           signal: controller.signal,
         },
       );
-      if (response.status >= 400 && response.status < 500) {
+      if (isDefiniteNoGenerationRejectionStatus(response.status)) {
         await usage.ticket.confirmZero("provider-rejected-" + response.status);
         throw new Error(
           "The bounded text completion was rejected. Please try again later.",
@@ -528,7 +608,7 @@ export async function runBoundedChatRecovery(options: {
         : undefined;
     const data = narrowCompletionData(
       payload,
-      options.route.model,
+      usage.route.model,
       totalTokens,
     );
     data.choices[0].message.content = truncateUtf8(message.content, 256_000);
@@ -537,6 +617,7 @@ export async function runBoundedChatRecovery(options: {
     }
     return {
       data,
+      route: usage.route,
       searchUsed: !!options.searchRequested,
       searchSources: sources,
       searchProvider: searchResult?.searchProvider,

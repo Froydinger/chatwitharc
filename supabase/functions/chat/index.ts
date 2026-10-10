@@ -13,13 +13,13 @@ import { browserbaseSessionStore } from '../_shared/browserbaseStore.ts';
 import { createBrowserProvider, liveBrowserEnabled as isLiveBrowserEnabled } from '../_shared/browserProvider.ts';
 import { streamAgentAnswer } from '../_shared/cloudAgentAnswerStream.ts';
 import { isMultiPageBuildRequest } from '../_shared/multiPageIntent.ts';
-import { cloudAgentsProvider } from '../_shared/cloudAgentsProvider.ts';
+import { cloudAgentsProvider, isDefiniteNoGenerationRejectionStatus } from '../_shared/cloudAgentsProvider.ts';
 import { authorizedArcModelRoute } from '../_shared/arcModelAccess.ts';
 import { ARC_ASTRA, ArcModelAccessError, legacyArcChatRoute } from '../_shared/arcModelRouting.ts';
 import { arcModelContext } from '../_shared/arcModelCatalog.ts';
 import { chatArtifactStream } from '../_shared/chatArtifactStream.ts';
 import { canRecoverSpendControlRejection, hasBoundedRecoveryActionIntent, isBoundedTextConversation,
-  ARC_CHAT_SPEND_CONTROL_RECOVERY_ATTEMPT_ID, runBoundedChatRecovery,
+  runBoundedChatRecovery,
   shouldUseBoundedRecoverySearch } from '../_shared/arcChatSpendControlRecovery.ts';
 
 const corsHeaders = {
@@ -1769,7 +1769,9 @@ product and is helping someone with it. Stay in that voice completely.`;
       });
       
       if (!streamResponse.ok) {
-        if (streamResponse.status >= 400 && streamResponse.status < 500) await modelUsage.ticket?.confirmZero(`provider-rejected-${streamResponse.status}`);
+        if (isDefiniteNoGenerationRejectionStatus(streamResponse.status)) {
+          await modelUsage.ticket?.confirmZero(`provider-rejected-${streamResponse.status}`);
+        }
         const errorData = await streamResponse.text();
         console.error('Streaming error:', streamResponse.status, errorData);
         
@@ -2335,21 +2337,22 @@ product and is helping someone with it. Stay in that voice completely.`;
               const result = await webSearch(query, lastUserContent);
               return { sources: result.sources, searchProvider: result.searchProvider };
             },
-            prepare: (providerMessages) => prepareArcModelUsage({
+            prepare: (providerMessages, recoveryOptions) => prepareArcModelUsage({
               db: supabase,
               user,
               request: body,
               providerInput: providerMessages,
               requestId: modelRequestId,
               source: 'chat',
-              attemptId: ARC_CHAT_SPEND_CONTROL_RECOVERY_ATTEMPT_ID,
-              route: modelUsage.route,
+              attemptId: recoveryOptions.attemptId,
+              route: recoveryOptions.route,
               maxTotalTokens: MAX_CHAT_AGENT_TOKENS,
             }),
             signal: clientSignal,
           });
-          finalResponseModel = selectedModel;
-          finalResponseEffort = modelReasoningEffort;
+          finalResponseModel = boundedRecovery.route.model;
+          finalResponseEffort = boundedRecovery.route.effort;
+          finalModelSwitchNotice = boundedRecovery.notice ?? modelUsage.notice;
           console.warn('Agents spend-control recovery used a bounded text-only completion.');
         }
 

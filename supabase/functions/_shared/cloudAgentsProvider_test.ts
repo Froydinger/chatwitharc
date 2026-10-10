@@ -1,4 +1,4 @@
-import { cloudAgentsProvider } from './cloudAgentsProvider.ts';
+import { CloudAgentsApiRequestError, cloudAgentsProvider } from './cloudAgentsProvider.ts';
 
 function assert(value: unknown, message = 'Assertion failed'): asserts value {
   if (!value) throw new Error(message);
@@ -47,6 +47,38 @@ Deno.test('input preparation failure never claims a provider POST happened', asy
   let failed = false;
   try { await provider.startAgentSession!([], 'request', 4000); } catch { failed = true; }
   assert(failed && !admitted && !fetched);
+});
+
+Deno.test('ambiguous Agents session POST statuses retain usage holds', async () => {
+  for (const status of [408, 409, 418, 499]) {
+    let rejectedCalls = 0;
+    const provider = cloudAgentsProvider({
+      apiKey: 'test',
+      instructions: '',
+      reasoningEffort: 'none',
+      model: 'gpt-6-luna',
+      tools: [],
+      spendLimitCents: 5,
+      onRejected: async () => {
+        rejectedCalls++;
+      },
+      fetcher: (async () => Response.json({ error: {
+        type: 'invalid_request_error',
+        code: 'invalid_request_error',
+        param: 'spend_control',
+        message: 'This feature is not yet enabled for your organization',
+      } }, { status })) as typeof fetch,
+    });
+    let caught: unknown;
+    try {
+      await provider.startAgentSession!([{ role: 'user', content: 'Hi' }], 'ambiguous', 65_536);
+    } catch (error) {
+      caught = error;
+    }
+    assert(caught instanceof CloudAgentsApiRequestError);
+    assert(!caught.confirmedZero, `status ${status} must retain the hold`);
+    assert(rejectedCalls === 0, `status ${status} must not call zero settlement`);
+  }
 });
 
 Deno.test('metered cancellation settles only after a confirmed terminal turn', async () => {

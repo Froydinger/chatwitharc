@@ -7,6 +7,7 @@ import {
 } from "./cloudAgentsProvider.ts";
 import {
   ARC_CHAT_SPEND_CONTROL_RECOVERY_ATTEMPT_ID,
+  ARC_CHAT_SPEND_CONTROL_RECOVERY_LUNA_ATTEMPT_ID,
   boundedCompletionTokenLimit,
   canRecoverSpendControlRejection,
   hasBoundedRecoveryActionIntent,
@@ -18,7 +19,8 @@ import {
   type SpendControlRecoveryEligibility,
 } from "./arcChatSpendControlRecovery.ts";
 import { priceArcTokenUsage } from "./arcUsageAccounting.ts";
-import type { ArcModelRoute } from "./arcModelRouting.ts";
+import { ARC_LUNA, ARC_SOL, type ArcModelRoute } from "./arcModelRouting.ts";
+import { prepareArcModelUsage } from "./arcModelUsage.ts";
 import type { ArcModelUsageTicket } from "./arcModelUsage.ts";
 
 function assert(value: unknown, message = "Assertion failed"): asserts value {
@@ -128,6 +130,83 @@ function ticket(options: { replayed?: boolean; reservedNanos?: number } = {}) {
     observations: () => observations,
     unstartedReleases: () => unstartedReleases,
   };
+}
+
+function usageLedgerFixture(options: {
+  deniedModels?: string[];
+  reservedCents?: number;
+} = {}) {
+  const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
+  let reservationNumber = 0;
+  const db = {
+    async rpc(name: string, args: Record<string, unknown>) {
+      calls.push({ name, args });
+      if (name === "reserve_arc_usage") {
+        const model = String(args.model_name);
+        const allowed = !options.deniedModels?.includes(model);
+        reservationNumber++;
+        return {
+          error: null,
+          data: {
+            allowed,
+            reservationId: allowed ? `reservation-${reservationNumber}` : null,
+            replayed: false,
+            enforcementEnabled: true,
+            configured: true,
+            adminUncapped: false,
+            cumulativeCostNanos: 0,
+            reservedNanos: options.reservedCents === undefined
+              ? args.requested_nanos
+              : options.reservedCents * 10_000_000,
+          },
+        };
+      }
+      if (name === "record_arc_usage") {
+        return {
+          error: null,
+          data: {
+            revision: calls.filter((call) => call.name === "record_arc_usage")
+              .length,
+            cumulativeCostNanos: args.cumulative_nanos,
+            replayed: false,
+            enforcementEnabled: true,
+          },
+        };
+      }
+      throw new Error(`Unexpected usage ledger RPC: ${name}`);
+    },
+  };
+  return {
+    db,
+    calls,
+    reservations: () =>
+      calls.filter((call) => call.name === "reserve_arc_usage"),
+    receipts: () => calls.filter((call) => call.name === "record_arc_usage"),
+  };
+}
+
+function recoveryRequest(messages: RecoveryChatMessage[]) {
+  return { modelSelection: ARC_SOL, messages };
+}
+
+async function prepareRealUsage(
+  db: ReturnType<typeof usageLedgerFixture>["db"],
+  route: ArcModelRoute,
+  messages: RecoveryChatMessage[],
+  attemptId: string,
+  requestId = "recovery-integration",
+) {
+  return await prepareArcModelUsage({
+    db,
+    user: { id: "integration-user" },
+    requestId,
+    request: recoveryRequest(messages),
+    providerInput: messages,
+    route,
+    source: "chat",
+    attemptId,
+    maxTotalTokens: 65_536,
+  });
 }
 
 Deno.test("recovery gate accepts only a confirmed unavailable spend_control rejection", () => {
@@ -577,6 +656,166 @@ Deno.test("route changes, usage exhaustion, replay, and cancellation never reach
   assert(rejected && requests === 0 && releases === 1);
 });
 
+Deno.test("prepareArcModelUsage quota fallback uses its fresh Luna route and notice", async () => {
+  const ledger = usageLedgerFixture({
+    deniedModels: [ARC_SOL],
+    reservedCents: 5,
+  });
+  const messages: RecoveryChatMessage[] = [
+    { role: "system", content: "System instructions" },
+    { role: "user", content: "Hi" },
+  ];
+  const requests: Array<Record<string, unknown>> = [];
+  const result = await runBoundedChatRecovery({
+    apiKey: "test",
+    requestId: "quota-fallback",
+    route: solRoute,
+    messages,
+    searchRequested: false,
+    searchQuery: "Hi",
+    search: async () => ({ sources: [], searchProvider: "tavily" }),
+    prepare: (providerMessages, options) =>
+      prepareRealUsage(
+        ledger.db,
+        options.route,
+        providerMessages,
+        options.attemptId,
+        "quota-fallback",
+      ),
+    fetcher: (async (_input, init) => {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      requests.push(body);
+      return Response.json({
+        id: "quota-fallback-response",
+        model: body.model,
+        usage: {
+          prompt_tokens: 1_100,
+          completion_tokens: 50,
+          total_tokens: 1_150,
+        },
+        choices: [{
+          message: { role: "assistant", content: "Hello from Luna." },
+          finish_reason: "stop",
+        }],
+      });
+    }) as typeof fetch,
+  });
+  assert(ledger.reservations().length === 2);
+  assert(ledger.reservations()[0].args.model_name === ARC_SOL);
+  assert(ledger.reservations()[1].args.model_name === ARC_LUNA);
+  assert(ledger.reservations()[1].args.attempt_key === "chat:fallback-luna");
+  assert(requests.length === 1 && requests[0].model === ARC_LUNA);
+  assert(requests[0].reasoning_effort === "none");
+  assert(result.route.model === ARC_LUNA && result.route.effort === "none");
+  assert(result.data.model === ARC_LUNA);
+  assert(result.notice?.includes("GPT 6 Luna"));
+  assert(result.data.choices[0].message.content === "Hello from Luna.");
+});
+
+Deno.test("prepareArcModelUsage converts a 5-cent Sol hold to bounded Luna for a full search prompt", async () => {
+  const ledger = usageLedgerFixture({ reservedCents: 5 });
+  const systemPrompt = [
+    "DEFAULT BLOCK 1\n" + "A".repeat(3_300),
+    "DEFAULT BLOCK 2\n" + "B".repeat(3_300),
+    "DEFAULT BLOCK 3\n" + "C".repeat(3_300),
+    "DEFAULT BLOCK 4\n" + "D".repeat(3_300),
+    "DEFAULT BLOCK 5\n" + "E".repeat(3_300),
+    "DEFAULT BLOCK 6\n" + "F".repeat(3_300),
+  ].join("\n\n");
+  assert(new TextEncoder().encode(systemPrompt).byteLength >= 19_902);
+  const messages: RecoveryChatMessage[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: "What is the latest release?" },
+  ];
+  const reservations: Array<{ route: ArcModelRoute; attemptId: string }> = [];
+  const requests: Array<Record<string, unknown>> = [];
+  const sources = Array.from({ length: 6 }, (_, index) => ({
+    title: `Source ${index + 1}`,
+    url: `https://example.test/${index + 1}`,
+    content: `Relevant verified release information ${index + 1}. `.repeat(16),
+  }));
+  const result = await runBoundedChatRecovery({
+    apiKey: "test",
+    requestId: "input-fit-fallback",
+    route: solRoute,
+    messages,
+    searchRequested: true,
+    searchQuery: "latest release",
+    search: async () => ({ sources, searchProvider: "tavily" }),
+    prepare: (providerMessages, options) => {
+      reservations.push({ route: options.route, attemptId: options.attemptId });
+      return prepareRealUsage(
+        ledger.db,
+        options.route,
+        providerMessages,
+        options.attemptId,
+        "input-fit-fallback",
+      );
+    },
+    fetcher: (async (_input, init) => {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      requests.push(body);
+      return Response.json({
+        id: "input-fit-fallback-response",
+        model: body.model,
+        usage: {
+          prompt_tokens: 30_000,
+          completion_tokens: 1_000,
+          total_tokens: 31_000,
+        },
+        choices: [{
+          message: {
+            role: "assistant",
+            content: "The sources describe the release.",
+          },
+          finish_reason: "stop",
+        }],
+      });
+    }) as typeof fetch,
+  });
+  assert(reservations.length === 2);
+  assert(reservations[0].route.model === ARC_SOL);
+  assert(
+    reservations[0].attemptId === ARC_CHAT_SPEND_CONTROL_RECOVERY_ATTEMPT_ID,
+  );
+  assert(reservations[1].route.model === ARC_LUNA);
+  assert(
+    reservations[1].attemptId ===
+      ARC_CHAT_SPEND_CONTROL_RECOVERY_LUNA_ATTEMPT_ID,
+  );
+  assert(ledger.reservations().length === 2);
+  assert(ledger.reservations()[0].args.model_name === ARC_SOL);
+  assert(ledger.reservations()[1].args.model_name === ARC_LUNA);
+  assert(
+    ledger.reservations()[0].args.attempt_key !==
+      ledger.reservations()[1].args.attempt_key,
+  );
+  assert(ledger.receipts().length === 2);
+  assert(ledger.receipts()[0].args.cumulative_nanos === 0);
+  assert(
+    (ledger.receipts()[0].args.usage_detail as Record<string, unknown>)
+      .reason ===
+      "provider-not-started",
+  );
+  assert(requests.length === 1);
+  assert(
+    requests[0].model === ARC_LUNA && requests[0].reasoning_effort === "none",
+  );
+  assert(requests[0].service_tier === "default");
+  assert(
+    typeof requests[0].max_completion_tokens === "number" &&
+      Number(requests[0].max_completion_tokens) <= 65_536,
+  );
+  assert(result.route.model === ARC_LUNA && result.route.effort === "none");
+  assert(result.data.model === ARC_LUNA);
+  assert(result.notice?.includes("could not cover the full prompt"));
+  assert(result.searchUsed && result.searchSources.length === 6);
+  assert(
+    result.data.choices[0].message.content ===
+      "The sources describe the release.",
+  );
+});
+
 Deno.test("ambiguous transport failure keeps the fresh model reservation and is never retried", async () => {
   const usageTicket = ticket();
   let requests = 0;
@@ -639,6 +878,98 @@ Deno.test("ambiguous provider 5xx retains its fresh hold and is never retried", 
     usageTicket.zeroConfirmations() === 0 &&
       usageTicket.unstartedReleases() === 0,
   );
+});
+
+Deno.test("prepared usage tickets retain 408, 409, and unknown 4xx holds without retry", async () => {
+  for (const status of [408, 409, 418, 499]) {
+    const ledger = usageLedgerFixture({ reservedCents: 5 });
+    const messages: RecoveryChatMessage[] = [
+      { role: "system", content: "System" },
+      { role: "user", content: "Hi" },
+    ];
+    let requests = 0;
+    let rejected = false;
+    try {
+      await runBoundedChatRecovery({
+        apiKey: "test",
+        requestId: `ambiguous-${status}`,
+        route: solRoute,
+        messages,
+        searchRequested: false,
+        searchQuery: "Hi",
+        search: async () => ({ sources: [], searchProvider: "tavily" }),
+        prepare: (_providerMessages, options) =>
+          prepareRealUsage(
+            ledger.db,
+            options.route,
+            messages,
+            options.attemptId,
+            `ambiguous-${status}`,
+          ),
+        fetcher: (async () => {
+          requests++;
+          return Response.json({ error: "ambiguous request outcome" }, {
+            status,
+          });
+        }) as typeof fetch,
+      });
+    } catch {
+      rejected = true;
+    }
+    assert(rejected && requests === 1, `status ${status} must not retry`);
+    assert(ledger.reservations().length === 1);
+    assert(
+      ledger.receipts().length === 0,
+      `status ${status} must retain its hold`,
+    );
+  }
+});
+
+Deno.test("only definite pre-generation rejection statuses release a prepared reservation", async () => {
+  for (const status of [400, 401, 403, 404, 413, 422, 429]) {
+    const ledger = usageLedgerFixture({ reservedCents: 5 });
+    const messages: RecoveryChatMessage[] = [
+      { role: "system", content: "System" },
+      { role: "user", content: "Hi" },
+    ];
+    let requests = 0;
+    let rejected = false;
+    try {
+      await runBoundedChatRecovery({
+        apiKey: "test",
+        requestId: `rejected-${status}`,
+        route: solRoute,
+        messages,
+        searchRequested: false,
+        searchQuery: "Hi",
+        search: async () => ({ sources: [], searchProvider: "tavily" }),
+        prepare: (_providerMessages, options) =>
+          prepareRealUsage(
+            ledger.db,
+            options.route,
+            messages,
+            options.attemptId,
+            `rejected-${status}`,
+          ),
+        fetcher: (async () => {
+          requests++;
+          return Response.json({ error: "definite request rejection" }, {
+            status,
+          });
+        }) as typeof fetch,
+      });
+    } catch {
+      rejected = true;
+    }
+    assert(rejected && requests === 1, `status ${status} must not retry`);
+    assert(ledger.receipts().length === 1);
+    assert(ledger.receipts()[0].args.cumulative_nanos === 0);
+    assert(
+      (ledger.receipts()[0].args.usage_detail as Record<string, unknown>)
+        .reason ===
+        `provider-rejected-${status}`,
+    );
+  }
 });
 
 Deno.test("client cancellation after model dispatch aborts without a retry or zero settlement", async () => {
@@ -787,37 +1118,125 @@ Deno.test("no search evidence yields a transparent answer without a model call",
   assert(calls === 0 && prepared === 0);
 });
 
-Deno.test("Agents rejection classifier matches the confirmed unsupported/not-enabled spend-control category and confirmed zero settlement", async () => {
-  for (
-    const providerError of [
-      {
-        type: "",
+Deno.test("Agents rejection classifier matches the observed not-enabled category and rejects counterexamples", async () => {
+  const observedProviderError = {
+    type: "",
+    code: "invalid_request_error",
+    param: "spend_control",
+    message: "This feature is not yet enabled for your organization",
+  };
+  let confirmations = 0;
+  const observedProvider = cloudAgentsProvider({
+    apiKey: "test",
+    instructions: "",
+    reasoningEffort: "none",
+    model: "gpt-6-luna",
+    tools: [],
+    spendLimitCents: 4,
+    onRejected: async (reason) => {
+      assert(reason === "provider-rejected-400");
+      confirmations++;
+    },
+    fetcher: (async () =>
+      Response.json({ error: observedProviderError }, {
+        status: 400,
+        headers: { "x-request-id": "req_observed_fixture" },
+      })) as typeof fetch,
+  });
+  let observedCaught: unknown;
+  try {
+    await observedProvider.startAgentSession!(
+      [{ role: "user", content: "Hi" }],
+      "test",
+      65_536,
+    );
+  } catch (error) {
+    observedCaught = error;
+  }
+  assert(
+    observedCaught instanceof CloudAgentsApiRequestError &&
+      observedCaught.spendControlUnavailable && observedCaught.confirmedZero,
+  );
+  assert(confirmations === 1);
+
+  const counterexamples = [
+    {
+      status: 400,
+      error: {
+        type: "invalid_request_error",
+        code: "invalid_type",
+        param: "spend_control",
+        message: "limit must be an integer greater than or equal to 1",
+      },
+    },
+    {
+      status: 400,
+      error: {
+        type: "invalid_request_error",
         code: "invalid_request_error",
         param: "spend_control",
-        message:
-          "The provider does not support or has not enabled spend control for this request.",
+        message: "This feature is not yet enabled for this model",
       },
-      {
+    },
+    {
+      status: 400,
+      error: {
         type: "invalid_request_error",
-        code: "",
+        code: "invalid_request_error",
         param: "spend_control",
-        message: "spend_control is unsupported for this project",
+        message: "Unrecognized parameter spend_control",
       },
-      {
+    },
+    {
+      status: 400,
+      error: {
         type: "invalid_request_error",
-        code: "feature_not_available",
+        code: "invalid_request_error",
         param: "spend_control",
-        message: "Feature is unavailable",
+        message: "This feature is not yet enabled in this sandbox",
       },
-      {
+    },
+    {
+      status: 400,
+      error: {
         type: "invalid_request_error",
-        code: "unsupported_parameter",
+        code: "invalid_request_error",
         param: "spend_control",
-        message: "unsupported parameter",
+        message: "Access denied for this feature",
       },
-    ]
-  ) {
-    let confirmations = 0;
+    },
+    {
+      status: 400,
+      error: {
+        type: "invalid_request_error",
+        code: "invalid_request_error",
+        param: "spend_control",
+        message: "A payment setup prerequisite is required",
+      },
+    },
+    {
+      status: 400,
+      error: {
+        type: "invalid_request_error",
+        code: "invalid_request_error",
+        param: "spend_control.limit",
+        message: "This feature is not yet enabled for your organization",
+      },
+    },
+    {
+      status: 422,
+      error: observedProviderError,
+    },
+    {
+      status: 400,
+      error: {
+        ...observedProviderError,
+        type: "",
+        code: "invalid_type",
+      },
+    },
+  ];
+  for (const counterexample of counterexamples) {
     const provider = cloudAgentsProvider({
       apiKey: "test",
       instructions: "",
@@ -825,13 +1244,10 @@ Deno.test("Agents rejection classifier matches the confirmed unsupported/not-ena
       model: "gpt-6-luna",
       tools: [],
       spendLimitCents: 4,
-      onRejected: async (reason) => {
-        assert(reason === "provider-rejected-400");
-        confirmations++;
-      },
+      onRejected: async () => {},
       fetcher: (async () =>
-        Response.json({ error: providerError }, {
-          status: 400,
+        Response.json({ error: counterexample.error }, {
+          status: counterexample.status,
         })) as typeof fetch,
     });
     let caught: unknown;
@@ -844,45 +1260,12 @@ Deno.test("Agents rejection classifier matches the confirmed unsupported/not-ena
     } catch (error) {
       caught = error;
     }
+    assert(caught instanceof CloudAgentsApiRequestError);
     assert(
-      caught instanceof CloudAgentsApiRequestError &&
-        caught.spendControlUnavailable && caught.confirmedZero,
+      !caught.spendControlUnavailable,
+      "counterexample must not classify as unavailable",
     );
-    assert(confirmations === 1);
   }
-
-  let malformed: unknown;
-  const invalidAmount = cloudAgentsProvider({
-    apiKey: "test",
-    instructions: "",
-    reasoningEffort: "none",
-    model: "gpt-6-luna",
-    tools: [],
-    spendLimitCents: 4,
-    onRejected: async () => {},
-    fetcher: (async () =>
-      Response.json({
-        error: {
-          type: "invalid_request_error",
-          code: "invalid_type",
-          param: "spend_control",
-          message: "limit must be an integer greater than or equal to 1",
-        },
-      }, { status: 400 })) as typeof fetch,
-  });
-  try {
-    await invalidAmount.startAgentSession!(
-      [{ role: "user", content: "Hi" }],
-      "test",
-      65_536,
-    );
-  } catch (error) {
-    malformed = error;
-  }
-  assert(
-    malformed instanceof CloudAgentsApiRequestError &&
-      !malformed.spendControlUnavailable,
-  );
 });
 
 Deno.test("zero-settlement failure blocks recovery classification", async () => {
