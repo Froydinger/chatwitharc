@@ -1,6 +1,6 @@
 import { BoostIcon } from '@/components/BoostIcon';
 import { useImageQuota } from '@/hooks/useImageQuota';
-import { useState, useEffect } from "react";
+import { useContext, useState, useEffect } from "react";
 import { PlanUsageBreakdown } from "@/components/PlanUsageBreakdown";
 import { SequencedTransition } from "@/components/transitions/SequencedTransition";
 import {
@@ -28,6 +28,9 @@ import {
   Lock,
   Cpu,
   ChevronDown,
+  Monitor,
+  Moon,
+  Sun,
   ArrowRight,
   Plug,
   Database,
@@ -104,8 +107,12 @@ import { isMobileLocalDevice } from "@/utils/mobileLocal";
 import { useStarfieldStore } from "@/store/useStarfieldStore";
 import { BOOST_PLAN_SUMMARY, FREE_PLAN_SUMMARY } from "@/lib/planCopy";
 import { BOOST_NEW_SUBSCRIBER_PRICE_COPY } from "@/lib/boostPricing";
+import { WorkspaceSettingsRowsContext, useWorkspaceSettingsRows } from '@/workspace/settingsPresentation';
+import { WorkspaceSettingsPage } from "@/workspace/WorkspaceSettingsPage";
+import { resolveSettingsSectionQuery, searchParamsForSettingsSection, type SettingsSectionId } from "@/workspace/settingsSections";
 
-type SectionId = "account" | "appearance" | "ai" | "connectors" | "privacy" | "plan";
+type SectionId = SettingsSectionId;
+
 
 const SECTIONS: { id: SectionId; label: string; icon: LucideIcon; subtitle: string }[] = [
   { id: "account",    label: "Account",       icon: User,        subtitle: "Identity & login" },
@@ -128,6 +135,21 @@ function ComingSoonConnector({
   name: string;
   description: string;
 }) {
+  const workspacePresentation = useContext(WorkspaceSettingsRowsContext);
+  if (workspacePresentation) {
+    return (
+      <section className="workspace-settings-group workspace-coming-connector">
+        <div className="workspace-settings-row">
+          <div className="workspace-coming-connector-icon"><Icon aria-hidden="true" /></div>
+          <div className="workspace-settings-row-copy">
+            <div className="workspace-settings-row-title">{name}</div>
+            <p className="workspace-settings-row-description">{description}</p>
+          </div>
+          <span className="workspace-coming-connector-status">Coming soon</span>
+        </div>
+      </section>
+    );
+  }
   return (
     <GlassCard className="rounded-[28px] border border-white/[0.06] bg-white/[0.015] p-5 shadow-[0_22px_80px_rgba(0,0,0,0.12)]">
       <div className="flex items-start gap-3">
@@ -160,6 +182,15 @@ function SectionCard({
   children: React.ReactNode;
   className?: string;
 }) {
+  const workspacePresentation = useContext(WorkspaceSettingsRowsContext);
+  if (workspacePresentation) {
+    return (
+      <section className="workspace-settings-group">
+        <header><h3>{title}</h3></header>
+        <div className="workspace-settings-group-body">{children}</div>
+      </section>
+    );
+  }
   return (
     <GlassCard className={cn("rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-5 shadow-[0_22px_80px_rgba(0,0,0,0.12)] space-y-4", className)}>
       <div className="flex items-start gap-3">
@@ -195,7 +226,27 @@ function Tile({
   className?: string;
   children?: React.ReactNode;
 }) {
+  const workspacePresentation = useContext(WorkspaceSettingsRowsContext);
   const Comp: any = onClick ? "button" : "div";
+  if (workspacePresentation) {
+    const hasRowHeading = Boolean(Icon || title || description || right);
+    return (
+      <Comp
+        type={onClick ? "button" : undefined}
+        onClick={onClick}
+        className={cn("workspace-settings-row", !hasRowHeading && children && "workspace-settings-row--content", className)}
+      >
+        {hasRowHeading && (
+          <div className="workspace-settings-row-copy">
+            {title && <div className="workspace-settings-row-title">{title}</div>}
+            {description && <div className="workspace-settings-row-description">{description}</div>}
+          </div>
+        )}
+        {right && <div className="workspace-settings-row-control">{right}</div>}
+        {children && <div className="workspace-settings-row-content">{children}</div>}
+      </Comp>
+    );
+  }
   return (
     <Comp
       onClick={onClick}
@@ -227,8 +278,23 @@ function Tile({
 
 
 function ImageDefaultsCard() {
+  const workspace = useWorkspaceSettingsRows();
   const { aspectRatio, setAspectRatio } = useImageGenStore();
   const { remainingCredits } = useImageQuota();
+
+  if (workspace) return (
+    <SectionCard icon={ImageIcon} title="Images">
+      <Tile title="Aspect ratio" description="Default shape for generated images." right={
+        <div className="workspace-settings-options" role="group" aria-label="Image aspect ratio">
+          {IMAGE_ASPECT_OPTIONS.map(opt => <button key={opt.id} type="button"
+            className="workspace-settings-choice" aria-pressed={aspectRatio === opt.id}
+            onClick={() => setAspectRatio(opt.id as ImageAspectRatio)}>{opt.label}</button>)}
+        </div>
+      } />
+      <Tile title="Image modes" description="GPT 2.5 Flare · GPT 2.5 Flare HQ · GPT 2.5 Sunburst" />
+      <Tile title="Allowance" right={<span className="workspace-settings-value">{remainingCredits === Infinity ? "Unlimited" : `${remainingCredits} remaining`}</span>} />
+    </SectionCard>
+  );
 
   return (
     <SectionCard icon={ImageIcon} title="Images" subtitle="Defaults and model specifications">
@@ -273,10 +339,10 @@ function ImageDefaultsCard() {
   );
 }
 
-export function SettingsPanel() {
+export function SettingsPanel({ workspacePresentation = false }: { workspacePresentation?: boolean } = {}) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [section, setSection] = useState<SectionId>("account");
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const {
     clearAllSessions,
@@ -296,6 +362,10 @@ export function SettingsPanel() {
   } = useSubscription();
   const { toast } = useToast();
   const themeMode = useAccentStore((s) => s.themeMode);
+  const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
+  const setThemeMode = useAccentStore((s) => s.setThemeMode);
+  const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
+  const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
 
 
 
@@ -331,18 +401,14 @@ export function SettingsPanel() {
   }, []);
 
   useEffect(() => {
-    const sectionParam = searchParams.get("section")?.toLowerCase();
-    if (!sectionParam) return;
-    if (SECTIONS.some((s) => s.id === sectionParam)) {
-      setSection(sectionParam as SectionId);
-    } else if (sectionParam === "billing" || sectionParam === "subscription") {
-      setSection("plan");
-    } else if (sectionParam === "profile" || sectionParam === "general") {
-      setSection("account");
-    } else if (sectionParam === "models" || sectionParam === "voice") {
-      setSection("ai");
+    const sectionParam = searchParams.get("section");
+    if (!sectionParam) {
+      if (workspacePresentation) setSection("account");
+      return;
     }
-  }, [searchParams]);
+    const resolvedSection = resolveSettingsSectionQuery(sectionParam);
+    if (resolvedSection) setSection(resolvedSection);
+  }, [searchParams, workspacePresentation]);
 
   useEffect(() => {
     if (!displayNameDirty) setDisplayNameDraft(profile?.display_name || "");
@@ -473,8 +539,9 @@ export function SettingsPanel() {
   const ProfileCard = (
     <SectionCard icon={User} title="Profile" subtitle="Name & avatar">
       <Tile>
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className={workspacePresentation ? "workspace-profile-row" : "flex items-center gap-4"}>
+          {workspacePresentation && <div className="workspace-settings-row-copy"><label htmlFor="settings-display-name" className="workspace-settings-row-title">Name & avatar</label><p className="workspace-settings-row-description">How you appear in Arc.</p></div>}
+          <div className={workspacePresentation ? "relative shrink-0" : "relative"}>
             <div className="h-16 w-16 rounded-full overflow-hidden bg-muted/30 border border-border/40 flex items-center justify-center">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="avatar" className="h-full w-full object-cover" />
@@ -484,6 +551,7 @@ export function SettingsPanel() {
             </div>
             <label
               htmlFor="avatar-upload"
+              aria-label="Change profile picture"
               className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:scale-105 transition shadow-md"
             >
               {isUploading ? (
@@ -501,8 +569,10 @@ export function SettingsPanel() {
               disabled={isUploading}
             />
           </div>
-          <div className="flex-1 space-y-2">
+          <div className={workspacePresentation ? "workspace-profile-name" : "flex-1 space-y-2"}>
             <Input
+              id="settings-display-name"
+              aria-label="Display name"
               value={displayNameDraft}
               onChange={(e) => { setDisplayNameDraft(e.target.value); setDisplayNameDirty(true); }}
               placeholder="Your name"
@@ -691,6 +761,32 @@ export function SettingsPanel() {
       />
     </SectionCard>
   );
+  const ThemeCard = (
+    <SectionCard icon={ThemeIcon} title="Theme">
+      <Tile
+        icon={ThemeIcon}
+        title="Color mode"
+        description="Choose light, dark, or follow your device."
+        right={workspacePresentation ? (
+          <div className="workspace-theme-options" role="group" aria-label="Theme">
+            {(['dark', 'light', 'system'] as const).map(mode => (
+              <button
+                key={mode}
+                type="button"
+                className="workspace-settings-choice"
+                aria-pressed={themeMode === mode}
+                onClick={() => setThemeMode(mode)}
+              >
+                {mode[0].toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button type="button" className="workspace-settings-choice" aria-label={`Theme: ${themeLabel}`} onClick={cycleThemeMode}>{themeLabel}</button>
+        )}
+      />
+    </SectionCard>
+  );
   const FontCard = (
     <SectionCard
       icon={Stars}
@@ -698,7 +794,12 @@ export function SettingsPanel() {
       subtitle="Pick a font for your whole app"
       className="lg:col-span-2"
     >
-      <Tile>
+      {workspacePresentation ? <Tile title="App font" description="Pick a font for your whole app." right={
+        <select className="workspace-settings-select" aria-label="App font" value={customFont}
+          onChange={event => { const next = event.target.value as CustomFontId; setCustomFont(next); setStoredCustomFont(next); }}>
+          {AVAILABLE_FONTS.map(font => <option key={font.id} value={font.id}>{font.label}</option>)}
+        </select>
+      } /> : <Tile>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full">
             {AVAILABLE_FONTS.map((f) => {
               const isActive = customFont === f.id;
@@ -719,7 +820,7 @@ export function SettingsPanel() {
               );
             })}
           </div>
-      </Tile>
+      </Tile>}
     </SectionCard>
   );
 
@@ -728,9 +829,7 @@ export function SettingsPanel() {
 
   const VoiceCard = (
     <SectionCard icon={Mic} title="Voice Mode" subtitle="Choose your assistant's voice and speed">
-      <Tile>
-        <VoiceSelector />
-      </Tile>
+      {workspacePresentation ? <VoiceSelector /> : <Tile><VoiceSelector /></Tile>}
     </SectionCard>
   );
 
@@ -848,7 +947,7 @@ export function SettingsPanel() {
       subtitle="Manage your ArcAI billing tier"
     >
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between p-3 bg-muted/20 rounded-xl">
+        <div className={workspacePresentation ? "workspace-settings-row workspace-subscription-row" : "flex items-center justify-between p-3 bg-muted/20 rounded-xl"}>
           <div>
             <div className="text-sm font-semibold flex items-center gap-1.5">
               {quotaAdmin ? (
@@ -865,7 +964,7 @@ export function SettingsPanel() {
                 <span>ArcAI Free Tier</span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+            <p className={workspacePresentation ? "workspace-settings-row-description" : "text-xs text-muted-foreground mt-1 max-w-xs"}>
               {quotaAdmin 
                 ? "Unlimited reasoning chats and image outputs." 
                 : hasBoost 
@@ -874,7 +973,7 @@ export function SettingsPanel() {
               }
             </p>
             {!quotaAdmin && (
-              <p className="text-[11px] text-muted-foreground mt-1.5 max-w-xs">
+              <p className={workspacePresentation ? "workspace-settings-row-description" : "text-[11px] text-muted-foreground mt-1.5 max-w-xs"}>
                 {BOOST_NEW_SUBSCRIBER_PRICE_COPY}
               </p>
             )}
@@ -929,6 +1028,7 @@ export function SettingsPanel() {
       case "appearance":
         return (
           <>
+            {workspacePresentation && ThemeCard}
             {StarfieldCard}
             {FontCard}
           </>
@@ -944,15 +1044,15 @@ export function SettingsPanel() {
             <LocalAIPanel />
             <Link
               to="/status"
-              className="group flex items-center justify-between gap-3 p-4 rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md hover:bg-card/60 hover:border-primary/40 transition-all"
+              className={workspacePresentation ? "workspace-settings-row workspace-settings-status-link" : "group flex items-center justify-between gap-3 p-4 rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md hover:bg-card/60 hover:border-primary/40 transition-all"}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                <div className={workspacePresentation ? "workspace-settings-row-icon" : "h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0"}>
                   <Activity className="h-4 w-4" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-semibold text-foreground">System Status</span>
-                  <span className="text-xs text-muted-foreground truncate">
+                  <span className={workspacePresentation ? "workspace-settings-row-title" : "text-sm font-semibold text-foreground"}>System Status</span>
+                  <span className={workspacePresentation ? "workspace-settings-row-description" : "text-xs text-muted-foreground truncate"}>
                     Check live status of Arc's AI & services
                   </span>
                 </div>
@@ -964,7 +1064,7 @@ export function SettingsPanel() {
       case "connectors":
         return (
           <>
-            <GitHubIntegrationCard />
+            <GitHubIntegrationCard presentation={workspacePresentation ? 'workspace' : 'legacy'} />
             <ComingSoonConnector
               icon={Database}
               name="Supabase"
@@ -1041,6 +1141,34 @@ export function SettingsPanel() {
       </div>
     </div>
   );
+
+  if (workspacePresentation) {
+    const changeSection = (nextSection: string) => {
+      const next = searchParamsForSettingsSection(searchParams, nextSection as SectionId);
+      setSearchParams(next);
+      setSection(nextSection as SectionId);
+    };
+
+    return (
+      <WorkspaceSettingsRowsContext.Provider value>
+        <WorkspaceSettingsPage
+          sections={SECTIONS}
+          activeSection={section}
+          onSectionChange={changeSection}
+          footer={Footer}
+        >
+          <SequencedTransition contentKey={section} className="workspace-settings-groups">
+            {renderSection()}
+          </SequencedTransition>
+        </WorkspaceSettingsPage>
+        <DeleteDataModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onDeleted={handleDataDeleted}
+        />
+      </WorkspaceSettingsRowsContext.Provider>
+    );
+  }
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20 pt-2">

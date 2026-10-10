@@ -11,10 +11,12 @@ import { useAdminBanner } from "@/components/AdminBanner";
 import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useAccentStore } from "@/store/useAccentStore";
 import { useAccentColor } from "@/hooks/useAccentColor";
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext";
 
 export function DashboardSettingsPage() {
   // Dashboard unmounts here; keep Noir variables in sync with this page's theme toggle.
   useAccentColor();
+  const workspaceUI = useWorkspaceUI();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const isAdminBannerActive = useAdminBanner();
@@ -33,6 +35,9 @@ export function DashboardSettingsPage() {
   }, [loading, user, navigate]);
 
   if (loading) return null;
+  if (workspaceUI) {
+    return <div className="workspace-settings-host"><SettingsPanel workspacePresentation /></div>;
+  }
 
   return (
     <div

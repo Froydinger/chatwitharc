@@ -152,7 +152,7 @@ export function ChatModelPicker({
                         className="t-tab"
                         data-mode="auto"
                         aria-pressed={arcMode === 'auto'}
-                        title={arcWorkAvailable ? 'Arc Work keeps running after you leave' : 'Arc Work requires Boost'}
+                        title={arcWorkAvailable ? 'Arc Work' : 'Arc Work requires Boost'}
                         onClick={() => {
                           if (!arcWorkAvailable) {
                             setOpen(false);
@@ -166,25 +166,23 @@ export function ChatModelPicker({
                         <BoostIcon hasBoost={hasVerifiedBoost || isAdmin} className="h-3 w-3 ml-1 text-primary shrink-0" />
                       </button>
                     </div>
-                    <div className="text-[10px] text-muted-foreground mt-2">
-                      {arcWorkAvailable ? 'Chat with Arc here, or let Work continue after you leave.' : 'Arc Work is the Boost cloud agent.'}
-                    </div>
                   </div>
                 )}
-                <div className="px-2.5 pt-2 pb-1.5">
-                  <div className="text-xs font-semibold">Arc Matrix™</div>
-                  <div className="text-[10px] text-muted-foreground">Choose how Arc responds.</div>
-                </div>
                 {presets.map((preset) => {
                   const locked = preset.selection === ASTRA_MODEL && !astraAvailable;
                   const disabled = locked && (authLoading || subscriptionLoading);
-                  const badge = locked ? 'Boost' : preset.selection === 'gpt-6-luna' ? 'Unlimited' : undefined;
+                  const badge = preset.selection === ASTRA_MODEL
+                    ? 'Boost'
+                    : preset.selection === 'gpt-6-luna'
+                    ? 'Unlimited'
+                    : preset.selection === 'gpt-6.1-sol'
+                    ? 'Allowance'
+                    : undefined;
                   return (
                     <Row
                       key={preset.selection}
                       icon={<preset.icon className="h-4 w-4 text-primary" />}
                       title={preset.title}
-                      subtitle={preset.subtitle}
                       badge={badge}
                       active={!locked && modelSelection === preset.selection}
                       disabled={disabled}
@@ -193,10 +191,19 @@ export function ChatModelPicker({
                     />
                   );
                 })}
-                <p className="px-2.5 pt-2 text-[10px] leading-relaxed text-muted-foreground">
-                  Auto can use your Sol allowance. When it runs out, Auto and Sol switch to Luna.
-                </p>
-
+                <div className="mt-1 flex items-center justify-between gap-2 border-t border-border/30 px-2.5 pt-2">
+                  <span className="text-[10px] text-muted-foreground">Auto can use Sol allowance</span>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-md px-1.5 py-1 text-[10px] font-medium text-foreground/80 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    onClick={() => {
+                      setOpen(false);
+                      window.dispatchEvent(new Event('workspace-open-usage'));
+                    }}
+                  >
+                    Usage details
+                  </button>
+                </div>
               </div>
             )}
           </ConditionalTransition>
@@ -207,10 +214,9 @@ export function ChatModelPicker({
   );
 }
 
-function Row({ icon, title, subtitle, badge, active, disabled, locked, onClick }: {
+function Row({ icon, title, badge, active, disabled, locked, onClick }: {
   icon: React.ReactNode;
   title: string;
-  subtitle: string;
   badge?: string;
   active?: boolean;
   disabled?: boolean;
@@ -233,20 +239,18 @@ function Row({ icon, title, subtitle, badge, active, disabled, locked, onClick }
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-semibold">{title}</span>
-          {badge === 'Boost' ? <BoostIcon hasBoost={false} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : badge && (
+          {badge && (
             <span
               className={cn(
-                'text-[9px] font-mono px-1.5 py-0.5 rounded-md leading-none',
-                badge === 'Unlimited'
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'bg-muted/80 text-muted-foreground font-medium',
+                'inline-flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded-md leading-none',
+                badge === 'Unlimited' ? 'bg-primary/10 text-primary font-medium' : 'bg-muted/80 text-muted-foreground font-medium',
               )}
             >
+              {badge === 'Boost' && <BoostIcon hasBoost={false} className="h-3 w-3 shrink-0" />}
               {badge}
             </span>
           )}
         </div>
-        <div className="text-[10px] text-muted-foreground truncate">{subtitle}</div>
       </div>
       {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />}
       {active && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}

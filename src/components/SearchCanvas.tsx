@@ -1,3 +1,5 @@
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext";
+import "@/workspace/workspace-canvas-modes.css";
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { AccordionPanel } from "@/components/transitions/AccordionPanel";
@@ -51,6 +53,7 @@ import { ImageModal } from "@/components/ImageModal";
 import { SmoothImage } from "@/components/ui/smooth-image";
 
 export function SearchCanvas() {
+  const workspaceUI = useWorkspaceUI();
   const corporateMode = useCorporateModeStore((s) => s.enabled);
   const {
     sessions,
@@ -424,7 +427,7 @@ export function SearchCanvas() {
 
   // Saved Links Sidebar Component - Only shows default Saved Links list
   const SavedLinksSidebar = ({ className }: { className?: string }) => (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div className={cn("wss-saved-links flex flex-col h-full", className)}>
       {/* Sidebar Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
         <div className="flex items-center gap-2">
@@ -435,15 +438,16 @@ export function SearchCanvas() {
         <div className="flex items-center gap-1">
           {isSelectMode ? (
             <>
-              <Button variant="ghost" size="sm" onClick={handleSelectAll} className="h-8 text-xs">
+              <Button data-wss-control={workspaceUI || undefined} variant="ghost" size="sm" onClick={handleSelectAll} className="h-8 text-xs">
                 All
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleClearSelection} className="h-8 text-xs">
+              <Button data-wss-control={workspaceUI || undefined} variant="ghost" size="sm" onClick={handleClearSelection} className="h-8 text-xs">
                 <X className="w-4 h-4" />
               </Button>
             </>
           ) : (
             <Button
+              data-wss-control={workspaceUI || undefined}
               variant="ghost"
               size="sm"
               onClick={() => setIsSelectMode(true)}
@@ -464,11 +468,12 @@ export function SearchCanvas() {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">{selectedLinks.size} selected</span>
               <div className="flex items-center gap-1">
-                <Button variant="default" size="sm" onClick={handleChatWithSelected} className="h-7 text-xs gap-1">
+                <Button data-wss-control={workspaceUI || undefined} variant="default" size="sm" onClick={handleChatWithSelected} className="h-7 text-xs gap-1">
                   <MessageCircle className="w-3.5 h-3.5" />
                   Chat
                 </Button>
                 <Button
+                  data-wss-control={workspaceUI || undefined}
                   variant="ghost"
                   size="sm"
                   onClick={handleDeleteSelected}
@@ -491,7 +496,7 @@ export function SearchCanvas() {
                 <div
                   key={link.id}
                   className={cn(
-                    "group relative rounded-lg border transition-all",
+                    "wss-saved-link group relative rounded-lg border transition-all",
                     isSelected
                       ? "border-primary bg-primary/5"
                       : "border-transparent hover:border-border/50 hover:bg-muted/30",
@@ -532,7 +537,7 @@ export function SearchCanvas() {
 
                     {/* Actions */}
                     {!isSelectMode && (
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="wss-source-actions flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => handleChatWithLink(link)}
                           className="p-1.5 rounded-md hover:bg-muted transition-colors"
@@ -574,7 +579,7 @@ export function SearchCanvas() {
 
   return (
     <div
-      className="flex flex-col h-full w-full bg-background"
+      className={cn("flex flex-col h-full w-full bg-background", workspaceUI && "workspace-search-canvas")}
       style={{
         paddingTop: reserveTrafficLightSpace
           ? "calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))"
@@ -582,9 +587,9 @@ export function SearchCanvas() {
       }}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border/20">
+      <header className="wss-header flex items-center justify-between px-4 py-3 border-b border-border/20">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={closeSearch} className="h-9 w-9 p-0 rounded-full hover:bg-muted">
+          <Button data-wss-control={workspaceUI || undefined} variant="ghost" size="sm" onClick={closeSearch} aria-label="Close Deep Search" className="h-9 w-9 p-0 rounded-full hover:bg-muted">
             <ArrowLeft className="w-5 h-5" />
           </Button>
 
@@ -600,6 +605,7 @@ export function SearchCanvas() {
         <div className="flex items-center gap-2">
           {/* New Search Button */}
           <Button
+            data-wss-control={workspaceUI || undefined}
             variant="ghost"
             size="sm"
             onClick={() => {
@@ -617,6 +623,7 @@ export function SearchCanvas() {
           {/* History Button */}
           {sessions.length > 0 && (
             <Button
+              data-wss-control={workspaceUI || undefined}
               variant="ghost"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
@@ -631,6 +638,7 @@ export function SearchCanvas() {
           {/* Mobile: Toggle saved links panel */}
           {isMobile && (
             <Button
+              data-wss-control={workspaceUI || undefined}
               variant="ghost"
               size="sm"
               aria-label="Saved links"
@@ -648,7 +656,7 @@ export function SearchCanvas() {
           but it never sees personal memories or context. */}
       {corporateMode && (
         <div
-          className="flex items-start gap-3 mx-4 mt-3 px-4 py-3 rounded-xl border border-primary/30 bg-primary/10 backdrop-blur-md"
+          className="wss-notice flex items-start gap-3 mx-4 mt-3 px-4 py-3 rounded-xl border border-primary/30 bg-primary/10 backdrop-blur-md"
           role="note"
           aria-label="Corporate Mode notice"
         >
@@ -667,7 +675,7 @@ export function SearchCanvas() {
 
       {/* Last Search Preview - click to open full history */}
       {!showHistory && sessions.length > 0 && !activeSessionId && (
-        <div className="border-b border-border/30 bg-card/50">
+        <div className="wss-history-preview border-b border-border/30 bg-card/50">
           <div className="max-w-3xl mx-auto px-4 py-3">
             <button
               onClick={() => setShowHistory(true)}
@@ -689,14 +697,15 @@ export function SearchCanvas() {
       {/* Full History Dropdown */}
       <div className="t-acc" data-open={!!(showHistory && sessions.length > 0)}><AccordionPanel open={!!(showHistory && sessions.length > 0)}>
           <div
-            className="border-b border-border/30 bg-card/50 overflow-hidden"
+            className="wss-history-region border-b border-border/30 bg-card/50 overflow-hidden"
           >
             <div className="max-w-3xl mx-auto px-4 py-4">
-              <div className="rounded-xl border border-border/50 bg-background/50 p-4">
+              <div className="wss-history-card rounded-xl border border-border/50 bg-background/50 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-medium text-muted-foreground">Recent Searches</h3>
                   <div className="flex items-center gap-1">
                     <Button
+                      data-wss-control={workspaceUI || undefined}
                       variant="ghost"
                       size="sm"
                       onClick={() => {
@@ -709,6 +718,7 @@ export function SearchCanvas() {
                       Clear all
                     </Button>
                     <Button
+                      data-wss-control={workspaceUI || undefined}
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowHistory(false)}
@@ -759,6 +769,7 @@ export function SearchCanvas() {
                     </span>
                     <div className="flex items-center gap-1">
                       <Button
+                        data-wss-control={workspaceUI || undefined}
                         variant="ghost"
                         size="sm"
                         onClick={() => setHistoryPage(Math.max(0, historyPage - 1))}
@@ -768,6 +779,7 @@ export function SearchCanvas() {
                         Previous
                       </Button>
                       <Button
+                        data-wss-control={workspaceUI || undefined}
                         variant="ghost"
                         size="sm"
                         onClick={() => setHistoryPage(historyPage + 1)}
@@ -786,7 +798,7 @@ export function SearchCanvas() {
 
       {/* Fixed Search Input Bar - Hide on mobile when in active session */}
       {!(isMobile && activeSession) && (
-        <div className="border-b border-border/20 bg-background/80 backdrop-blur-sm">
+        <div className="wss-search-field-area border-b border-border/20 bg-background/80 backdrop-blur-sm">
           <div className="max-w-3xl mx-auto px-4 py-4">
             <div className="relative">
               {/* Same beam and metal treatment as the chat composer, so research
@@ -794,7 +806,7 @@ export function SearchCanvas() {
               <ArcInputEffects active={isSearching} isNewChat={!activeSession} theme={effectTheme}>
               <div
                 className={cn(
-                  "glass-dock !rounded-full !p-1 transition-all duration-200",
+                  "wss-input-shell glass-dock !rounded-full !p-1 transition-all duration-200",
                   "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]",
                   "flex items-center gap-3 px-4",
                 )}
@@ -812,13 +824,15 @@ export function SearchCanvas() {
                     if (e.key === "Enter") handleSearch(searchQuery);
                   }}
                   placeholder="Research anything..."
-                  className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[15px]"
+                  aria-label="Research query"
+                  className="wss-input flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[15px]"
                   disabled={isSearching}
                 />
 
                 {/* Right send button */}
                 {searchQuery && !isSearching && (
                   <button
+                    aria-label="Start research"
                     onClick={() => handleSearch(searchQuery)}
                     className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
                   >
@@ -840,34 +854,35 @@ export function SearchCanvas() {
             setSearchQuery("");
             setHistoryPage(0);
           }}
-          className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+          aria-label="New search"
+          className="wss-new-search fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
         >
           <Plus className="h-6 w-6" />
         </button></Transition>
       )}
 
       {/* Main Layout: Content + Sidebar on Desktop */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="wss-body flex-1 flex overflow-hidden">
         {/* Main Content */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-auto">
+        <div ref={scrollContainerRef} className="wss-scroll flex-1 overflow-auto">
           {/* Mobile: Saved Links Panel (collapsible at top) */}
           {isMobile && (
             <div className="t-acc" data-open={!!(showSavedLinks)}><AccordionPanel open={!!(showSavedLinks)}>
                 <div
-                  className="border-b border-border/30 bg-card/50 overflow-hidden"
+                  className="wss-history-region border-b border-border/30 bg-card/50 overflow-hidden"
                 >
                   <div className="h-[300px]"><SavedLinksSidebar /></div>
                 </div>
               </AccordionPanel></div>
           )}
 
-          <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
+          <div className="wss-content max-w-3xl mx-auto px-4 py-6 sm:py-10">
             {/* Active Session Content */}
             {activeSession ? (
               <div>
                 {/* Query Title - Blog Style */}
                 <div className="mb-6">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight mb-3">
+                  <h1 className="wss-query-title text-2xl sm:text-3xl md:text-4xl font-bold text-foreground leading-tight mb-3">
                     {activeSession.query}
                   </h1>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
@@ -880,7 +895,7 @@ export function SearchCanvas() {
                       <Globe className="w-4 h-4" />
                       {activeSession.results.length} sources
                     </span>
-                    <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 gap-1.5 text-xs ml-auto">
+                    <Button data-wss-control={workspaceUI || undefined} variant="ghost" size="sm" onClick={handleCopy} className="h-7 gap-1.5 text-xs ml-auto">
                       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       {copied ? "Copied" : "Copy"}
                     </Button>
@@ -907,7 +922,7 @@ export function SearchCanvas() {
                               const isSaved = savedUrls.has(result.url);
                               return (
                                 <Transition preset="modal" delay={index * 0.03} key={result.id}><div
-                                  className="group flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-[background-color,border-color]"
+                                  className="wss-source-pill group flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-[background-color,border-color]"
                                 >
                                   <div className="flex-shrink-0 w-4 h-4">
                                     {getFaviconUrl(result.url) ? (
@@ -926,7 +941,7 @@ export function SearchCanvas() {
                                   <span className="text-sm text-foreground max-w-[150px] truncate">
                                     {getHostname(result.url)}
                                   </span>
-                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="wss-source-actions flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -990,7 +1005,7 @@ export function SearchCanvas() {
                 {/* Search Quick Answer Card */}
                 {activeSession.quickAnswer && (
                   <Transition preset="panel"><div
-                    className="mb-6 relative z-10 p-4 rounded-3xl border border-primary/20 bg-primary/5 backdrop-blur-md shadow-sm"
+                    className="wss-quick-answer mb-6 relative z-10 p-4 rounded-3xl border border-primary/20 bg-primary/5 backdrop-blur-md shadow-sm"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles className="w-4 h-4 text-primary animate-pulse" />
@@ -1324,10 +1339,10 @@ export function SearchCanvas() {
                 <div className="h-24" />
 
                 {/* Follow-up Input - Glass Dock Style */}
-                <div className="sticky bottom-6 z-10">
+                <div className="wss-follow-up sticky bottom-6 z-10">
                   <div
                     className={cn(
-                      "glass-dock !rounded-full !p-1 transition-all duration-200",
+                      "wss-input-shell glass-dock !rounded-full !p-1 transition-all duration-200",
                       "focus-within:ring-2 focus-within:ring-primary/40 focus-within:shadow-[0_0_24px_rgba(var(--primary),.15)]",
                       "flex items-center gap-3 px-4",
                     )}
@@ -1343,11 +1358,13 @@ export function SearchCanvas() {
                         }
                       }}
                       placeholder="Ask a follow-up..."
-                      className="flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[15px]"
+                      aria-label="Research follow-up"
+                      className="wss-input flex-1 h-12 bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none appearance-none text-base placeholder:text-muted-foreground/60 pl-[15px]"
                     />
 
                     {/* Right send button */}
                     <button
+                      aria-label="Send follow-up"
                       onClick={handleFollowUp}
                       disabled={!followUpInput.trim()}
                       className={cn(
@@ -1365,10 +1382,10 @@ export function SearchCanvas() {
             ) : isSearching ? (
               /* Searching State - Replaces Empty State */
               <div
-                className="arc-search-enter text-center py-12"
+                className="wss-empty arc-search-enter text-center py-12"
               >
                 <div className="relative w-20 h-20 mx-auto mb-6">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
+                  <div className="wss-hero-icon-backdrop absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <ThinkingOrb
                       state={webOrbState}
@@ -1394,9 +1411,9 @@ export function SearchCanvas() {
               </div>
             ) : (
               /* Empty State */
-              <Transition preset="panel"><div className="text-center py-12">
+              <Transition preset="panel"><div className="wss-empty text-center py-12">
                 <div className="relative w-20 h-20 mx-auto mb-6">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
+                  <div className="wss-hero-icon-backdrop absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Search className="w-10 h-10 text-primary" fill="currentColor" strokeWidth={1.5} />
                   </div>
@@ -1411,9 +1428,10 @@ export function SearchCanvas() {
                     : "Get instant answers with real-time web search and cited sources"}
                 </p>
 
-                <div className="grid grid-cols-2 gap-2 max-w-md mx-auto mb-8">
+                <div className="wss-depth-options grid grid-cols-2 gap-2 max-w-md mx-auto mb-8">
                   <button
                     onClick={() => setUltraMode(false)}
+                    aria-pressed={!ultraMode}
                     className={cn(
                       "w-full py-2.5 px-2 rounded-2xl border text-center text-[13px] sm:text-sm font-semibold tracking-wide transition-all duration-200",
                       !ultraMode
@@ -1426,6 +1444,7 @@ export function SearchCanvas() {
                   </button>
                   <button
                     onClick={() => setUltraMode(true)}
+                    aria-pressed={ultraMode}
                     className={cn(
                       "w-full py-2.5 px-2 rounded-2xl border text-center text-[13px] sm:text-sm font-semibold tracking-wide transition-all duration-200",
                       ultraMode
@@ -1476,7 +1495,7 @@ export function SearchCanvas() {
 
         {/* Desktop: Right Sidebar for Saved Links */}
         {!isMobile && (
-          <div className="w-80 border-l border-border/30 bg-card/30 flex-shrink-0">
+          <div className="wss-desktop-saved w-80 border-l border-border/30 bg-card/30 flex-shrink-0">
             <SavedLinksSidebar />
           </div>
         )}

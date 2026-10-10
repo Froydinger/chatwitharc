@@ -299,13 +299,13 @@ export interface ArcState {
 
   // Current Chat State
   messages: Message[];
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }, options?: { deferCloudPersistence?: boolean; sessionId?: string; beforeMessageId?: string }) => Promise<string>;
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }, options?: { deferCloudPersistence?: boolean; awaitCloudPersistence?: { ownerId: string }; sessionId?: string; beforeMessageId?: string }) => Promise<string>;
   replaceMessage: (messageId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>, options?: { sessionId?: string }) => Promise<void>;
   patchOwnedMessage: (sessionId: string, messageId: string, patch: Partial<Message>, persist?: boolean) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
-  upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string }) => Promise<string>;
+  upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string; awaitPersistence?: boolean; ownerId?: string }) => Promise<string>;
   upsertCodeMessage: (codeContent: string, language: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string }) => Promise<string>;
   clearCurrentMessages: () => void;
 
@@ -342,7 +342,7 @@ export interface ArcState {
 
   // Supabase Sync
   syncFromSupabase: (limit?: number) => Promise<void>;
-  saveChatToSupabase: (session: ChatSession, revision?: number, before?: ChatSession) => Promise<void>;
+  saveChatToSupabase: (session: ChatSession, revision?: number, before?: ChatSession, requireSave?: boolean) => Promise<void>;
   isOnline: boolean;
   lastSyncAt: Date | null;
   isSyncing: boolean;
@@ -1300,7 +1300,7 @@ export const useArcStore = create<ArcState>()(
         }
       },
 
-      saveChatToSupabase: (session: ChatSession, revision?: number, before?: ChatSession) => {
+      saveChatToSupabase: (session: ChatSession, revision?: number, before?: ChatSession, requireSave = false) => {
         const previous = before ?? get().chatSessions.find(s => s.id === session.id);
         const trackLegacy = cloudSessionOperationsEnabled && !session.isLocalOnly
           && session.persistenceVersion !== 1 && previous?.persistenceVersion !== 1;
@@ -1331,9 +1331,11 @@ export const useArcStore = create<ArcState>()(
           }
           if (session.isLocalOnly) {
             // Corporate Mode session — stays on this device only.
+            if (requireSave) throw new Error('This device-only chat cannot be sent to cloud Chat.');
             return;
           }
           if (!supabase || !isSupabaseConfigured) {
+            if (requireSave) throw new Error('Cloud chat saving is not available.');
             console.log('⚠️ Supabase not configured, skipping save');
             return;
           }
@@ -1341,6 +1343,7 @@ export const useArcStore = create<ArcState>()(
           try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
+              if (requireSave) throw new Error('Sign in to save this chat before sending.');
               console.warn('⚠️ No user found, cannot save to Supabase');
               return;
             }
@@ -1362,6 +1365,20 @@ export const useArcStore = create<ArcState>()(
               if (!cloudSessionOperationsEnabled) throw new Error('Protected session saving is not enabled.');
               if (!previous?.isHydrated) throw new Error('Reload the protected session before editing.');
               const adapter = sessionAdapter(user.id, session.id);
+              if (requireSave && !adapter.snapshot().pending.length
+                && !transcriptChanges(transcript(previous), transcript(session)).length) {
+                // An earlier save may have failed before discovering protection.
+                // A no-op journal is not proof that its local turn was saved.
+                // Compare only for verification; never enqueue remote-to-local changes.
+                let matchesRemote = false;
+                try {
+                  matchesRemote = !transcriptChanges({
+                    messages: existingSession.messages as unknown as TranscriptSnapshot['messages'],
+                    canvasContent: existingSession.canvas_content,
+                  }, transcript(session)).length;
+                } catch { /* Reordered/divergent transcripts also need an explicit reload. */ }
+                if (!matchesRemote) throw new Error('Previous chat save could not be verified. Reload this chat before retrying.');
+              }
               adapter.enqueue(transcript(previous), transcript(session));
               localStorage.setItem(outboxKey(user.id, session.id), JSON.stringify(adapter.snapshot()));
               set(s => ({ chatSessions: s.chatSessions.map(cs => cs.id === session.id
@@ -1471,7 +1488,7 @@ export const useArcStore = create<ArcState>()(
         // If current session is empty, delete it first
         if (state.currentSessionId) {
           const currentSession = state.chatSessions.find(s => s.id === state.currentSessionId);
-          if (currentSession && currentSession.messages.length === 0 && !isActiveVoiceConversation(currentSession.id)) {
+          if (currentSession && currentSession.messages.length === 0 && !currentSession.canvasContent?.trim() && !isActiveVoiceConversation(currentSession.id)) {
             console.log('🗑️ Auto-deleting empty session before creating new one:', state.currentSessionId);
             get().deleteSession(state.currentSessionId);
           }
@@ -1525,7 +1542,7 @@ export const useArcStore = create<ArcState>()(
         // If current session is empty, delete it first
         if (state.currentSessionId) {
           const currentSession = state.chatSessions.find(s => s.id === state.currentSessionId);
-          if (currentSession && currentSession.messages.length === 0) {
+          if (currentSession && currentSession.messages.length === 0 && !currentSession.canvasContent?.trim()) {
             get().deleteSession(state.currentSessionId);
           }
         }
@@ -1732,14 +1749,34 @@ export const useArcStore = create<ArcState>()(
       messages: [],
       
       addMessage: async (message, options) => {
+        if (options?.awaitCloudPersistence && options.deferCloudPersistence) {
+          throw new Error('A deferred cloud message cannot also await an independent save.');
+        }
         const messageId = message.id || crypto.randomUUID();
+        let cloudSave: Promise<void> | undefined;
         const newMessage = {
           ...message,
           id: messageId,
           timestamp: message.timestamp || new Date(),
           sourceModel: message.role === 'assistant' ? (message.sourceModel || 'cloud-chat') : undefined
         };
-        
+        const saveMessageSession = (session: ChatSession) => {
+          // Foreground cloud Chat must not race its first session insert.
+          // Pin the save to the submitting account using the existing owner
+          // guard; other callers (including voice) retain asynchronous saves.
+          if (options?.awaitCloudPersistence && session.persistenceOwnerId
+            && session.persistenceOwnerId !== options.awaitCloudPersistence.ownerId) {
+            throw new Error('Session owner changed before saving.');
+          }
+          const saveSnapshot = options?.awaitCloudPersistence
+            ? { ...session, persistenceOwnerId: options.awaitCloudPersistence.ownerId }
+            : session;
+          cloudSave = get().saveChatToSupabase(saveSnapshot, undefined, undefined, !!options?.awaitCloudPersistence);
+          cloudSave.catch(error => {
+            console.error('❌ Failed to save message to Supabase:', error);
+            // Message is still in local state, will retry on next sync
+          });
+        };
         
         // Normal message handling if not a memory command
         set((state) => {
@@ -1747,7 +1784,19 @@ export const useArcStore = create<ArcState>()(
           // Session-scoped completion must never append into a different open chat.
           if (options?.sessionId && !state.chatSessions.some(s => s.id === options.sessionId)) return state;
           const existingMessages = targetSessionId === state.currentSessionId ? state.messages : state.chatSessions.find(s => s.id === targetSessionId)?.messages;
-          if (message.id && existingMessages?.some(m => m.id === messageId)) return state;
+          const existingMessage = message.id && existingMessages?.find(m => m.id === messageId);
+          if (existingMessage) {
+            // A manual Chat retry keeps the same user turn. Confirm its save
+            // again without appending another copy or reusing edited content.
+            if (options?.awaitCloudPersistence) {
+              if (existingMessage.role !== message.role || existingMessage.content !== message.content) {
+                throw new Error('This message changed before retrying. Send the edited message instead.');
+              }
+              const session = state.chatSessions.find(s => s.id === targetSessionId);
+              if (session) saveMessageSession(session);
+            }
+            return state;
+          }
           const isActiveSession = !targetSessionId || targetSessionId === state.currentSessionId;
           const activePersonaId = targetSessionId
             ? state.chatSessions.find(s => s.id === targetSessionId)?.personaId
@@ -1827,10 +1876,7 @@ export const useArcStore = create<ArcState>()(
           // same transaction as its run. A concurrent session save would race
           // that transaction and leave a conflicting local outbox behind.
           if (!options?.deferCloudPersistence) {
-            get().saveChatToSupabase(sessionToSave).catch(error => {
-              console.error('❌ Failed to save message to Supabase:', error);
-              // Message is still in local state, will retry on next sync
-            });
+            saveMessageSession(sessionToSave);
           }
           
           return {
@@ -1839,6 +1885,11 @@ export const useArcStore = create<ArcState>()(
             currentSessionId: isActiveSession ? currentSessionId : state.currentSessionId
           };
         });
+
+        if (options?.awaitCloudPersistence) {
+          if (!cloudSave) throw new Error('This chat is no longer available for sending.');
+          await cloudSave;
+        }
         
         return messageId;
       },
@@ -1959,6 +2010,10 @@ export const useArcStore = create<ArcState>()(
         const state = get();
         const sessionId = options?.sessionId || state.currentSessionId;
         if (options?.sessionId && !state.chatSessions.some(s => s.id === options.sessionId)) return '';
+        const sessionOwner = sessionId && state.chatSessions.find(session => session.id === sessionId)?.persistenceOwnerId;
+        if (options?.ownerId && sessionOwner && options.ownerId !== sessionOwner) {
+          throw new Error('Canvas owner changed before saving.');
+        }
 
         // Generate a fallback label from content if none provided
         const displayLabel = label || extractCanvasTitle(canvasContent) || 'Canvas Draft';
@@ -2006,6 +2061,7 @@ export const useArcStore = create<ArcState>()(
           sessionToSave = {
             ...existingSession,
             id: sessionId,
+            ...(options?.ownerId && !existingSession?.persistenceOwnerId ? { persistenceOwnerId: options.ownerId } : {}),
             title: existingSession?.title || 'New Chat',
             createdAt: existingSession?.createdAt || new Date(),
             lastMessageAt: new Date(),
@@ -2022,11 +2078,23 @@ export const useArcStore = create<ArcState>()(
           };
         });
 
-        // Fire-and-forget save to Supabase (don't block UI)
+        // Most canvas writes remain fire-and-forget. Workspace's initial blank
+        // document opts into awaiting this save so the library artifact is
+        // durable before the editor route opens.
         if (sessionToSave) {
-          get().saveChatToSupabase(sessionToSave, undefined, state.chatSessions.find(cs => cs.id === sessionId)).catch(error => {
-            console.error('❌ Failed to save canvas message to Supabase:', error);
-          });
+          const save = get().saveChatToSupabase(sessionToSave, undefined, state.chatSessions.find(cs => cs.id === sessionId));
+          if (options?.awaitPersistence) {
+            try {
+              await save;
+            } catch (error) {
+              console.error('❌ Failed to save canvas message to Supabase:', error);
+              throw error;
+            }
+          } else {
+            void save.catch(error => {
+              console.error('❌ Failed to save canvas message to Supabase:', error);
+            });
+          }
         }
 
         return uniqueCanvasId;

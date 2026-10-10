@@ -9,7 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast";
 import { UsageMeter } from "@/components/UsageMeter";
 import { ThinkingOrb } from "thinking-orbs";
-import { MetalFx, PRESETS } from "metal-fx";
+import { PRESETS } from "metal-fx";
+import { SafeMetalFx as MetalFx } from "@/components/ui/safe-metal-fx";
 import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
 import { normalizedOrbSpeed, useVoiceOrbConfig, useThinkingOrbConfig, useMotionConfig, type VoicePhase } from "@/hooks/useThinkingOrbConfig";
 

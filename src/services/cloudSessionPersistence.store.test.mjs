@@ -17,7 +17,7 @@ async function fixture({ enabled = true, localOnly = false, protectedSession = t
   let remote = { id, user_id: owner, title: 'Discovered', created_at: '2026-09-12T00:00:00Z', updated_at: '2026-09-12T00:00:00Z', messages: [msg('a')], canvas_content: null, revision: 2, persistence_version: 1 };
   let replyGate, saveGate, saveError, currentOwner = owner;
   const supabase = {
-    auth: { getUser: async () => ({ data: { user: { id: currentOwner } }, error: null }) },
+    auth: { getUser: async () => ({ data: { user: currentOwner ? { id: currentOwner } : null }, error: null }) },
     rpc: async (name, args) => {
       calls.push({ name, args });
       if (rpcError) return { error: { code: rpcError }, data: null };
@@ -43,8 +43,10 @@ async function fixture({ enabled = true, localOnly = false, protectedSession = t
   };
   globalThis.localStorage = { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v) };
   Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { onLine: true } });
+  const canvasState = { hydrateCalls: [] };
   globalThis.__storeFixture = {
     supabase,
+    useCanvasStore: { getState: () => ({ hydrateFromSession: content => canvasState.hydrateCalls.push(content) }) },
     create: () => initializer => {
       let state;
       const set = value => { state = { ...state, ...(typeof value === 'function' ? value(state) : value) }; };
@@ -59,9 +61,13 @@ async function fixture({ enabled = true, localOnly = false, protectedSession = t
     if (line.includes('cloudSessionChanges')) return `import { transcriptChanges } from ${JSON.stringify(changesUrl)};`;
     return '';
   });
-  source = `const { create, supabase } = globalThis.__storeFixture;
+  source = `const { create, supabase, useCanvasStore } = globalThis.__storeFixture;
     const persist = fn => fn; const isSupabaseConfigured = true;
-    const useCanvasStore = {}; const detectMemoryCommand = () => null;
+    const isActiveVoiceConversation = () => false;
+    const loadOrdinaryChatTurns = async () => [];
+    const mergeOrdinaryChatTurns = messages => messages;
+    const discardOrdinaryChatTurns = async () => {};
+    const detectMemoryCommand = () => null;
     const addToMemoryBank = () => {}; const formatMemoryConfirmation = () => '';\n` + source;
   source = source.replace("import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true'", String(enabled));
   source = source.replace('const LEGACY_SAVE_WAIT_MS = 5_000;', `const LEGACY_SAVE_WAIT_MS = ${legacyWaitMs};`);
@@ -215,6 +221,78 @@ test('canvas mutation outside updater captures true before value', async () => {
   assert.deepEqual(f.calls.find(c => c.name).args.p_operation, { kind: 'canvas', expected: null, value: 'new canvas' });
 });
 
+test('Workspace canvas artifact is persisted, survives New chat and reload, and reopens from its owning session', async () => {
+  const f = await fixture({ protectedSession: false });
+  f.remote.persistence_version = 0;
+
+  // Older canvas-only sessions can have no transcript messages yet. Starting a
+  // chat must keep a non-empty persisted document instead of deleting its row.
+  const legacyCanvasId = '55555555-5555-4555-8555-555555555555';
+  f.store.setState({
+    currentSessionId: legacyCanvasId,
+    messages: [],
+    chatSessions: [{ id: legacyCanvasId, title: 'Canvas only', messages: [], canvasContent: 'Saved before the chat moved', isHydrated: true }],
+  });
+  f.store.getState().createNewSession();
+  assert.ok(f.store.getState().chatSessions.some(session => session.id === legacyCanvasId), 'non-empty canvas content prevents empty-chat cleanup');
+
+  // Mirror the Workspace flow: create the session, persist an explicit canvas
+  // message artifact, then save edits to that artifact.
+  const canvasId = f.store.getState().createNewSession();
+  const artifactId = await f.store.getState().upsertCanvasMessage('', 'Untitled canvas', undefined, {
+    sessionId: canvasId,
+    awaitPersistence: true,
+  });
+  assert.ok(artifactId);
+  await f.store.getState().updateSessionCanvasContent(canvasId, '## A real saved document\n\nWorkspace canvas content.');
+  assert.equal(f.remote.id, canvasId);
+  assert.ok(f.remote.messages.some(message => message.id === artifactId && message.type === 'canvas'), 'library query can match the persisted canvas message');
+  assert.equal(f.remote.messages.find(message => message.id === artifactId).canvasContent, '## A real saved document\n\nWorkspace canvas content.');
+  assert.equal(f.remote.canvas_content, '## A real saved document\n\nWorkspace canvas content.');
+
+  // Navigate away through New chat, then simulate a fresh app load and the
+  // dashboard's library query/open path using only the owning conversation.
+  const nextChatId = f.store.getState().createNewSession();
+  assert.ok(f.store.getState().chatSessions.some(session => session.id === canvasId), 'New chat retains the canvas session');
+  f.store.getState().loadSession(canvasId);
+  assert.equal(f.store.getState().currentSessionId, canvasId, 'library navigation returns to the canvas owner chat');
+  f.store.setState({ currentSessionId: canvasId, messages: [], chatSessions: [{
+    id: canvasId, title: 'New Chat', messages: [], canvasContent: '', isHydrated: false,
+  }] });
+  await f.store.getState().hydrateSession(canvasId);
+  f.store.getState().loadSession(canvasId);
+  assert.notEqual(nextChatId, canvasId);
+  const hydrated = f.store.getState().chatSessions.find(session => session.id === canvasId);
+  assert.ok(hydrated?.messages.some(message => message.type === 'canvas'));
+  const { getConversationCanvas } = await import(moduleUrl(await read('../workspace/conversationCanvas.ts')));
+  assert.deepEqual(getConversationCanvas(hydrated), {
+    content: '## A real saved document\n\nWorkspace canvas content.',
+    type: 'writing',
+  }, 'library reopen hydrates the document from its owner session');
+});
+
+test('a Workspace canvas carries its initiating account into the first save', async () => {
+  const f = await fixture({ protectedSession: false });
+  f.remote.persistence_version = 0;
+  const sessionId = f.store.getState().createNewSession();
+
+  // Simulate switching accounts after the empty chat shell exists but before
+  // its first canvas artifact save begins.
+  const otherOwner = '33333333-3333-4333-8333-333333333333';
+  f.owner(otherOwner);
+  await assert.rejects(
+    f.store.getState().upsertCanvasMessage('', 'Untitled canvas', undefined, {
+      sessionId, awaitPersistence: true, ownerId: owner,
+    }),
+    /owner changed before saving/i,
+  );
+
+  const session = f.store.getState().chatSessions.find(item => item.id === sessionId);
+  assert.equal(session?.persistenceOwnerId, owner, 'the draft remains scoped to its initiating owner');
+  assert.ok(session?.messages.some(message => message.type === 'canvas'), 'the local draft is retained for its owner');
+  assert.equal(f.calls.some(call => call.upsert || call.insert || call.name), false, 'a switched account receives no cloud write');
+});
+
 test('authoritative reload accepts shorter transcript and never changes another selected chat', async () => {
   const f = await fixture();
   f.remote.messages = [];
@@ -320,4 +398,108 @@ test('unprotected legacy save retains full legacy path when migration gate disab
   await f.store.getState().saveChatToSupabase(f.store.getState().chatSessions[0]);
   assert.ok(f.calls.some(c => c.upsert));
   assert.equal(f.storage.size, 0);
+});
+
+for (const enabled of [false, true]) {
+  test(`foreground Chat waits for its initial save with session operations ${enabled ? 'on' : 'off'}`, async () => {
+    const f = await fixture({ enabled, protectedSession: false, missing: true });
+    f.remote.persistence_version = 0;
+    const gate = deferred(); f.saveGate(gate.promise);
+    let complete = false;
+    const pending = f.store.getState().addMessage({ id: 'chat-start', role: 'user', type: 'text', content: 'hey' }, {
+      sessionId: id, awaitCloudPersistence: { ownerId: owner },
+    }).then(value => { complete = true; return value; });
+    assert.equal(f.store.getState().messages.at(-1).id, 'chat-start', 'Local bubble is synchronous');
+    await tick();
+    assert.equal(complete, false);
+    assert.equal(f.calls.filter(call => call.upsert).length, 1, 'Exactly one original save starts');
+    assert.equal(f.calls.find(call => call.upsert).upsert.user_id, owner);
+    gate.resolve();
+    assert.equal(await pending, 'chat-start');
+    assert.equal(f.remote.messages.at(-1).content, 'hey', 'Cloud row exists before caller can start provider');
+  });
+}
+
+test('failed foreground Chat save retains one turn and explicit retry keeps its stable ID', async () => {
+  const f = await fixture({ protectedSession: false, missing: true }); f.remote.persistence_version = 0;
+  const userMessage = { id: 'retry-user', role: 'user', type: 'text', content: 'hello' };
+  const options = { sessionId: id, awaitCloudPersistence: { ownerId: owner } };
+  f.saveError({ message: 'save failed' });
+  await assert.rejects(f.store.getState().addMessage(userMessage, options), { message: 'save failed' });
+  assert.equal(f.store.getState().messages.filter(message => message.id === userMessage.id).length, 1);
+  f.saveError(null);
+  await f.store.getState().addMessage(userMessage, options);
+  assert.equal(f.store.getState().messages.filter(message => message.id === userMessage.id).length, 1);
+  assert.equal(f.remote.messages.filter(message => message.id === userMessage.id).length, 1);
+  assert.equal(f.calls.filter(call => call.upsert).length, 2, 'One failed save and one explicitly requested retry');
+  await assert.rejects(f.store.getState().addMessage({ ...userMessage, content: 'edited later' }, options), /message changed/);
+  assert.equal(f.calls.filter(call => call.upsert).length, 2, 'Changed retry cannot overwrite the existing user turn');
+});
+
+test('foreground Chat required save rejects missing or changed owner without an upsert', async () => {
+  for (const nextOwner of [null, '33333333-3333-4333-8333-333333333333']) {
+    const f = await fixture({ protectedSession: false }); f.remote.persistence_version = 0;
+    f.owner(nextOwner);
+    await assert.rejects(f.store.getState().addMessage({ id: 'owned-turn', role: 'user', type: 'text', content: 'hey' }, {
+      sessionId: id, awaitCloudPersistence: { ownerId: owner },
+    }), /Sign in|owner changed/);
+    assert.equal(f.calls.filter(call => call.upsert).length, 0);
+    assert.equal(f.store.getState().messages.at(-1).id, 'owned-turn', 'Failed save retains local text');
+  }
+});
+
+test('required Chat persistence cannot leak local-only chats or override a known owner', async () => {
+  const local = await fixture({ localOnly: true, protectedSession: false }); local.remote.persistence_version = 0;
+  await assert.rejects(local.store.getState().addMessage({ role: 'user', type: 'text', content: 'private local' }, {
+    sessionId: id, awaitCloudPersistence: { ownerId: owner },
+  }), /device-only/);
+  assert.equal(local.calls.filter(call => call.upsert).length, 0);
+  const protectedChat = await fixture();
+  await assert.rejects(protectedChat.store.getState().addMessage({ role: 'user', type: 'text', content: 'wrong account' }, {
+    sessionId: id, awaitCloudPersistence: { ownerId: '33333333-3333-4333-8333-333333333333' },
+  }), /owner changed/);
+  assert.equal(protectedChat.calls.length, 0);
+});
+
+test('awaited Chat guard preserves default async voice and durable Work deferral', async () => {
+  const f = await fixture({ protectedSession: false }); f.remote.persistence_version = 0;
+  const gate = deferred(); f.saveGate(gate.promise);
+  let voiceResolved = false;
+  await f.store.getState().addMessage({ id: 'voice-user', role: 'user', type: 'text', content: 'voice transcript' }, {
+    sessionId: id,
+  }).then(() => { voiceResolved = true; });
+  assert.equal(voiceResolved, true, 'Default voice caller still resolves before network save');
+  await tick();
+  const writes = f.calls.filter(call => call.upsert).length;
+  await f.store.getState().addMessage({ id: 'work-user', role: 'user', type: 'text', content: 'durable task' }, {
+    sessionId: id, deferCloudPersistence: true,
+  });
+  assert.equal(f.calls.filter(call => call.upsert).length, writes);
+  await assert.rejects(f.store.getState().addMessage({ role: 'user', content: 'invalid contract' }, {
+    sessionId: id, deferCloudPersistence: true, awaitCloudPersistence: { ownerId: owner },
+  }), /deferred cloud message/);
+  gate.resolve(); await tick();
+});
+
+test('a retry cannot falsely confirm an undiscovered protected session with an empty journal', async () => {
+  const f = await fixture({ protectedSession: false });
+  // Remote was protected by another path while this client still has legacy metadata.
+  assert.equal(f.remote.persistence_version, 1);
+  const message = { id: 'unsaved-protected-turn', role: 'user', type: 'text', content: 'hello' };
+  const options = { sessionId: id, awaitCloudPersistence: { ownerId: owner } };
+  f.owner(null);
+  await assert.rejects(f.store.getState().addMessage(message, options), /Sign in/);
+  f.owner(owner);
+  await assert.rejects(f.store.getState().addMessage(message, options), /could not be verified.*Reload/);
+  assert.equal(f.calls.some(call => call.upsert || call.name), false, 'No remote-to-local changes are inferred or applied');
+  assert.equal(f.remote.messages.some(item => item.id === message.id), false);
+  assert.equal(f.store.getState().messages.filter(item => item.id === message.id).length, 1, 'The unsaved text is retained for reconciliation');
+});
+
+test('an already-saved no-op retry can discover protection without writing a second copy', async () => {
+  const f = await fixture({ protectedSession: false });
+  await f.store.getState().addMessage(msg('a'), { sessionId: id, awaitCloudPersistence: { ownerId: owner } });
+  assert.equal(f.calls.some(call => call.upsert || call.name), false);
+  assert.equal(f.store.getState().chatSessions[0].persistenceVersion, 1);
+  assert.equal(f.remote.messages.length, 1);
 });

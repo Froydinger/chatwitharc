@@ -1,6 +1,6 @@
 import { useWorkspaceUI } from '@/workspace/WorkspaceContext';
 import { ChatModelPicker } from '@/components/ChatModelPicker';
-import { BoostIcon } from '@/components/BoostIcon';
+import { WorkspaceChatWorkToggle } from '@/components/chat-input/WorkspaceChatWorkToggle';
 import { cancelOrdinaryChat } from '@/services/ordinaryChatPersistence';
 import { getExecutionModelChoices } from '@/store/useExecutionModelStore';
 import { AppBuilderModelChoice } from '@/components/app-builder/AppBuilderModelChoice';
@@ -11,6 +11,7 @@ import { ComposerView } from "@/components/chat-input/ComposerView";
 import { ComposerSubmitControls } from "@/components/chat-input/ComposerSubmitControls";
 import { ComposerActions } from "@/components/chat-input/ComposerActions";
 import { ComposerOverlays } from "@/components/chat-input/ComposerOverlays";
+import { WorkspaceCreateDock } from "@/components/chat-input/WorkspaceCreateDock";
 import { AttachmentTray } from "@/components/chat-input/AttachmentTray";
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
@@ -98,6 +99,7 @@ import { useSubagentStore } from "@/store/useSubagentStore";
 import { getAppBuilderIntent, resolveAppBuilderProject } from "@/utils/appBuilderIntent";
 import { listOwnedAppBuilderProjects, reopenOwnedAppBuilderProject } from "@/services/openAppBuilderProject";
 import { makePrivateImageReference } from "@/lib/privateImages";
+import { isAppBuilderDesktopAvailable } from "@/lib/builderViewport";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -1337,6 +1339,10 @@ Feel free to send another message or test a prompt to see the animation again!`,
       ? getAppBuilderIntent(userMessage, hasExistingApp)
       : null;
     if (appIntent) {
+      if (!isAppBuilderDesktopAvailable()) {
+        navigate('/build', { state: { returnTo: location.pathname } });
+        return false;
+      }
       if (subscriptionLoading) return false;
       if (!hasBoost && !isAdmin) {
         openCheckout();
@@ -1982,12 +1988,29 @@ Feel free to send another message or test a prompt to see the animation again!`,
       // Plain text - Show message IMMEDIATELY, then do memory detection in background
       let didSearchChats = false;
 
-      // Add user message RIGHT AWAY for instant feedback
+      // Render the user turn immediately, but let its first session save finish
+      // before ordinary cloud Chat checks server-side session ownership/mode.
+      // On-device chat, voice and durable Work keep their existing save timing.
+      const awaitChatSave = !corporateMode && !isArcWorkMode && !wasGitMode && !subagentDirective.requested
+        && routeRequest({
+          forceWebSearch: wasSearchMode, forceCanvas: wasCanvasMode, forceCode: wasCodingMode,
+          forceGit: false, hasImageAttachment: false, isImageGenerationRequest: false,
+        }) !== 'local';
       const userMessageId = await addMessage({
+        ...(awaitChatSave && acceptedRequest ? { id: acceptedRequest.id } : {}),
         content: finalMessage,
         role: "user",
         type: "text",
-      }, { deferCloudPersistence: !!onCloudTextSubmit && (isArcWorkMode || wasGitMode) && !subagentDirective.requested });
+      }, {
+        deferCloudPersistence: !!onCloudTextSubmit && (isArcWorkMode || wasGitMode) && !subagentDirective.requested,
+        ...(awaitChatSave ? { awaitCloudPersistence: { ownerId: user.id } } : {}),
+      });
+      if (requestIsCancelled() || originalOwnerId !== dispatchScopeRef.current.ownerId) return;
+      if (awaitChatSave && !useArcStore.getState().chatSessions.some(session => session.id === requestSessionId)) return;
+      if (awaitChatSave && useArcStore.getState().currentSessionId !== requestSessionId) {
+        retainFailedRequest(new Error('Chat changed before sending. Retry when you return to this chat.'));
+        return;
+      }
 
       if (subagentDirective.requested) {
         await runSubagentChat(subagentDirective, requestSessionId);
@@ -1999,7 +2022,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
 
       try {
         const aiMessages: Array<{ role: "user" | "assistant" | "system"; content: string }> =
-          messages.filter((m) => m.type === "text").map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+          messages.filter((m) => m.type === "text" && m.id !== userMessageId).map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
         // Prepend persona system prompt so the AI behaves as the locked persona
 
@@ -2691,6 +2714,7 @@ ${safeCode}
                 currentAbortController.signal,
                 cloudExecutionMode === 'auto' ? 'work' : 'chat',
                 wasGitMode,
+                userMessageId,
               );
 
               // CRITICAL: If cancelled while waiting for response, discard everything
@@ -2786,7 +2810,7 @@ ${safeCode}
       // Terminal cleanup is owned by the common request lifetime below.
     }
     } catch (error) {
-      if (!requestIsCancelled()) {
+      if (!requestIsCancelled() && originalOwnerId === dispatchScopeRef.current.ownerId) {
         retainFailedRequest(error);
         toast({ title: 'Request failed', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
       }
@@ -2859,6 +2883,65 @@ ${safeCode}
       }
     : { left: "50%", top: "50%" };
 
+  // Share presentation nodes so Workspace and legacy keep the same callbacks.
+  const selectedImagesTray = selectedImages.length > 0 ? (
+    <AttachmentTray kind="images" files={selectedImages} previewUrls={imagePreviewUrls} onClear={clearSelected} onRemove={removeImage} workspaceUI={workspaceUI}>
+      <div className="mt-3 pt-2 border-t border-border/30">
+        <button
+          type="button"
+          onClick={() => {
+            if (!hasBoost) {
+              toast({
+                title: "Boost Premium Feature",
+                description: "Image editing and combining is only available on the Boost tier. Please upgrade to unlock editing!",
+                variant: "destructive"
+              });
+              openCheckout();
+              return;
+            }
+            setAllImagesEditMode(!allImagesEditMode);
+          }}
+          className={cn("w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80", workspaceUI && "ws-attachment-edit-mode")}
+          aria-pressed={allImagesEditMode}
+        >
+          {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
+        </button>
+        {canGenerateVideo && (
+          <button
+            type="button"
+            onClick={() => setAnimateAttachmentOpen(true)}
+            disabled={isGeneratingImage}
+            className={cn("mt-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 flex items-center justify-center gap-1.5", workspaceUI && "ws-attachment-animate")}
+          >
+            <Clapperboard className="w-3.5 h-3.5" />
+            Animate{selectedImages.length > 1 ? " an image" : ""}
+          </button>
+        )}
+      </div>
+      {(shouldShowBanana || allImagesEditMode) && (
+        <div className="mt-3 pt-2 border-t border-border/30">
+          <ImageOptionsContent editMode={allImagesEditMode} workspaceUI={workspaceUI} />
+        </div>
+      )}
+    </AttachmentTray>
+  ) : null;
+  const enhancerKind = shouldShowGitMode ? "git_plan" : (shouldShowBanana ? "image" : "chat");
+  const promptEnhancer = !isVoiceActive && inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 ? (
+    <PromptEnhancer
+      workspaceUI={workspaceUI}
+      text={inputValue}
+      kind={enhancerKind}
+      onAccept={(improved) => {
+        setInputValue(improved);
+        toast({
+          title: shouldShowGitMode ? "Git Plan formulated 📋" : "Prompt enhanced ✨",
+          duration: 2000,
+        });
+      }}
+      className="pointer-events-auto shadow-lg"
+    />
+  ) : null;
+
   /* ---------------- Render ---------------- */
   return (
     <div className="space-y-2 relative">
@@ -2887,9 +2970,19 @@ ${safeCode}
           portalRoot,
         )}
 
+      {workspaceUI && !isVoiceActive && (selectedDocuments.length > 0 || selectedImages.length > 0 || shouldShowBanana || shouldShowGitMode || promptEnhancer) && (
+        <WorkspaceCreateDock portalRoot={portalRoot} anchor={composerRect} inline={inline}>
+          {promptEnhancer && <div className="ws-create-enhancer-row">{promptEnhancer}</div>}
+          {selectedDocuments.length > 0 && <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} workspaceUI />}
+          {selectedImagesTray}
+          {shouldShowBanana && selectedImages.length === 0 && <div className="ws-create-mode ws-image-options-dock"><ImageOptionsContent workspaceUI /></div>}
+          {shouldShowGitMode && <GitModeDock workspaceUI />}
+        </WorkspaceCreateDock>
+      )}
+
       {/* Image options dock — visible whenever the user is in image-gen mode.
           Stacked above any selected-images / selected-documents previews. */}
-      {!inline &&
+      {!workspaceUI && !inline &&
         shouldShowBanana &&
         selectedImages.length === 0 &&
         (() => {
@@ -2903,12 +2996,13 @@ ${safeCode}
               bottomOffset={dockBottom}
               leftPx={rect?.left}
               widthPx={rect?.width}
+              workspaceUI={workspaceUI}
             />
           );
         })()}
 
       {/* Selected Documents preview - for non-inline, portal anchored above input */}
-      {!inline &&
+      {!workspaceUI && !inline &&
         selectedDocuments.length > 0 &&
         portalRoot &&
         (() => {
@@ -2917,14 +3011,14 @@ ${safeCode}
           const anchored = composerDockStyle(rect, window.innerHeight, 12 + imgStack, 110 + imgStack);
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
-              <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} />
+              <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} workspaceUI={workspaceUI} />
             </div>,
             portalRoot,
           );
         })()}
 
       {/* Selected Images preview - for non-inline, portal anchored above input */}
-      {!inline &&
+      {!workspaceUI && !inline &&
         selectedImages.length > 0 &&
         portalRoot &&
         (() => {
@@ -2932,53 +3026,14 @@ ${safeCode}
           const anchored = composerDockStyle(rect, window.innerHeight, 12, 110);
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
-              <AttachmentTray kind="images" files={selectedImages} previewUrls={imagePreviewUrls} onClear={clearSelected} onRemove={removeImage}>
-{selectedImages.length > 0 && (
-                  <div className="mt-3 pt-2 border-t border-border/30">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!hasBoost) {
-                          toast({
-                            title: "Boost Premium Feature",
-                            description: "Image editing and combining is only available on the Boost tier. Please upgrade to unlock editing!",
-                            variant: "destructive"
-                          });
-                          openCheckout();
-                          return;
-                        }
-                        setAllImagesEditMode(!allImagesEditMode);
-                      }}
-                      className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80"
-                    >
-                      {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
-                    </button>
-                    {canGenerateVideo && (
-                      <button
-                        type="button"
-                        onClick={() => setAnimateAttachmentOpen(true)}
-                        disabled={isGeneratingImage}
-                        className="mt-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 flex items-center justify-center gap-1.5"
-                      >
-                        <Clapperboard className="w-3.5 h-3.5" />
-                        Animate{selectedImages.length > 1 ? " an image" : ""}
-                      </button>
-                    )}
-                  </div>
-                )}
-{(shouldShowBanana || allImagesEditMode) && (
-                  <div className="mt-3 pt-2 border-t border-border/30">
-                    <ImageOptionsContent editMode={allImagesEditMode} />
-                  </div>
-                )}
-</AttachmentTray>
+              {selectedImagesTray}
             </div>,
             portalRoot,
           );
         })()}
 
       {/* Prompt enhancer / Plan chip — floats above input and Git bar (portal) */}
-      {!isVoiceActive &&
+      {!workspaceUI && !isVoiceActive &&
         inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 &&
         portalRoot &&
         (() => {
@@ -2989,25 +3044,13 @@ ${safeCode}
           const imageDockOffset = (shouldShowBanana && !hasImages) ? 116 : 0;
           const rect = composerRect;
           const anchored = composerDockStyle(rect, window.innerHeight, 8 + previewStack + gitOffset + imageDockOffset, 120 + previewStack + gitOffset + imageDockOffset);
-          const enhancerKind = shouldShowGitMode ? "git_plan" : (shouldShowBanana ? "image" : "chat");
           return createPortal(
             <div
               className={rect ? "fixed z-[70] pointer-events-none" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[70] pointer-events-none"}
               style={anchored}
             >
               <div className="px-4 flex justify-end mx-auto max-w-[760px]">
-                <PromptEnhancer
-                  text={inputValue}
-                  kind={enhancerKind}
-                  onAccept={(improved) => {
-                    setInputValue(improved);
-                    toast({
-                      title: shouldShowGitMode ? "Git Plan formulated 📋" : "Prompt enhanced ✨",
-                      duration: 2000,
-                    });
-                  }}
-                  className="pointer-events-auto shadow-lg"
-                />
+                {promptEnhancer}
               </div>
             </div>,
             portalRoot,
@@ -3015,7 +3058,7 @@ ${safeCode}
         })()}
 
       {/* Git mode dock — floats outside and directly above the input bar */}
-      {!inline &&
+      {!workspaceUI && !inline &&
         shouldShowGitMode &&
         portalRoot &&
         (() => {
@@ -3033,21 +3076,18 @@ ${safeCode}
               }
               style={anchored}
             >
-              <GitModeDock />
+              <GitModeDock workspaceUI={workspaceUI} />
             </div>,
             portalRoot,
           );
         })()}
 
-      {inline && shouldShowGitMode && <GitModeDock />}
+      {!workspaceUI && inline && shouldShowGitMode && <GitModeDock workspaceUI={workspaceUI} />}
       {shouldShowAppMode && (hasBoost || isAdmin) && <div className="mb-2 flex justify-center"><AppBuilderModelChoice ownerId={user?.id ?? null} disabled={isLoading} /></div>}
       <ComposerView
         footer={workspaceUI ? <div className="ws-live-footer">
           <ChatModelPicker compact placement="up" />
-          {onWorkModeToggle && <div className="ws-mode-switch" role="group" aria-label="Chat or Work">
-            <button type="button" aria-pressed={cloudExecutionMode === 'ask'} onClick={() => { if (cloudExecutionMode !== 'ask') onWorkModeToggle(); }}>Chat</button>
-            <button type="button" aria-label="Work (Boost)" aria-pressed={cloudExecutionMode === 'auto'} onClick={() => { if (cloudExecutionMode !== 'auto') onWorkModeToggle(); }}>Work <BoostIcon hasBoost={hasBoost || isAdmin} className="ws-boost-icon" /></button>
-          </div>}
+          {onWorkModeToggle && <WorkspaceChatWorkToggle mode={cloudExecutionMode} onToggle={onWorkModeToggle} hasBoost={hasBoost || isAdmin} />}
         </div> : undefined}
         inputBarRef={inputBarRef}
         active={isActive}
@@ -3071,12 +3111,15 @@ ${safeCode}
                       });
                     }
                     setShowMenu(!showMenu);
+                    if (workspaceUI && showMenu) menuButtonRef.current?.focus({ preventScroll: true });
                   }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
                     (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowGitMode || shouldShowAppMode || showCanvasIndicator) && !showMenu && "text-primary"
                   )}
                   aria-label={shouldShowAppMode ? "Build an app mode" : "Add content"}
+                  aria-expanded={showMenu}
+                  aria-haspopup="menu"
                 >
                   {showMenu ? (
                     <X className="h-4 w-4 transition-transform duration-300" />
@@ -3123,7 +3166,7 @@ ${safeCode}
                   </button>
                 )}
 
-                <ComposerActions showMenu={showMenu} position={menuPosition} actions={createMenuActions} onClose={() => setShowMenu(false)} />
+                <ComposerActions showMenu={showMenu} position={menuPosition} actions={createMenuActions} onClose={() => setShowMenu(false)} workspaceUI={workspaceUI} anchorRef={menuButtonRef} />
               </div>
         )}
         field={(
@@ -3218,6 +3261,7 @@ ${safeCode}
         isOpen={showPromptLibrary}
         onClose={() => setShowPromptLibrary(false)}
         prompts={quickPrompts}
+        workspaceUI={workspaceUI}
         onSelectPrompt={(p) => {
           // Image presets are complete as written — send them. Everything else
           // waits in the composer, already switched into its mode, to be edited.

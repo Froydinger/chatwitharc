@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIDEStore } from '@/store/useIDEStore';
+import { useAppBuilderDesktopAvailability } from '@/hooks/useAppBuilderDesktopAvailability';
+import { isAppBuilderDesktopAvailable } from '@/lib/builderViewport';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { exportProjectAsZip } from '@/lib/exportZip';
@@ -100,6 +102,7 @@ interface AppBuilderWorkspaceProps {
 export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = false }: AppBuilderWorkspaceProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const builderDesktopAvailable = useAppBuilderDesktopAvailability();
   const { hasBoost, isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
   const isEntitled = demo || hasBoost || isAdmin;
   const storeProjectId = useIDEStore(state => state.ideProjectId);
@@ -156,6 +159,10 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   const syncedRunStatesRef = useRef(new Set<string>());
   const didAutoRunRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!builderDesktopAvailable) setShowPublish(false);
+  }, [builderDesktopAvailable]);
 
   const updateFiles = useCallback((next: VirtualFileSystem) => {
     filesRef.current = next;
@@ -499,6 +506,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   }, [clearIdePrompt, demo, ideAutoRunPrompt, idePrompt, projectLoaded, subscriptionLoading]);
 
   const onPublish = async (input: { title: string; subdomain: string; description: string; hideBadge: boolean; faviconLabel: string; faviconSvg: string }) => {
+    if (!isAppBuilderDesktopAvailable()) throw new Error('Open App Builder on desktop to publish this app.');
     if (demo) throw new Error('This is a local design preview. Publishing is disabled here.');
     if (!ownerId) throw new Error('Sign in to publish this app.');
     setPublishing(true);
@@ -638,7 +646,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
           {deployedUrl && <a href={deployedUrl} target="_blank" rel="noreferrer" className="hidden items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1.5 text-[10px] text-white/55 hover:text-white sm:flex"><Globe className="h-3 w-3" /><span>Live</span><ExternalLink className="h-2.5 w-2.5" /></a>}
           {!isMobile && <Button variant="ghost" onClick={() => setDesktopPane(pane => pane === 'code' ? 'chat' : 'code')} className={`h-8 rounded-full px-3 text-[10px] ${desktopPane === 'code' ? 'app-builder-action bg-white text-black hover:bg-white/90' : 'text-white/55 hover:bg-white/[0.06] hover:text-white'}`}><Code2 className="mr-1.5 h-3.5 w-3.5" />{desktopPane === 'code' ? 'Close code' : 'Advanced'}</Button>}
           {deployedUrl && <button onClick={() => setShowUnpublish(true)} className="hidden text-[9px] text-white/30 hover:text-white/60 md:block">Unpublish</button>}
-          <Button onClick={() => setShowPublish(true)} disabled={publishing || loadingProject || !projectLoaded} className="h-9 rounded-full border border-white/15 bg-white/[0.09] px-3.5 text-[10px] font-semibold text-white hover:bg-white/[0.15] disabled:bg-white/[0.04] disabled:text-white/35 sm:px-4 sm:text-[11px]"><Rocket className="mr-1.5 h-3.5 w-3.5" />{deployedUrl ? 'Publish update' : 'Publish'}</Button>
+          <Button onClick={() => { if (builderDesktopAvailable) setShowPublish(true); }} disabled={!builderDesktopAvailable || publishing || loadingProject || !projectLoaded} className="h-9 rounded-full border border-white/15 bg-white/[0.09] px-3.5 text-[10px] font-semibold text-white hover:bg-white/[0.15] disabled:bg-white/[0.04] disabled:text-white/35 sm:px-4 sm:text-[11px]"><Rocket className="mr-1.5 h-3.5 w-3.5" />{deployedUrl ? 'Publish update' : 'Publish'}</Button>
         </div>
       </header>
 
@@ -680,7 +688,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
         {!isMobile && <aside className="w-[min(390px,36vw)] shrink-0 border-l border-white/[0.07]">{desktopPane === 'chat' ? chatPanel : codePanel}</aside>}
       </div>
 
-      <AppBuilderPublishDialog open={showPublish} demo={demo} onOpenChange={setShowPublish} currentTitle={appName} currentSubdomain={netlifySubdomain} currentDescription={projectMetadata.seo_description || ''} currentHideBadge={projectMetadata.hide_badge === true} currentFavicon={projectMetadata.favicon_label || 'Rocket'} publishedUrl={deployedUrl} onPublish={onPublish} />
+      <AppBuilderPublishDialog open={showPublish && builderDesktopAvailable} desktopAvailable={builderDesktopAvailable} demo={demo} onOpenChange={open => setShowPublish(open && builderDesktopAvailable)} currentTitle={appName} currentSubdomain={netlifySubdomain} currentDescription={projectMetadata.seo_description || ''} currentHideBadge={projectMetadata.hide_badge === true} currentFavicon={projectMetadata.favicon_label || 'Rocket'} publishedUrl={deployedUrl} onPublish={onPublish} />
 
       <ConditionalTransition preset="fade">{showUnpublish && <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"><TransitionPart><div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111211] p-5 shadow-2xl"><p className="text-base font-semibold">Take this app offline?</p><p className="mt-2 text-xs leading-relaxed text-white/45">The {deployedUrl?.replace(/^https?:\/\//, '')} link will stop working. You can publish it again later.</p><div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setShowUnpublish(false)} className="text-white/60">Keep live</Button><Button disabled={publishing} onClick={() => void handleUnpublish()} className="app-builder-action bg-white text-black hover:bg-white/90">{publishing ? 'Unpublishing…' : 'Unpublish'}</Button></div></div></TransitionPart></div>}</ConditionalTransition>
 

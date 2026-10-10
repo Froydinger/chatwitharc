@@ -1,5 +1,5 @@
 import { Transition } from "@/components/transitions/Transition";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Users, MessageSquare, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,8 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext";
+import { WorkspaceSharedChatsView } from "@/workspace/WorkspaceSharedChatsView";
 
 interface ChatRow {
   id: string;
@@ -17,11 +19,14 @@ interface ChatRow {
 }
 
 export function SharedChatsPage() {
+  const workspaceUI = useWorkspaceUI();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id;
   const { toast } = useToast();
   const [chats, setChats] = useState<ChatRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
@@ -30,33 +35,44 @@ export function SharedChatsPage() {
     if (!authLoading && !user) navigate("/");
   }, [authLoading, user, navigate]);
 
-  useEffect(() => { if (user) void load(); }, [user?.id]);
-
-  async function load() {
-    if (!user) return;
+  const load = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
-    const [{ data: owned }, { data: memberRows }] = await Promise.all([
-      supabase.from("shared_chats").select("id,title,owner_id,updated_at").eq("owner_id", user.id),
-      supabase.from("shared_chat_members").select("chat_id").eq("user_id", user.id),
+    const [{ data: owned, error: ownedError }, { data: memberRows, error: memberError }] = await Promise.all([
+      supabase.from("shared_chats").select("id,title,owner_id,updated_at").eq("owner_id", userId),
+      supabase.from("shared_chat_members").select("chat_id").eq("user_id", userId),
     ]);
+    if (ownedError || memberError) {
+      setLoadError((ownedError || memberError)!.message);
+      setLoading(false);
+      return;
+    }
     const memberIds = (memberRows ?? []).map((r) => r.chat_id);
     let memberChats: ChatRow[] = [];
     if (memberIds.length) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("shared_chats")
         .select("id,title,owner_id,updated_at")
         .in("id", memberIds);
+      if (error) {
+        setLoadError(error.message);
+        setLoading(false);
+        return;
+      }
       memberChats = (data as ChatRow[] | null) ?? [];
     }
     const all = [...((owned as ChatRow[] | null) ?? []), ...memberChats];
     const dedup = Array.from(new Map(all.map((c) => [c.id, c])).values())
       .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
     setChats(dedup);
+    setLoadError(null);
     setLoading(false);
-  }
+  }, [userId]);
+
+  useEffect(() => { if (userId) void load(); }, [userId, load]);
 
   async function create() {
-    if (!user || !newTitle.trim()) return;
+    if (!user || !newTitle.trim() || creating) return;
     setCreating(true);
     const { data, error } = await supabase
       .from("shared_chats")
@@ -73,7 +89,7 @@ export function SharedChatsPage() {
 
   async function deleteChat(chat: ChatRow, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!user || chat.owner_id !== user.id) return;
+    if (!user || chat.owner_id !== user.id || deletingId) return;
     if (!window.confirm(`Delete "${chat.title}"? This removes the chat for everyone in it.`)) return;
     setDeletingId(chat.id);
     // Wipe children first (no cascade FKs)
@@ -91,6 +107,12 @@ export function SharedChatsPage() {
   }
 
   if (authLoading || !user) return null;
+
+  if (workspaceUI) return <WorkspaceSharedChatsView
+    chats={chats} userId={user.id} loading={loading} error={loadError} onRetry={() => void load()}
+    creating={creating} newTitle={newTitle} onTitleChange={setNewTitle} onCreate={create}
+    deletingId={deletingId} onDelete={deleteChat} onOpen={id => navigate(`/shared/${id}`)}
+  />;
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground" style={{ paddingTop: "calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))" }}>

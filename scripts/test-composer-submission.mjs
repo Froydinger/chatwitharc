@@ -29,8 +29,17 @@ const request = (overrides = {}) => types.snapshotComposerRequest({
 });
 function fixture(options = {}) {
   const calls = []; const failed = []; let resolveProvider, rejectProvider;
-  const state = { currentSessionId: 'chat-a', isLoading: false, isGeneratingImage: false, chatSessions: [],
-    addMessage: async (message, opts) => { calls.push(['message', message, opts]); return crypto.randomUUID(); },
+  const state = { currentSessionId: 'chat-a', isLoading: false, isGeneratingImage: false,
+    messages: [], chatSessions: [{ id: 'chat-a', messages: [], title: 'Saved fixture' }],
+    addMessage: async (message, opts) => {
+      calls.push(['message', message, opts]);
+      const id = message.id || crypto.randomUUID();
+      const session = state.chatSessions.find(item => item.id === opts.sessionId);
+      if (session && !session.messages.some(item => item.id === id)) session.messages.push({ ...message, id });
+      if (session?.id === state.currentSessionId) state.messages = session.messages;
+      if (opts.awaitCloudPersistence) await options.messageSave?.(message, opts);
+      return id;
+    },
     setActiveTask: value => calls.push(['task', value]), setActiveStatusDetails: value => calls.push(['status', value]),
   };
   const deps = {
@@ -47,6 +56,7 @@ function fixture(options = {}) {
     enqueueComposerRequest: (...args) => calls.push(['queue', ...args]), useIDEStore: { getState: () => ({}) },
     subscriptionLoading: false, hasBoost: true, isAdmin: true, canGenerateVideo: false, isWriteCanvasOpen: false,
     getAppBuilderIntent: appIntent.getAppBuilderIntent, parseSubagentDirective: () => ({ requested: false }),
+    isAppBuilderDesktopAvailable: () => true,
     requestsCurrentLocation: () => false, useCorporateModeStore: { getState: () => ({ enabled: false }) },
     useCanvasStore: { getState: () => ({ ...workspace, isOpen: true, content: 'newer canvas' }) },
     setLoading: value => { state.isLoading = value; calls.push(['loading', value]); },
@@ -145,3 +155,82 @@ await work.send(undefined, request({ executionMode: 'auto' }));
 assert.equal(work.failed.length, 0, 'Uncertain durable acknowledgement never becomes duplicate manual retry');
 assert.equal(work.calls.filter(c => c[0] === 'provider').length, 0, 'Work never silently falls back to Chat');
 console.log('Production composer adapter checks passed: snapshot route/model, prompt indicator, atomic foreground lock, original-session result, preserved newer draft, failure recovery, cancellation and uncertain Work handoff.');
+
+const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+const delayedSave = deferred();
+const ordered = fixture({ messageSave: () => delayedSave.promise });
+const orderedPending = ordered.send(undefined, first);
+await tick();
+assert.equal(ordered.state.messages.filter(message => message.role === 'user').length, 1, 'User bubble appears before the save finishes');
+assert.equal(ordered.calls.filter(call => call[0] === 'provider').length, 0, 'Provider cannot race delayed first-message persistence');
+assert.deepEqual(ordered.calls.find(call => call[0] === 'message')[2].awaitCloudPersistence, { ownerId: 'owner' });
+delayedSave.resolve(); await tick();
+assert.equal(ordered.calls.filter(call => call[0] === 'provider').length, 1);
+ordered.resolve(); await orderedPending;
+
+let saveFails = true;
+const failedSave = fixture({ messageSave: async () => { if (saveFails) throw new Error('Synthetic save failure'); } });
+await failedSave.send(undefined, first);
+assert.equal(failedSave.calls.filter(call => call[0] === 'provider').length, 0);
+assert.equal(failedSave.failed[0].captured, first, 'Failed save retains the original complete request for manual retry');
+assert.equal(failedSave.state.isLoading, false);
+assert.equal(failedSave.state.messages[0].content, first.content, 'The draft remains in the owning chat');
+saveFails = false;
+failedSave.deps.messages = [...failedSave.state.messages];
+const retryPending = failedSave.send(undefined, first); await tick();
+assert.equal(failedSave.state.messages.filter(message => message.role === 'user').length, 1, 'Retry reuses the same user-message ID');
+const retryMessages = failedSave.calls.find(call => call[0] === 'provider')[1][0];
+assert.equal(retryMessages.filter(message => message.role === 'user').length, 1, 'Retry submits the user turn only once in provider history');
+assert.ok(retryMessages.find(message => message.role === 'user').content.includes(first.content));
+failedSave.resolve(); await retryPending;
+
+for (const change of ['cancel', 'owner', 'navigation', 'deleted']) {
+  const saved = deferred();
+  const waiting = fixture({ messageSave: () => saved.promise });
+  const pending = waiting.send(undefined, first); await tick();
+  if (change === 'cancel') {
+    waiting.deps.cancelRequested = true;
+    waiting.deps.activeForegroundRequestId = null;
+  } else if (change === 'owner') {
+    waiting.deps.dispatchScopeRef.current = { ...scope, ownerId: 'another-owner' };
+  } else if (change === 'navigation') {
+    waiting.state.currentSessionId = 'chat-b';
+    waiting.deps.dispatchScopeRef.current = { ...scope, sessionId: 'chat-b' };
+  } else {
+    waiting.state.chatSessions = [];
+  }
+  saved.resolve(); await pending;
+  assert.equal(waiting.calls.filter(call => call[0] === 'provider').length, 0, `${change} during save must not spend on a provider request`);
+  assert.equal(waiting.calls.filter(call => call[0] === 'message' && call[1].role === 'assistant').length, 0);
+  assert.equal(waiting.failed.length, change === 'navigation' ? 1 : 0, `${change} has the correct retry visibility`);
+  if (change === 'navigation') {
+    assert.equal(waiting.failed[0].captured.sessionId, 'chat-a', 'Navigation retains retry in its original chat');
+    waiting.state.currentSessionId = 'chat-a';
+    waiting.deps.dispatchScopeRef.current = scope;
+    waiting.deps.messages = [...waiting.state.messages];
+    const returned = waiting.send(undefined, first); await tick();
+    assert.equal(waiting.state.messages.filter(message => message.role === 'user').length, 1);
+    waiting.resolve(); await returned;
+  }
+}
+const workMessage = work.calls.find(call => call[0] === 'message');
+assert.equal(workMessage[2].deferCloudPersistence, true);
+assert.equal(workMessage[2].awaitCloudPersistence, undefined, 'Durable Work still delegates its transactional save');
+console.log('Chat startup ordering passed: immediate bubble, delayed/failed save, stable manual retry, owner switch, Stop, navigation and deleted-session fences before provider calls.');
+
+let rejectOlderSave = true;
+const olderRequest = request({ content: 'Question A', modes: { ...first.modes, search: false } });
+const newerRequest = request({ content: 'Question B', modes: { ...first.modes, search: false } });
+const olderRetry = fixture({ messageSave: async () => { if (rejectOlderSave) throw new Error('First save failed'); } });
+await olderRetry.send(undefined, olderRequest);
+rejectOlderSave = false;
+olderRetry.deps.messages = [...olderRetry.state.messages];
+const newerPending = olderRetry.send(undefined, newerRequest); await tick(); olderRetry.resolve(); await newerPending;
+olderRetry.deps.messages = [...olderRetry.state.messages];
+const olderPending = olderRetry.send(undefined, olderRequest); await tick();
+const olderCall = olderRetry.calls.filter(call => call[0] === 'provider').at(-1)[1];
+assert.equal(olderCall[14], olderRequest.id, 'Production composer passes the submitted A ID after newer B');
+assert.equal(olderCall[0].at(-1).content, 'Question A');
+assert.equal(olderRetry.state.messages.filter(message => message.id === olderRequest.id).length, 1);
+olderRetry.resolve(); await olderPending;
+console.log('Older manual retry keeps its original user-message identity through the production AIService call.');

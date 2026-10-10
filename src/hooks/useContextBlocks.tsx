@@ -17,6 +17,7 @@ export function useContextBlocks() {
   const { user } = useAuth();
   const [blocks, setBlocks] = useState<ContextBlock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const getActiveUserId = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return null;
@@ -25,21 +26,21 @@ export function useContextBlocks() {
   }, [user]);
 
   const fetchBlocks = useCallback(async () => {
-    if (!supabase || !isSupabaseConfigured) {
-      setBlocks([]);
-      setLoading(false);
-      return;
-    }
-
-    const activeUserId = await getActiveUserId();
-    if (!activeUserId) {
-      setBlocks([]);
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
+    setError(null);
     try {
+      if (!supabase || !isSupabaseConfigured) {
+        setBlocks([]);
+        setError('Living memory is unavailable until the account connection is configured.');
+        return;
+      }
+
+      const activeUserId = await getActiveUserId();
+      if (!activeUserId) {
+        setBlocks([]);
+        return;
+      }
+
       const data = await getMemorySummary();
       const createdAt = data.createdAt ?? data.updatedAt;
       setBlocks(data.summary.trim() ? [{
@@ -51,6 +52,7 @@ export function useContextBlocks() {
       }] : []);
     } catch (err) {
       console.error('Error fetching living memory summary:', err);
+      setError(err instanceof Error ? err.message : 'Could not load living memory.');
     } finally {
       setLoading(false);
     }
@@ -96,18 +98,20 @@ export function useContextBlocks() {
         updated_at: data.updatedAt,
       };
       setBlocks(data.summary.trim() ? [block] : []);
+      setError(null);
       window.dispatchEvent(new CustomEvent('memory-summary-updated'));
       return block;
     } catch (err) {
       console.error('Error adding to living memory:', err);
+      setError(err instanceof Error ? err.message : 'Could not update living memory.');
       return null;
     }
   }, [getActiveUserId]);
 
   const updateBlock = useCallback(async (id: string, content: string) => {
-    if (!supabase || !isSupabaseConfigured) return;
+    if (!supabase || !isSupabaseConfigured) return false;
     const activeUserId = await getActiveUserId();
-    if (!activeUserId) return;
+    if (!activeUserId) return false;
 
     try {
       const data = await applyMemorySummary('replace_summary', undefined, content.trim());
@@ -118,9 +122,13 @@ export function useContextBlocks() {
         created_at: data.createdAt ?? data.updatedAt,
         updated_at: data.updatedAt,
       }] : []);
+      setError(null);
       window.dispatchEvent(new CustomEvent('memory-summary-updated'));
+      return true;
     } catch (err) {
       console.error('Error updating living memory:', err);
+      setError(err instanceof Error ? err.message : 'Could not update living memory.');
+      return false;
     }
   }, [getActiveUserId]);
 
@@ -150,7 +158,7 @@ export function useContextBlocks() {
     }
   }, [getActiveUserId]);
 
-  return { blocks, loading, addBlock, updateBlock, deleteBlock, clearAll, refetch: fetchBlocks };
+  return { blocks, loading, error, addBlock, updateBlock, deleteBlock, clearAll, refetch: fetchBlocks };
 }
 
 export async function addContextBlockDirect(content: string, _source: 'manual' | 'memory' = 'memory'): Promise<boolean> {

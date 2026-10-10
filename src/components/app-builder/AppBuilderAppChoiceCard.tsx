@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, LoaderCircle, Smartphone } from 'lucide-react';
 import { getFaviconByLabel } from '@/constants/faviconOptions';
 import type { AppBuilderProjectSummary } from '@/utils/appBuilderIntent';
 import { reopenOwnedAppBuilderProject } from '@/services/openAppBuilderProject';
+import { isAppBuilderDesktopAvailable } from '@/lib/builderViewport';
 import { useToast } from '@/hooks/use-toast';
 
 interface AppBuilderAppChoiceCardProps {
@@ -25,11 +26,16 @@ function promptPreview(prompt: string) {
 
 export function AppBuilderAppChoiceCard({ projects, editPrompt }: AppBuilderAppChoiceCardProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [openingId, setOpeningId] = useState<string | null>(null);
 
   const openProject = async (project: AppBuilderProjectSummary) => {
     if (openingId) return;
+    if (!isAppBuilderDesktopAvailable()) {
+      navigate(`/build/${encodeURIComponent(project.id)}`, { state: { returnTo: `${location.pathname}${location.search}` } });
+      return;
+    }
     setOpeningId(project.id);
     try {
       await reopenOwnedAppBuilderProject(project.id, editPrompt);

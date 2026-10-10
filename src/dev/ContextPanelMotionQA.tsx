@@ -19,7 +19,7 @@ export function installContextPanelMotionQA() {
     return <><button data-qa-open onClick={() => setOpen(true)}>Open memory</button>
       <ContextBlocksPanelView isOpen={open} onClose={() => setOpen(false)} memory={{blocks,loading:false,
         addBlock:async content => {calls.push({kind:'add',content});const saved=block(content);setBlocks([saved]);return saved;},
-        updateBlock:async (id,content) => {calls.push({kind:'edit',id,content});setBlocks([block(content)]);},
+        updateBlock:async (id,content) => {calls.push({kind:'edit',id,content});setBlocks([block(content)]);return true;},
         clearAll:async () => {calls.push({kind:'clear'});setBlocks([]);},
       }} /></>;
   }

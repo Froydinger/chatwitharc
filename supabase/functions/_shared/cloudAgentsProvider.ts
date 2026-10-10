@@ -6,6 +6,39 @@ import type { EngineProvider } from './cloudRunEngine.ts';
 type Json = Record<string, unknown>;
 type AgentCall = { id: string; turnId: string; name: string; arguments: string };
 
+/** Structured, sanitized provider rejection. Raw provider messages never leave
+ * the request parser because they may contain echoed customer input. */
+export class CloudAgentsApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly method: string,
+    readonly path: string,
+    readonly code: string,
+    readonly param: string,
+    readonly type: string,
+    readonly spendControlUnavailable: boolean,
+    readonly confirmedZero: boolean,
+  ) {
+    super(message);
+    this.name = 'CloudAgentsApiRequestError';
+  }
+}
+
+const DEFINITE_NO_GENERATION_REJECTION_STATUSES = new Set([
+  400,
+  401,
+  403,
+  404,
+  413,
+  422,
+  429,
+]);
+
+export function isDefiniteNoGenerationRejectionStatus(status: number): boolean {
+  return DEFINITE_NO_GENERATION_REJECTION_STATUSES.has(status);
+}
+
 function record(value: unknown): Json {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid Agents API response');
   return value as Json;
@@ -13,6 +46,22 @@ function record(value: unknown): Json {
 
 function stringValue(value: unknown): string {
   return typeof value === 'string' ? value : '';
+}
+
+function spendControlDiagnostic(param: string, value: unknown): string | undefined {
+  if (!/^spend_control(?:\.limit)?$/.test(param)) return undefined;
+  const message = stringValue(value).slice(0, 2_000).toLowerCase();
+  if (/unknown|unrecognized|unexpected|unrecognised/.test(message)) return 'The provider does not recognize the spend-control parameter.';
+  if (/permission|not authorized|not have access|not permitted|access denied/.test(message)) return 'The provider has not granted this project access to spend control.';
+  if (/not (?:yet |currently )?(?:supported|available|enabled|allowed)|unsupported|unavailable|disabled|not have access|not permitted/.test(message)) {
+    return /model/.test(message) ? 'The provider does not support spend control for this model.' : /environment|self.hosted|sandbox/.test(message) ? 'The provider does not support spend control for this environment.' : 'The provider does not support or has not enabled spend control for this request.';
+  }
+  if (/integer|whole|type/.test(message)) return 'The provider requires a different spend-control limit type.';
+  if (/minimum|at least|greater than|positive/.test(message)) return 'The provider rejected the spend-control minimum limit.';
+  if (/maximum|at most|less than/.test(message)) return 'The provider rejected the spend-control maximum limit.';
+  if (/cents|range/.test(message)) return 'The provider rejected the spend-control limit or its numeric units.';
+  if (/require|missing/.test(message)) return 'The provider requires another spend-control field or prerequisite.';
+  return 'The provider rejected spend control; its message did not match a safe diagnostic category.';
 }
 
 function usageDelta(value: unknown, previousTokens: number): number {
@@ -169,21 +218,50 @@ export function cloudAgentsProvider(options: {
       // fixed API path, and code/param are the provider's structured fields.
       let code = '';
       let param = '';
+      let type = '';
+      let spendControlMessage: string | undefined;
       try {
         const payload = record(await response.json());
         const upstream = record(payload.error);
         code = stringValue(upstream.code).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
         param = stringValue(upstream.param).replace(/[^a-zA-Z0-9_.\[\]-]/g, '').slice(0, 120);
+        type = stringValue(upstream.type).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
+        spendControlMessage = spendControlDiagnostic(param, upstream.message);
       } catch {
         // Some gateway errors are not JSON. Status and endpoint remain useful.
       }
       const endpoint = `${method} /agents${path.replace(/\/sess_[a-zA-Z0-9_-]+/g, '/{session_id}')}`;
       const details = [code, param ? `param=${param}` : ''].filter(Boolean).join(' ');
-      console.error('Agents API request rejected', { status: response.status, endpoint, code, param });
-      if (method === 'POST' && path === '/sessions' && response.status >= 400 && response.status < 500) {
-        await options.onRejected?.(`provider-rejected-${response.status}`);
+      const requestId = response.headers.get('x-request-id');
+      console.error('Agents API request rejected', {
+        status: response.status,
+        endpoint,
+        code,
+        param,
+        ...(spendControlMessage ? {
+          spendControlMessage,
+          spendLimitCents: options.spendLimitCents,
+          model: options.model ?? 'gpt-6-luna',
+          ...(requestId && /^req_[a-zA-Z0-9_-]{1,150}$/.test(requestId) ? { providerRequestId: requestId } : {}),
+        } : {}),
+      });
+      const invalidRequestCategory = type === 'invalid_request_error'
+        || code.toLowerCase() === 'invalid_request_error';
+      const spendControlUnavailable = response.status === 400
+        && method === 'POST' && path === '/sessions' && param === 'spend_control'
+        && invalidRequestCategory
+        && spendControlMessage === 'The provider does not support or has not enabled spend control for this request.';
+      let confirmedZero = false;
+      if (method === 'POST' && path === '/sessions' && isDefiniteNoGenerationRejectionStatus(response.status)) {
+        if (options.onRejected) {
+          await options.onRejected(`provider-rejected-${response.status}`);
+          confirmedZero = true;
+        }
       }
-      throw new Error(`Agents API HTTP ${response.status} on ${endpoint}${details ? ` (${details})` : ''}`);
+      throw new CloudAgentsApiRequestError(
+        `Agents API HTTP ${response.status} on ${endpoint}${details ? ` (${details})` : ''}`,
+        response.status, method, path, code, param, type, spendControlUnavailable, confirmedZero,
+      );
     }
     const text = await response.text();
     if (!text) return {};

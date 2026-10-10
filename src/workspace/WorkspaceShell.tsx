@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, MessageCircle, Music, Search } from 'lucide-react';
+import { useChatPins } from '@/hooks/useChatPins';
 import { useAuth } from '@/hooks/useAuth';
 import { useArcStore } from '@/store/useArcStore';
 import { useCanvasStore } from '@/store/useCanvasStore';
@@ -8,6 +9,7 @@ import { useAccentStore } from '@/store/useAccentStore';
 import { IconButton, WorkspaceChrome, WorkspaceDialog, type WorkspaceSection } from './WorkspaceChrome';
 import { getConversationCanvas, isCurrentConversationRoute } from './conversationCanvas';
 import { useWorkspaceTheme } from './useWorkspaceTheme';
+import { WORKSPACE_CANVAS_OPEN_EVENT, type WorkspaceCanvasOpenIntent } from './workspaceCanvasOpenIntent';
 const PlanUsageBreakdown = lazy(() => import('@/components/PlanUsageBreakdown').then(module => ({ default: module.PlanUsageBreakdown })));
 const destination: Record<WorkspaceSection, string> = {
   chat: '/', build: '/build', apps: '/dashboard?tab=apps', images: '/dashboard?tab=images',
@@ -27,9 +29,12 @@ function sectionFor(path: string, search: string): WorkspaceSection {
 }
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const { user, profile } = useAuth();
+  const userId = user?.id;
   const location = useLocation();
   const navigate = useNavigate();
   const sessions = useArcStore(state => state.chatSessions);
+  const folders = useArcStore(state => state.folders);
+  const { pinnedIds, setPinned } = useChatPins();
   const currentId = useArcStore(state => state.currentSessionId);
   const messages = useArcStore(state => state.messages);
   const syncedUserId = useArcStore(state => state.syncedUserId);
@@ -38,11 +43,15 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const setTheme = useAccentStore(state => state.setThemeMode);
   const [dialog, setDialog] = useState<'about' | 'usage' | 'search' | null>(null);
   const [search, setSearch] = useState('');
+  const pendingCanvasOpen = useRef<WorkspaceCanvasOpenIntent | null>(null);
   const chatRoute = location.pathname === '/' || location.pathname.startsWith('/chat/');
   const section = sectionFor(location.pathname, location.search);
   // Unowned legacy cache entries are visible only after this account's sync.
-  const ownedSessions = sessions.filter(session => session.persistenceOwnerId === user?.id
-    || (!session.persistenceOwnerId && syncedUserId === user?.id));
+  const ownedSessions = sessions.filter(session => user && (session.persistenceOwnerId === user.id
+    || (!session.persistenceOwnerId && syncedUserId === user.id)));
+  const ownedFolders = folders.filter(folder => user && folder.userId === user.id);
+  const recentSessions = [...ownedSessions].sort((a, b) => Number(pinnedIds.includes(b.id)) - Number(pinnedIds.includes(a.id)));
+  const allChatsActive = location.pathname === '/dashboard' && new URLSearchParams(location.search).get('tab') === 'chats';
   const current = isCurrentConversationRoute(location.pathname, currentId)
     ? ownedSessions.find(session => session.id === currentId) : undefined;
   const conversationCanvas = getConversationCanvas(current);
@@ -56,11 +65,52 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   // deliberately does not run title generation or introduce a second chat hook.
   useEffect(() => {
     const state = useArcStore.getState();
-    if (user && state.syncedUserId !== user.id && !state.isSyncing) {
+    if (userId && state.syncedUserId !== userId && !state.isSyncing) {
       void state.syncFromSupabase().catch(error => console.warn('Workspace history sync failed.', error));
     }
-  }, [user?.id]);
+  }, [userId]);
   useEffect(() => { setDialog(null); }, [location.pathname, location.search]);
+  useEffect(() => {
+    const receiveCanvasOpen = (event: Event) => {
+      const detail = (event as CustomEvent<WorkspaceCanvasOpenIntent>).detail;
+      if (!detail?.sessionId || !useArcStore.getState().chatSessions.some(session => session.id === detail.sessionId)) return;
+      pendingCanvasOpen.current = detail;
+    };
+    window.addEventListener(WORKSPACE_CANVAS_OPEN_EVENT, receiveCanvasOpen);
+    return () => window.removeEventListener(WORKSPACE_CANVAS_OPEN_EVENT, receiveCanvasOpen);
+  }, []);
+  useEffect(() => {
+    const intent = pendingCanvasOpen.current;
+    if (!intent || intent.sessionId !== currentId || !current?.isHydrated
+      || !isCurrentConversationRoute(location.pathname, currentId)) return;
+
+    // MobileChatApp closes and rehydrates the canvas as it commits a session
+    // switch. Run after that effect and re-check ownership against the latest
+    // store state, so a saved artifact from another chat can never bleed in.
+    const timeout = window.setTimeout(() => {
+      if (pendingCanvasOpen.current !== intent) return;
+      const state = useArcStore.getState();
+      const target = state.chatSessions.find(session => session.id === intent.sessionId);
+      const owned = target && (target.persistenceOwnerId === user?.id
+        || (!target.persistenceOwnerId && state.syncedUserId === user?.id));
+      if (!owned || state.currentSessionId !== intent.sessionId) {
+        pendingCanvasOpen.current = null;
+        return;
+      }
+
+      const canvas = useCanvasStore.getState();
+      if (intent.kind === 'new') canvas.hydrateFromSession('', 'writing');
+      else canvas.hydrateFromSession(intent.content, intent.type, intent.language);
+      canvas.reopenCanvas();
+      pendingCanvasOpen.current = null;
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [currentId, current?.isHydrated, location.pathname, user?.id, syncedUserId]);
+  useEffect(() => {
+    const openUsage = () => setDialog('usage');
+    window.addEventListener('workspace-open-usage', openUsage);
+    return () => window.removeEventListener('workspace-open-usage', openUsage);
+  }, []);
 
   const flushCanvas = () => {
     if (!chatRoute || !current || !conversationCanvas) return;
@@ -96,9 +146,38 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       canvas.reopenCanvas();
     }
   };
-  return <WorkspaceChrome section={section} title={titles[section]}
+  // Recheck the current store at the action boundary; menu closures must not
+  // rename, move or delete another account's cached conversation or folder.
+  const ownedChatState = (id: string) => {
+    const state = useArcStore.getState();
+    const session = state.chatSessions.find(item => item.id === id);
+    if (!user || !session || !(session.persistenceOwnerId === user.id
+      || (!session.persistenceOwnerId && state.syncedUserId === user.id))) {
+      throw new Error('This conversation is not available in this account.');
+    }
+    return state;
+  };
+  return <WorkspaceChrome section={section} title={titles[section]} accountId={userId}
     onNavigate={id => go(destination[id])} onNewChat={newChat}
-    recent={ownedSessions.slice(0, 20).map(session => ({ id: session.id, title: session.title, work: session.isWork }))}
+    recent={recentSessions.slice(0, 20).map(session => ({ id: session.id, title: session.title, work: session.isWork, pinned: pinnedIds.includes(session.id), folderId: session.folderId }))}
+    onAllChats={() => go('/dashboard?tab=chats')} allChatsActive={allChatsActive} folders={ownedFolders}
+    onPinChat={async (id, value) => { ownedChatState(id); await setPinned(id, value); }}
+    onRenameChat={async (id, title) => { await ownedChatState(id).updateSessionTitle(id, title); }}
+    onMoveChat={async (id, folderId) => {
+      const state = ownedChatState(id);
+      if (folderId && !state.folders.some(folder => folder.id === folderId && folder.userId === user?.id)) {
+        throw new Error('This folder is not available in this account.');
+      }
+      await state.moveChatToFolder(id, folderId);
+    }}
+    onDeleteChat={async id => {
+      const state = ownedChatState(id);
+      const deletingCurrent = chatRoute && state.currentSessionId === id;
+      const deletion = state.deleteSession(id);
+      // Do not flush a deleted chat's canvas back into saved history.
+      if (deletingCurrent) navigate('/');
+      await deletion;
+    }}
     currentId={currentId} onOpenChat={openChat} onSearch={() => setDialog('search')}
     onUsage={() => setDialog('usage')} onInfo={() => setDialog('about')}
     onAccount={() => go('/dashboard/settings')}

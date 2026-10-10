@@ -21,12 +21,13 @@ providers, Route elements and global theme controller remain in place.
 
 ## Existing feature ownership
 
-- Dashboard keeps the existing live `DashboardPreviewPage`, including its
-  notification tray, account menu and tab handlers. Only redundant navigation
-  and branding are hidden inside Workspace; the existing library tabs still use
-  `DashboardPageInner`.
-- Chat history uses the account-owned session store. The existing full history
-  remains available through Search → All chats and history.
+- Workspace presents distinct Overview, Chats, Apps, Images, Canvases and Memory
+  views from the existing live dashboard controllers. Settings uses its real six
+  sections and descendants. Legacy dashboard presentation remains available
+  outside Workspace; see the integration review guide for current verification.
+- Chat history uses the account-owned session store. The full history remains
+  available through the explicit All chats row and Search. Sidebar hide, peek
+  and docking do not remount the routed content.
 - The new-chat and share buttons delegate to the mounted chat's original
   handlers; Music opens the existing music popup. Nothing autoplays.
 - Model selection uses the existing `ChatModelPicker`; upward placement is

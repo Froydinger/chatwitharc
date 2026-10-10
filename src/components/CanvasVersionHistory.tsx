@@ -1,3 +1,4 @@
+import { useWorkspaceUI } from '@/workspace/WorkspaceContext';
 import { WidthPanel } from '@/components/transitions/WidthPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -6,8 +7,9 @@ import type { CanvasVersion } from '@/store/useCanvasStore';
 export function CanvasVersionHistory({ open, charCount, versions, activeVersionIndex, onRestore }: {
   open: boolean; charCount: number; versions: CanvasVersion[]; activeVersionIndex: number; onRestore: (index: number) => void;
 }) {
-  return <WidthPanel open={open} width={200} className="border-l border-border/30 bg-muted/20 overflow-hidden flex-shrink-0">
-              <div className="w-[200px] h-full flex flex-col">
+  const workspaceUI = useWorkspaceUI();
+  return <WidthPanel open={open} width={200} className={cn("border-l border-border/30 bg-muted/20 overflow-hidden flex-shrink-0", workspaceUI && "workspace-canvas-history")}>
+              <div className="wsc-history-inner w-[200px] h-full flex flex-col">
                 <div className="px-3 py-2.5 border-b border-border/20">
                   <h3 className="text-xs font-medium text-foreground">Versions</h3>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -25,8 +27,9 @@ export function CanvasVersionHistory({ open, charCount, versions, activeVersionI
                         <button
                           key={version.id}
                           onClick={() => onRestore(index)}
+                          aria-current={activeVersionIndex === index ? 'true' : undefined}
                           className={cn(
-                            "w-full text-left p-2.5 rounded-lg transition-colors",
+                            "wsc-history-version w-full text-left p-2.5 rounded-lg transition-colors",
                             activeVersionIndex === index
                               ? "bg-primary/10 border border-primary/20"
                               : "hover:bg-muted/50 border border-transparent"

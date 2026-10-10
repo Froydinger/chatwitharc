@@ -6,6 +6,7 @@ import { useActiveVoiceConversationId } from '@/lib/voiceConversationOwnership';
 import { useOrdinaryChatRecovery } from '@/hooks/useOrdinaryChatRecovery';
 import { captureCloudLocationContext } from '@/lib/cloudLocationContext';
 import { hasSessionCloudProgress } from '@/lib/chatPresentation';
+import { isAppBuilderDesktopAvailable } from '@/lib/builderViewport';
 import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
 import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
 import { ChatMessageRows } from "@/components/ChatMessageRows";
@@ -19,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BorderBeam } from "border-beam";
-import { MetalFx } from "metal-fx";
+import { SafeMetalFx as MetalFx } from "@/components/ui/safe-metal-fx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore, type Message } from "@/store/useArcStore";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -42,6 +43,8 @@ import { showModelSwitchNotice } from '@/services/modelSwitchNotice';
 import { normalizeModelSelection, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
+import { WorkspaceChatWelcome } from "@/components/WorkspaceChatWelcome";
+import { pickWorkspacePrompts } from '@/workspace/workspacePrompts';
 import { ChatResponseStatus } from "@/components/ChatResponseStatus";
 import { useLiveAnswerStore } from "@/store/useLiveAnswerStore";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
@@ -54,6 +57,8 @@ import { CanvasPanel } from "@/components/CanvasPanel";
 import { SearchCanvas } from "@/components/SearchCanvas";
 import { useIDEStore } from "@/store/useIDEStore";
 import { AppBuilderWorkspace } from "@/components/app-builder/AppBuilderWorkspace";
+import { AppBuilderDesktopNotice } from "@/components/app-builder/AppBuilderDesktopNotice";
+import { useAppBuilderDesktopAvailability } from "@/hooks/useAppBuilderDesktopAvailability";
 // CanvasTile removed - canvas now renders inline as chat message artifacts
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -753,6 +758,12 @@ export function MobileChatApp() {
   // App Builder workspace state
   const isIDEOpen = useIDEStore((s) => s.isOpen);
   const closeIDE = useIDEStore((s) => s.closeIDE);
+  const builderDesktopAvailable = useAppBuilderDesktopAvailability();
+  const [hasMountedBuilder, setHasMountedBuilder] = useState(false);
+
+  useEffect(() => {
+    if (builderDesktopAvailable) setHasMountedBuilder(true);
+  }, [builderDesktopAvailable]);
 
   useEffect(() => {
     if (!APP_BUILDER_ENABLED && isIDEOpen) closeIDE();
@@ -876,7 +887,7 @@ export function MobileChatApp() {
   const pendingWorkHandoffRef = useRef<{ sessionId: string; prompt: string } | null>(null);
 
   // Static random prompts - picked once on mount, no AI call
-  const staticSuggestions = useMemo(() => pickRandomPrompts(3), []);
+  const staticSuggestions = useMemo(() => workspaceUI ? pickWorkspacePrompts() : pickRandomPrompts(3), [workspaceUI]);
 
   // Music store (audio element now in GlobalMusicPlayer)
   const {
@@ -1052,6 +1063,13 @@ export function MobileChatApp() {
 
     const sessionChanged = currentSessionId !== lastScrolledSessionRef.current;
     const countIncreased = messages.length > lastMessageCountRef.current;
+    let scrollFrame: number | undefined;
+    let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+    if (workspaceUI && !isVoiceActive && messages.length === 0 && (sessionChanged || lastMessageCountRef.current > 0)) {
+      el.scrollTo({ top: 0, behavior: 'auto' });
+      userScrolledUpRef.current = false;
+      lastScrolledSessionRef.current = currentSessionId;
+    }
 
     if (messages.length > 0 && (sessionChanged || countIncreased)) {
       // A brand-new message arriving resets the "scrolled up" guard
@@ -1062,12 +1080,16 @@ export function MobileChatApp() {
         if (!node) return;
         node.scrollTo({ top: node.scrollHeight, behavior: sessionChanged ? "auto" : "smooth" });
       };
-      requestAnimationFrame(scrollToBottom);
-      setTimeout(scrollToBottom, 60);
+      scrollFrame = requestAnimationFrame(scrollToBottom);
+      scrollTimer = setTimeout(scrollToBottom, 60);
       lastScrolledSessionRef.current = currentSessionId;
     }
     lastMessageCountRef.current = messages.length;
-  }, [messages.length, currentSessionId]);
+    return () => {
+      if (scrollFrame !== undefined) cancelAnimationFrame(scrollFrame);
+      if (scrollTimer !== undefined) clearTimeout(scrollTimer);
+    };
+  }, [messages.length, currentSessionId, workspaceUI, isVoiceActive]);
 
   // Reset the scroll-up guard when AI finishes responding
   useEffect(() => {
@@ -1343,6 +1365,10 @@ export function MobileChatApp() {
                   onChat={() => requestWorkMode('ask')}
                   buildLoading={authLoading || subscriptionLoading}
                   onBuild={() => {
+                    if (!isAppBuilderDesktopAvailable()) {
+                      navigate('/build', { state: { returnTo: '/' } });
+                      return;
+                    }
                     if (authLoading || subscriptionLoading) return;
                     if (!hasBoost && !isAdmin) { openCheckout(undefined, 'app_builder'); return; }
                     navigate('/build', { state: { returnTo: '/' } });
@@ -1615,7 +1641,11 @@ export function MobileChatApp() {
                   <p className="text-sm text-muted-foreground">Loading messages...</p>
                 </div>
               ) : (
-                <div className="flex items-end justify-center pb-6" style={{ minHeight: `calc(50vh - 5rem)` }}>
+                workspaceUI ? <WorkspaceChatWelcome
+                  suggestions={staticSuggestions}
+                  onSelectPrompt={triggerPrompt}
+                  onShowMore={() => setShowLibrary(true)}
+                /> : <div className="flex items-end justify-center pb-6" style={{ minHeight: `calc(50vh - 5rem)` }}>
                   <WelcomeSection
                     greeting={greeting}
                     heroAvatar={null}
@@ -1769,10 +1799,10 @@ export function MobileChatApp() {
                 </div>
               )}</ConditionalTransition>
 
-              {/* Greeting - above input on empty state */}
-              {!isVoiceActive && messages.length === 0 && (
+              {/* Legacy chat keeps its existing greeting and prompt placement. */}
+              {!isVoiceActive && messages.length === 0 && !workspaceUI && (
                 <Transition preset="fade" delay={0.1}><div
-                  className={cn("flex justify-center mb-6", workspaceUI && "ws-live-greeting")}
+                  className="flex justify-center mb-4"
                 >
                   <div className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-center">
                     <span className="relative inline-block">
@@ -1816,8 +1846,7 @@ export function MobileChatApp() {
                 </ArcInputEffects>
               </div>
               )}</ConditionalTransition>
-              {/* Quick Prompts - below input bar on empty state */}
-              {!isVoiceActive && messages.length === 0 && (
+              {!workspaceUI && !isVoiceActive && messages.length === 0 && (
                 <div className="pointer-events-auto mt-4 flex justify-center">
                   <SmartSuggestions
                     suggestions={staticSuggestions}
@@ -1847,6 +1876,7 @@ export function MobileChatApp() {
           isOpen={showLibrary}
           onClose={() => setShowLibrary(false)}
           prompts={quickPrompts}
+          workspaceUI={workspaceUI}
           onSelectPrompt={prefillPrompt}
         />
 
@@ -1919,10 +1949,13 @@ export function MobileChatApp() {
       {/* App Builder workspace takeover — portaled directly to document.body */}
       {createPortal(
         <ConditionalTransition preset="fade">{APP_BUILDER_ENABLED && isIDEOpen && (
-            <div
-              className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col"
-            >
-              <AppBuilderWorkspace onClose={closeIDE} />
+            <div className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col">
+              {(builderDesktopAvailable || hasMountedBuilder) && (
+                <div className={builderDesktopAvailable ? 'h-full min-h-0' : 'hidden'} aria-hidden={!builderDesktopAvailable}>
+                  <AppBuilderWorkspace onClose={closeIDE} />
+                </div>
+              )}
+              {!builderDesktopAvailable && <AppBuilderDesktopNotice overlay onBackToChat={closeIDE} />}
             </div>
           )}</ConditionalTransition>,
         document.body

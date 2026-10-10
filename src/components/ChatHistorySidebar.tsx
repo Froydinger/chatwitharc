@@ -32,6 +32,7 @@ export function ChatHistorySidebar({ onOpenDashboard, onDockChange, gestureBlock
   const { pinnedIds, setPinned, refreshPins } = useChatPins();
   const navigate = useNavigate();
   const sessions = useArcStore(state => state.chatSessions);
+  const folders = useArcStore(state => state.folders);
   const currentId = useArcStore(state => state.currentSessionId);
   const isSyncing = useArcStore(state => state.isSyncing);
   const sidebarId = useId();
@@ -119,14 +120,14 @@ export function ChatHistorySidebar({ onOpenDashboard, onDockChange, gestureBlock
       {docked && <Button type="button" variant="ghost" size="icon" className="absolute right-0 h-11 w-11 rounded-full" aria-label="Hide sidebar" onClick={() => { hide(); triggerRef.current?.focus(); }}><PanelLeftClose className="h-4 w-4" /></Button>}
     </header>
     <Button variant="outline" className="mt-3 shrink-0 justify-start rounded-full" onClick={() => { closeAfterNavigate(); onOpenDashboard(); }}><LayoutDashboard className="h-4 w-4" />Open dashboard</Button>
-    <Button variant="ghost" className="shrink-0 justify-start rounded-full" onClick={() => { closeAfterNavigate(); navigate('/dashboard?tab=chats'); }}>Show all chats</Button>
+    <Button variant="ghost" className="shrink-0 justify-start rounded-full" aria-label="All chats" onClick={() => { closeAfterNavigate(); navigate('/dashboard?tab=chats'); }}><MessageSquare className="h-4 w-4" />All chats</Button>
     <nav aria-label="Saved chats" className="mt-3 min-h-0 min-w-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
       {visibleSessions.length === 0 && <p className="p-2 text-sm text-muted-foreground">{user && !isAnonymous && !isLoaded ? 'Loading chats…' : 'No saved chats yet.'}</p>}
       {orderedSessions.slice(0, 20).map(session => <div key={session.id} className="flex w-full min-w-0 items-center gap-1">
         <button type="button" aria-current={session.id === currentId ? 'page' : undefined} className="mb-1 flex min-h-11 min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={() => { useArcStore.getState().loadSession(session.id); closeAfterNavigate(); navigate(`/chat/${encodeURIComponent(session.id)}`); }}>
           {pinnedIds.includes(session.id) && <Pin aria-label="Pinned" className="h-3 w-3 shrink-0" />}<MessageSquare aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="min-w-0 flex-1 truncate">{session.title || 'Untitled chat'}</span>
         </button>
-        <ChatRowActions title={session.title} onRename={title => useArcStore.getState().updateSessionTitle(session.id, title)} pinned={pinnedIds.includes(session.id)} onPin={value => setPinned(session.id, value)} onDelete={() => useArcStore.getState().deleteSession(session.id)} />
+        <ChatRowActions title={session.title} onRename={title => useArcStore.getState().updateSessionTitle(session.id, title)} pinned={pinnedIds.includes(session.id)} onPin={value => setPinned(session.id, value)} onMove={folderId => useArcStore.getState().moveChatToFolder(session.id, folderId)} folders={folders} folderId={session.folderId} onDelete={() => useArcStore.getState().deleteSession(session.id)} />
       </div>)}
     </nav>
   </>;

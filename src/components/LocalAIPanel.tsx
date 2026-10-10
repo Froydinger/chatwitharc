@@ -1,8 +1,9 @@
+import { SettingsSurface } from '@/workspace/SettingsSurface';
+import { useWorkspaceSettingsRows } from '@/workspace/settingsPresentation';
 import { useSubscription } from '@/hooks/useSubscription';
 import { BoostIcon } from '@/components/BoostIcon';
 import { useEffect, useState, useCallback } from "react";
 import { Cpu, Download, CheckCircle2, AlertTriangle, Trash2, Sparkles, Zap, Gem, Mail } from "lucide-react";
-import { GlassCard } from "@/components/ui/glass-card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -37,6 +38,7 @@ const DESKTOP_MODELS: ModelOption[] = [
 ];
 
 export function LocalAIPanel() {
+  const workspace = useWorkspaceSettingsRows();
   const { hasBoost, isAdmin } = useSubscription();
   const {
     enabled, setEnabled,
@@ -168,14 +170,14 @@ export function LocalAIPanel() {
 
   if (isMobileLocal) {
     return (
-      <GlassCard className="p-5 space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-primary/15 border border-primary/30">
+      <SettingsSurface className="p-5 space-y-4">
+        <div className={workspace ? "workspace-settings-card-heading" : "flex items-start gap-3"}>
+          <div className={workspace ? "workspace-settings-row-icon" : "p-2 rounded-xl bg-primary/15 border border-primary/30"}>
             <Mail className="h-5 w-5 text-primary" />
           </div>
           <div className="min-w-0">
             <h3 className="font-semibold text-foreground">Open Arc on desktop</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className={workspace ? "workspace-settings-row-description" : "text-xs text-muted-foreground mt-0.5"}>
               Local models and Corporate Mode are desktop-only. Desktop-link email is coming soon.
             </p>
           </div>
@@ -201,14 +203,14 @@ export function LocalAIPanel() {
             Coming soon
           </Button>
         </div>
-      </GlassCard>
+      </SettingsSurface>
     );
   }
 
   return (
-    <GlassCard className="p-5 space-y-4">
-      <div className="flex items-start gap-3">
-        <div className="p-2 rounded-xl bg-primary/15 border border-primary/30">
+    <SettingsSurface className="p-5 space-y-4">
+      <div className={workspace ? "workspace-settings-card-heading" : "flex items-start gap-3"}>
+        <div className={workspace ? "workspace-settings-row-icon" : "p-2 rounded-xl bg-primary/15 border border-primary/30"}>
           <Cpu className="h-5 w-5 text-primary" />
         </div>
         <div>
@@ -218,7 +220,7 @@ export function LocalAIPanel() {
               <BoostIcon hasBoost={hasBoost || isAdmin} className="h-3.5 w-3.5 shrink-0" />
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className={workspace ? "workspace-settings-row-description" : "text-xs text-muted-foreground mt-0.5"}>
             Run an on-device model. Private, offline, zero tokens. Pick the model that fits your machine.
           </p>
         </div>
@@ -242,8 +244,8 @@ export function LocalAIPanel() {
             <div className="flex items-start gap-2">
               <Mail className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground">Email me a desktop link — Coming soon</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
+                <p className={workspace ? "workspace-settings-row-title" : "text-sm font-medium text-foreground"}>Email me a desktop link — Coming soon</p>
+                <p className={workspace ? "workspace-settings-row-description" : "text-[11px] text-muted-foreground mt-0.5"}>
                   This option will return when transactional email is connected.
                 </p>
               </div>
@@ -274,7 +276,7 @@ export function LocalAIPanel() {
       )}
 
       {!isMobileLocal && noWebGPU && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
+        <div className={workspace ? "workspace-settings-note workspace-settings-note--warning workspace-settings-icon-note" : "flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30"}>
           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
           <div className="text-xs">
             <p className="text-foreground font-medium">WebGPU not available here</p>
@@ -294,7 +296,7 @@ export function LocalAIPanel() {
       {!isMobileLocal && !noWebGPU && (
         <>
           {!cacheChecked && (
-            <div className="p-3 rounded-xl bg-muted/20 border border-border/40 text-xs text-muted-foreground">
+            <div className={workspace ? "workspace-settings-note" : "p-3 rounded-xl bg-muted/20 border border-border/40 text-xs text-muted-foreground"}>
               Verifying on-device model…
             </div>
           )}
@@ -307,17 +309,17 @@ export function LocalAIPanel() {
               return (
                 <div
                   key={id}
-                  className={`p-3 rounded-xl border transition-colors ${
+                  className={workspace ? "workspace-settings-row workspace-local-model" : `p-3 rounded-xl border transition-colors ${
                     isActive ? 'bg-primary/10 border-primary/40' : 'bg-muted/20 border-border/40'
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="p-1.5 rounded-lg bg-primary/15 border border-primary/30">
+                  <div className={workspace ? "workspace-local-model-layout" : "flex items-start gap-3"}>
+                    <div className={workspace ? "workspace-settings-row-icon" : "p-1.5 rounded-lg bg-primary/15 border border-primary/30"}>
                       <Icon className="h-4 w-4 text-primary" />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className={workspace ? "workspace-local-model-copy" : "flex-1 min-w-0"}>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground">{name}</span>
+                        <span className={workspace ? "workspace-settings-row-title" : "text-sm font-medium text-foreground"}>{name}</span>
                         <span className="text-[10px] text-muted-foreground">{size}</span>
                         {beta && (
                           <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
@@ -335,7 +337,7 @@ export function LocalAIPanel() {
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{blurb}</p>
+                      <p className={workspace ? "workspace-settings-row-description" : "text-[11px] text-muted-foreground mt-0.5"}>{blurb}</p>
 
                       {isDownloading && (
                         <div className="mt-2 space-y-1">
@@ -347,7 +349,7 @@ export function LocalAIPanel() {
                         </div>
                       )}
 
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className={workspace ? "workspace-local-model-actions" : "flex items-center gap-2 mt-2"}>
                         {!isCached && (
                           <button
                             type="button"
@@ -391,16 +393,16 @@ export function LocalAIPanel() {
             <div className="space-y-2">
               {isMobileLocal ? (
                 <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
-                  <p className="text-sm font-medium text-foreground">Available in Corporate Mode</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <p className={workspace ? "workspace-settings-row-title" : "text-sm font-medium text-foreground"}>Available in Corporate Mode</p>
+                  <p className={workspace ? "workspace-settings-row-description" : "text-[11px] text-muted-foreground mt-0.5"}>
                     Mobile local stays private/offline and uses a compact prompt. Turn on Corporate Mode to use this model.
                   </p>
                 </div>
               ) : (
-                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+                <div className={workspace ? "workspace-settings-row" : "flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40"}>
                   <Label htmlFor="local-toggle" className="flex flex-col cursor-pointer">
-                    <span className="text-sm font-medium">Use local model when possible</span>
-                    <span className="text-[11px] text-muted-foreground mt-0.5">
+                    <span className={workspace ? "workspace-settings-row-title" : "text-sm font-medium"}>Use local model when possible</span>
+                    <span className={workspace ? "workspace-settings-row-description" : "text-[11px] text-muted-foreground mt-0.5"}>
                       Auto-switches to cloud for image gen, search & voice.
                     </span>
                   </Label>
@@ -408,10 +410,10 @@ export function LocalAIPanel() {
                 </div>
               )}
 
-              {!isMobileLocal && <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+              {!isMobileLocal && <div className={workspace ? "workspace-settings-row" : "flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40"}>
                 <Label htmlFor="prefer-cloud-toggle" className="flex flex-col cursor-pointer">
-                  <span className="text-sm font-medium">Always use cloud models</span>
-                  <span className="text-[11px] text-muted-foreground mt-0.5">
+                  <span className={workspace ? "workspace-settings-row-title" : "text-sm font-medium"}>Always use cloud models</span>
+                  <span className={workspace ? "workspace-settings-row-description" : "text-[11px] text-muted-foreground mt-0.5"}>
                     Keep your local model installed but route every chat to the cloud.
                   </span>
                 </Label>
@@ -421,13 +423,13 @@ export function LocalAIPanel() {
           )}
 
           {status === 'error' && errorMessage && (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
+            <div className={workspace ? "workspace-settings-note workspace-settings-note--warning workspace-settings-icon-note" : "flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30"}>
               <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
               <p className="text-xs text-foreground">{errorMessage}</p>
             </div>
           )}
         </>
       )}
-    </GlassCard>
+    </SettingsSurface>
   );
 }

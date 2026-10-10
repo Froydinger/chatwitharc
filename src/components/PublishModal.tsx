@@ -1,3 +1,4 @@
+import { WorkspaceModeDialog } from '@/workspace/WorkspaceModeDialog';
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { Rocket, Globe, Loader2, X, Check, AlertCircle, Upload, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -203,9 +204,10 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
 
   if (!hasBoost) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative w-full max-w-md rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden p-6 text-center">
+      <WorkspaceModeDialog open={open} onClose={onClose} title="Publishing requires Boost">
+      <div className="wcm-legacy-frame fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="wcm-legacy-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="wcm-card relative w-full max-w-md rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden p-6 text-center">
           <button
             onClick={onClose}
             className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 transition-colors"
@@ -230,6 +232,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
           </div>
         </div>
       </div>
+      </WorkspaceModeDialog>
     );
   }
 
@@ -289,11 +292,12 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
   const disablePublish = publishing || iconProcessing || !subdomain || availability === 'checking' || availability === 'taken';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+    <WorkspaceModeDialog open={open} onClose={onClose} title="Publish to web" dismissDisabled={publishing}>
+    <div className="wcm-legacy-frame fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="wcm-legacy-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border/20">
+      <div className="wcm-card relative w-full max-w-md rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden">
+        <div className="wcm-heading flex items-center justify-between px-6 pt-5 pb-4 border-b border-border/20">
           <div className="flex items-center gap-2.5">
             <div className="p-1.5 rounded-lg bg-primary/15">
               <Rocket className="w-4 h-4 text-primary" />
@@ -302,13 +306,14 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
           </div>
           <button
             onClick={onClose}
+            aria-label="Close publish dialog"
             className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        <div className="wcm-body px-6 py-5 space-y-5">
           {/* Site icon */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Site icon</Label>
@@ -399,7 +404,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
                 placeholder="my-site"
                 className="bg-muted/30 border-border/30 rounded-r-none border-r-0 font-mono text-sm"
               />
-              <div className="h-10 px-3 flex items-center bg-muted/50 border border-border/30 rounded-r-lg text-xs text-muted-foreground font-mono whitespace-nowrap">
+              <div className="wcm-domain h-10 px-3 flex items-center bg-muted/50 border border-border/30 rounded-r-lg text-xs text-muted-foreground font-mono whitespace-nowrap">
                 .{PUBLISH_DOMAIN}
               </div>
             </div>
@@ -427,7 +432,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
           </div>
 
           {/* Notice: updates allowed */}
-          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3.5 py-3 space-y-1">
+          <div className="wcm-notice rounded-xl border border-amber-500/20 bg-amber-500/5 px-3.5 py-3 space-y-1">
             <p className="text-xs font-medium text-amber-500/90">Before you publish</p>
             <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
               <li>Your site goes live at a <span className="font-mono">.{PUBLISH_DOMAIN}</span> URL</li>
@@ -442,7 +447,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
           )}
         </div>
 
-        <div className="px-6 pb-5 flex gap-3 justify-end">
+        <div className="wcm-footer px-6 pb-5 flex gap-3 justify-end">
           <Button variant="ghost" onClick={onClose} disabled={publishing} className="rounded-xl">
             Cancel
           </Button>
@@ -454,5 +459,6 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
         </div>
       </div>
     </div>
+    </WorkspaceModeDialog>
   );
 }

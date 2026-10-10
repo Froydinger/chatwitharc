@@ -254,10 +254,17 @@ export class AIService {
     abortSignal?: AbortSignal,
     arcMode: ArcMode = 'chat',
     forceGit: boolean = false,
+    submittedUserMessageId?: string,
   ): Promise<SendMessageResult> {
     const submissionId = crypto.randomUUID();
     const voiceCompatibility = !this.hasExplicitModelSelection && useVoiceModeStore.getState().isActive;
-    const currentUserMessage = sessionId ? useArcStore.getState().chatSessions.find(s => s.id === sessionId)?.messages.filter(m => m.role === 'user').at(-1) : undefined;
+    const sessionMessages = sessionId ? useArcStore.getState().chatSessions.find(s => s.id === sessionId)?.messages : undefined;
+    // Explicit retries can target an earlier user turn. Keep saved response and
+    // cancellation/invalidation ownership bound to the submitted message.
+    const currentUserMessage = submittedUserMessageId
+      ? sessionMessages?.find(m => m.id === submittedUserMessageId && m.role === 'user')
+      : sessionMessages?.filter(m => m.role === 'user').at(-1);
+    if (submittedUserMessageId && !currentUserMessage) throw new Error('The submitted message is no longer available in this chat.');
     const persistentInput = ordinaryChatEnabled(useArcStore.getState().syncedUserId) && !guestMode && arcMode === 'chat' && !forceGit && !forceCanvas && !forceCode
       && currentUserMessage?.type === 'text' && !currentUserMessage.imageUrls?.length
       ? {id:currentUserMessage.id,content:currentUserMessage.content} : undefined;

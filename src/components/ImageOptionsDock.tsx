@@ -1,5 +1,6 @@
 import { useSubscription } from "@/hooks/useSubscription";
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import "@/workspace/workspace-create-modes.css";
 import { createPortal } from "react-dom";
 import { ChevronDown, Ratio, Check, Images } from "lucide-react";
 import {
@@ -24,6 +25,8 @@ interface ImageOptionsDockProps {
   leftPx?: number;
   /** Optional explicit width in px to match input bar. */
   widthPx?: number;
+  /** Use the Workspace surface while preserving the real image controls. */
+  workspaceUI?: boolean;
 }
 
 /**
@@ -36,9 +39,11 @@ interface ImageOptionsDockProps {
 export function ImageOptionsContent({
   showUsage = true,
   editMode = false,
+  workspaceUI = false,
 }: {
   showUsage?: boolean;
   editMode?: boolean;
+  workspaceUI?: boolean;
 }) {
   const {
     imageMode,
@@ -67,17 +72,19 @@ export function ImageOptionsContent({
     setOpenMenu(null);
   };
 
+  const ContentRoot = workspaceUI ? "div" : Fragment;
   return (
-    <>
+    <ContentRoot {...(workspaceUI ? { className: "workspace-ui ws-image-options-content" } : {})}>
+      {workspaceUI && <div className="ws-image-options-heading">Image</div>}
       {showUsage && (
-        <div className="flex items-center justify-end gap-3 mb-2">
+        <div className={cn('flex items-center justify-end gap-3 mb-2', workspaceUI && 'ws-image-credit-row')}>
           <div className="flex items-center gap-2 min-w-0">
             <ImageCreditSummary compact />
           </div>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1 mb-3" role="group" aria-label="Image mode">
+      <div className={cn('flex flex-wrap gap-1 mb-3', workspaceUI && 'ws-image-models')} role="group" aria-label="Image mode">
         {IMAGE_MODEL_OPTIONS.map(option => {
           const mode = option.mode;
           return <button key={mode} type="button" aria-pressed={(hasBoost || isAdmin ? imageMode : 'low') === mode}
@@ -88,19 +95,33 @@ export function ImageOptionsContent({
               }
               setImageMode(mode);
             }}
-            className={cn("rounded-full px-3 py-1.5 text-xs border transition-colors", (hasBoost || isAdmin ? imageMode : 'low') === mode ? "bg-primary/10 border-primary/40 text-foreground" : "border-border/40 text-muted-foreground hover:bg-muted/40")}>
+            className={cn("rounded-full px-3 py-1.5 text-xs border transition-colors", (hasBoost || isAdmin ? imageMode : 'low') === mode ? "bg-primary/10 border-primary/40 text-foreground" : "border-border/40 text-muted-foreground hover:bg-muted/40", workspaceUI && "ws-image-model-option")}>
             {option.label}
           </button>;
         })}
       </div>
-      <div className="flex flex-wrap items-end gap-3">
+      {workspaceUI ? <div className="ws-image-settings">
+        <label className="ws-image-setting">
+          <span>Size</span>
+          <select aria-label="Image size" value={currentAspect} onChange={event => handlePickAspect(event.target.value as EditAspectRatio)}>
+            {aspectOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+          </select>
+        </label>
+        <label className="ws-image-setting">
+          <span>Count</span>
+          <select aria-label="Image count" value={effectiveCount} onChange={event => { setCount(Number(event.target.value) as ImageCount); setOpenMenu(null); }}>
+            {([1, 2, 3] as ImageCount[]).map(value => <option key={value} value={value}>{value} {value === 1 ? 'image' : 'images'}</option>)}
+          </select>
+        </label>
+      </div> : <div className="flex flex-wrap items-end gap-3">
         {/* Aspect ratio picker */}
-        <div className="relative flex flex-col gap-1">
+        <div className={cn('relative flex flex-col gap-1', workspaceUI && 'ws-image-setting')}>
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Size</span>
           <button
             type="button"
+            aria-expanded={openMenu === "aspect"}
             onClick={() => setOpenMenu(openMenu === "aspect" ? null : "aspect")}
-            className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+            className={cn("flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground", workspaceUI && "ws-image-setting-trigger")}
           >
             <Ratio className="h-3.5 w-3.5 text-primary" />
             <span className="font-medium">{activeAspect.id === 'source' ? 'Original' : activeAspect.id}</span>
@@ -108,17 +129,19 @@ export function ImageOptionsContent({
           </button>
 
           {openMenu === "aspect" && (
-            <div className="absolute bottom-full mb-2 left-0 w-56 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
+            <div role="group" aria-label="Image size choices" className={cn("absolute bottom-full mb-2 left-0 w-56 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20", workspaceUI && "ws-image-option-menu")}>
               {aspectOptions.map((a) => {
                 const isActive = a.id === currentAspect;
                 return (
                   <button
                     key={a.id}
                     type="button"
+                    aria-pressed={isActive}
                     onClick={() => handlePickAspect(a.id)}
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm transition-colors",
-                      isActive ? "bg-primary/10 text-foreground" : "hover:bg-muted/40 text-foreground"
+                      isActive ? "bg-primary/10 text-foreground" : "hover:bg-muted/40 text-foreground",
+                      workspaceUI && "ws-image-option-item",
                     )}
                   >
                     <span>{a.label}</span>
@@ -131,12 +154,13 @@ export function ImageOptionsContent({
         </div>
 
         {/* All image modes share the account’s image credits. */}
-          <div className="relative flex flex-col gap-1">
+          <div className={cn('relative flex flex-col gap-1', workspaceUI && 'ws-image-setting')}>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Count</span>
             <button
               type="button"
+              aria-expanded={openMenu === "count"}
               onClick={() => setOpenMenu(openMenu === "count" ? null : "count")}
-              className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+              className={cn("flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground", workspaceUI && "ws-image-setting-trigger")}
             >
               <Images className="h-3.5 w-3.5 text-primary" />
               <span className="font-medium">{effectiveCount}x</span>
@@ -144,17 +168,19 @@ export function ImageOptionsContent({
             </button>
 
             {openMenu === "count" && (
-              <div className="absolute bottom-full mb-2 left-0 w-40 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
+              <div role="group" aria-label="Image count choices" className={cn("absolute bottom-full mb-2 left-0 w-40 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20", workspaceUI && "ws-image-option-menu")}>
                 {([1, 2, 3] as ImageCount[]).map((c) => {
                   const isActive = c === effectiveCount;
                   return (
                     <button
                       key={c}
                       type="button"
+                      aria-pressed={isActive}
                       onClick={() => { setCount(c); setOpenMenu(null); }}
                       className={cn(
                         "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm transition-colors",
-                        isActive ? "bg-primary/10 text-foreground" : "hover:bg-muted/40 text-foreground"
+                        isActive ? "bg-primary/10 text-foreground" : "hover:bg-muted/40 text-foreground",
+                        workspaceUI && "ws-image-option-item",
                       )}
                     >
                       <span>{c} {c === 1 ? "image" : "images"}</span>
@@ -165,17 +191,17 @@ export function ImageOptionsContent({
               </div>
             )}
           </div>
-        </div>
-      </>
-    );
-  }
+      </div>}
+    </ContentRoot>
+  );
+}
 
 
 /**
  * Floating dock above the chat input that lets users pick the image model
  * and aspect ratio while in image-generation mode (e.g. /image, "draw…").
  */
-export function ImageOptionsDock({ portalRoot, bottomOffset, leftPx, widthPx }: ImageOptionsDockProps) {
+export function ImageOptionsDock({ portalRoot, bottomOffset, leftPx, widthPx, workspaceUI = false }: ImageOptionsDockProps) {
   if (!portalRoot) return null;
 
   const useAnchored = typeof leftPx === "number" && typeof widthPx === "number";
@@ -196,8 +222,8 @@ export function ImageOptionsDock({ portalRoot, bottomOffset, leftPx, widthPx }: 
       }
       style={style}
     >
-      <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3 mx-auto max-w-[760px]">
-        <ImageOptionsContent />
+      <div className={cn('rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3 mx-auto max-w-[760px]', workspaceUI && 'workspace-ui ws-create-mode ws-image-options-dock')}>
+        <ImageOptionsContent workspaceUI={workspaceUI} />
       </div>
     </div>,
     portalRoot

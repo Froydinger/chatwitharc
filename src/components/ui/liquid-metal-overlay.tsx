@@ -1,6 +1,6 @@
 import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
 import { useEffect, useState } from "react";
-import { MetalFx } from "metal-fx";
+import { SafeMetalFx as MetalFx } from "@/components/ui/safe-metal-fx";
 
 function getAppTheme(): "dark" | "light" {
   if (typeof document === "undefined") return "dark";

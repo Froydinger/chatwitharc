@@ -1,3 +1,4 @@
+import { WorkspaceModeDialog } from "@/workspace/WorkspaceModeDialog";
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useState, useEffect } from "react";
@@ -81,10 +82,11 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
   };
 
   const modal = (
+      <WorkspaceModeDialog open={isOpen} onClose={onClose} title={alt} image>
       <ConditionalTransition preset="fade">{isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 z-[150] flex items-center justify-center p-4"
+          className="wcm-legacy-frame fixed inset-0 z-[150] flex items-center justify-center p-4"
           style={{ 
             backgroundColor: "rgba(0, 0, 0, 0.85)",
             backdropFilter: "blur(8px)",
@@ -94,11 +96,11 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
           {/* Modal Content — sized to fit the visible (non-sidebar) area */}
           <TransitionPart><div
             onClick={(e) => e.stopPropagation()}
-            className="relative"
+            className="wcm-image-card relative"
             style={{ width: previewWidth, maxWidth: "100%", height: previewHeight, maxHeight: "calc(100vh - 6rem)" }}
           >
             {/* Action Bar */}
-            <div className="absolute top-4 right-4 z-10 flex gap-2 items-center">
+            <div className="wcm-image-actions absolute top-4 right-4 z-10 flex gap-2 items-center">
               {sourceUrl && 
                !sourceUrl.startsWith('blob:') && 
                !sourceUrl.includes('supabase.co/storage') && 
@@ -117,6 +119,7 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
                 variant="secondary"
                 size="icon"
                 onClick={handleDownload}
+                aria-label="Download image"
                 disabled={isDownloading}
                 className="rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-xl border border-white/30 shadow-[0_2px_12px_rgba(0,0,0,0.5)] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]"
               >
@@ -126,6 +129,7 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
                 variant="secondary"
                 size="icon"
                 onClick={onClose}
+                aria-label="Close image preview"
                 className="rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-xl border border-white/30 shadow-[0_2px_12px_rgba(0,0,0,0.5)] [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]"
               >
                 <X className="h-4 w-4 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
@@ -133,7 +137,7 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
             </div>
 
             {/* Image Container */}
-            <div className="w-full h-full rounded-2xl overflow-hidden border border-white/10 bg-black/20 backdrop-blur-md shadow-2xl flex items-center justify-center">
+            <div className="wcm-image-stage w-full h-full rounded-2xl overflow-hidden border border-white/10 bg-black/20 backdrop-blur-md shadow-2xl flex items-center justify-center">
               <SmoothImage
                 src={imageUrl}
                 alt={alt}
@@ -145,6 +149,7 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
           </div></TransitionPart>
         </div>
       )}</ConditionalTransition>
+      </WorkspaceModeDialog>
   );
 
   // The preview is rendered above the app shell so fixed chat controls cannot

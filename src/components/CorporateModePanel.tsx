@@ -1,6 +1,7 @@
+import { SettingsSurface } from '@/workspace/SettingsSurface';
+import { useWorkspaceSettingsRows } from '@/workspace/settingsPresentation';
 import { useState } from "react";
 import { Lock, Unlock, ShieldCheck, Brain, BrainCircuit, RefreshCw, Loader2 } from "lucide-react";
-import { GlassCard } from "@/components/ui/glass-card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { isMobileLocalDevice } from "@/utils/mobileLocal";
  * Locks the app to local-only with no tools, forces Noir theme, restores cleanly on disable.
  */
 export function CorporateModePanel() {
+  const workspace = useWorkspaceSettingsRows();
   const enabled = useCorporateModeStore((s) => s.enabled);
   const setEnabled = useCorporateModeStore((s) => s.setEnabled);
   const memoriesEnabled = useCorporateModeStore((s) => s.memoriesEnabled);
@@ -115,9 +117,9 @@ export function CorporateModePanel() {
 
   return (
     <>
-      <GlassCard variant="bubble" className="p-6 space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-primary/15 border border-primary/30">
+      <SettingsSurface variant="bubble" className="p-6 space-y-4">
+        <div className={workspace ? "workspace-settings-card-heading" : "flex items-start gap-3"}>
+          <div className={workspace ? "workspace-settings-row-icon" : "p-2 rounded-xl bg-primary/15 border border-primary/30"}>
             <ShieldCheck className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1">
@@ -129,31 +131,31 @@ export function CorporateModePanel() {
                 <Unlock className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className={workspace ? "workspace-settings-row-description" : "text-sm text-muted-foreground mt-0.5"}>
               Locks Arc to your downloaded on-device model. No cloud calls, no tools, no attachments.
               New chats stay on this device until you turn it off.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40">
+        <div className={workspace ? "workspace-settings-row" : "flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40"}>
           <Label htmlFor="corp-toggle" className="flex flex-col cursor-pointer">
-            <span className="text-sm font-medium">Enable Corporate Mode</span>
-            <span className="text-[11px] text-muted-foreground mt-0.5">
+            <span className={workspace ? "workspace-settings-row-title" : "text-sm font-medium"}>Enable Corporate Mode</span>
+            <span className={workspace ? "workspace-settings-row-description" : "text-[11px] text-muted-foreground mt-0.5"}>
               Forces Noir theme. Disables image gen, web search, voice, code, canvas, document analysis, and cloud sync.
             </span>
           </Label>
           <Switch id="corp-toggle" checked={enabled} onCheckedChange={handleToggle} />
         </div>
 
-        {!isMobileLocal && <div className="space-y-3 p-3 rounded-xl bg-muted/20 border border-border/40">
-          <div className="flex items-start gap-3">
-            <BrainCircuit className="h-4 w-4 text-primary mt-1 shrink-0" />
+        {!isMobileLocal && <div className={workspace ? "workspace-settings-memory" : "space-y-3 p-3 rounded-xl bg-muted/20 border border-border/40"}>
+          <div className={workspace ? "workspace-settings-memory-main" : "flex items-start gap-3"}>
+            <BrainCircuit className={workspace ? "workspace-settings-row-icon" : "h-4 w-4 text-primary mt-1 shrink-0"} />
             <div className="flex-1">
-              <div className="flex items-center justify-between gap-2">
+              <div className={workspace ? "workspace-settings-row" : "flex items-center justify-between gap-2"}>
                 <Label htmlFor="corp-mem-toggle" className="flex flex-col cursor-pointer">
-                  <span className="text-sm font-medium">Use my memories on-device</span>
-                  <span className="text-[11px] text-muted-foreground mt-0.5">
+                  <span className={workspace ? "workspace-settings-row-title" : "text-sm font-medium"}>Use my memories on-device</span>
+                  <span className={workspace ? "workspace-settings-row-description" : "text-[11px] text-muted-foreground mt-0.5"}>
                     Cache a one-time copy of your saved memories locally so Corporate Mode can still personalize answers — fully offline.
                   </span>
                 </Label>
@@ -167,7 +169,7 @@ export function CorporateModePanel() {
           </div>
 
           {memoriesEnabled === true && (
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/30">
+            <div className={workspace ? "workspace-settings-row" : "flex items-center justify-between gap-2 pt-2 border-t border-border/30"}>
               <div className="text-[11px] text-muted-foreground leading-tight">
                 {memorySnapshot ? (
                   <>
@@ -202,18 +204,18 @@ export function CorporateModePanel() {
         </div>}
 
         {enabled && !hasLocalModel && (
-          <div className="text-xs text-muted-foreground p-3 rounded-xl bg-destructive/10 border border-destructive/30">
+          <div className={workspace ? "workspace-settings-note workspace-settings-note--warning" : "text-xs text-muted-foreground p-3 rounded-xl bg-destructive/10 border border-destructive/30"}>
             No on-device model is loaded yet. Download one in <strong>Arc Local</strong> below — until then,
             messages can't be sent.
           </div>
         )}
 
-        <div className="text-[11px] text-muted-foreground leading-relaxed">
+        <div className={workspace ? "workspace-settings-note" : "text-[11px] text-muted-foreground leading-relaxed"}>
           When you turn Corporate Mode off, your previous theme returns and all features come back online.
           Chats created during Corporate Mode stay on this device only. New memories can't be written while
           Corporate Mode is on — turn it off to save new ones.
         </div>
-      </GlassCard>
+      </SettingsSurface>
 
       <CorporateMemoryConsentModal open={consentOpen} onClose={() => setConsentOpen(false)} />
     </>

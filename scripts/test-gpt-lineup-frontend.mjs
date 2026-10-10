@@ -74,7 +74,18 @@ function picker(account) {
   assert.equal(/ disabled=""/.test(astraRow), !!account.loading || !!account.authLoading);
   assert.equal(astraRow.includes('Coming soon'), false);
   assert.equal(html.includes('$30/month'), false);
-  assert.ok(html.includes('Auto can use your Sol allowance'));
+  assert.ok(html.includes('Unlimited'));
+  assert.ok(html.includes('Allowance'));
+  assert.ok(html.includes('Boost'));
+  assert.ok(html.includes('Auto can use Sol allowance'));
+  assert.ok(html.includes('Usage details'));
+  assert.equal(html.includes('workspace-open-usage'), false, 'internal usage event name is not exposed as copy');
+  assert.equal(html.includes('Arc Matrix™'), false);
+  assert.equal(html.includes('Choose how Arc responds.'), false);
+  assert.equal(html.includes('Auto can use your Sol allowance'), false);
+  assert.equal(html.includes('Free and unlimited for everyone'), false);
+  assert.equal(html.includes('shared Sol allowance'), false);
+  assert.equal(html.includes('separate Astra allowance'), false);
   stateIndex = 0;
   const tree = mod.ChatModelPicker({});
   let astraElement;
@@ -163,10 +174,12 @@ const supabase = { auth: { getSession: async () => ({ data: { session } }), getU
   functions: { invoke: async (name, options) => { invocations.push({ name, ...structuredClone(options) }); return { data: structuredClone(serverReply), error: null }; } },
 };
 let fetchHandler = async (_url, options) => { requests.push(JSON.parse(options.body)); return Response.json(serverReply); };
+let ordinaryEnabled = false;
+const chatState = { syncedUserId: 'fixture', chatSessions: [] }, registeredTurns = [];
 const deps = { ...models, notifyTextUsageChanged() { usageRefreshes++; },
   useVoiceModeStore: { getState: () => ({ isActive: voiceActive }) }, showModelSwitchNotice: noticeApi.showModelSwitchNotice, arcRequestTask: routing.arcRequestTask, supabase, isSupabaseConfigured: true,
-  useArcStore: { getState: () => ({ chatSessions: [] }) }, useBrowserbaseSessionStore: { getState: () => ({ getSession: () => null }) },
-  ordinaryChatEnabled: () => false, registerOrdinaryChat() {}, unregisterOrdinaryChat() {},
+  useArcStore: { getState: () => chatState }, useBrowserbaseSessionStore: { getState: () => ({ getSession: () => null }) },
+  ordinaryChatEnabled: () => ordinaryEnabled, registerOrdinaryChat(...args) { registeredTurns.push(args); }, unregisterOrdinaryChat() {},
   useLiveAnswerStore: { getState: () => ({ clear() {}, show() {} }) },
   getCachedLocation: () => null, detectsLocationIntent: () => false, requestsCurrentLocation: () => false,
   UI_CONTEXT_PROMPT: { role: 'system', content: 'Fixture' }, ARC_MODE_CONTEXT: { chat: { role: 'system', content: 'Fixture' } },
@@ -241,6 +254,25 @@ assert.equal(requests.at(-1).compatibilityMode, undefined);
 assert.equal(requests.at(-1).modelSelection, 'gpt-6.1-sol');
 assert.equal(usageRefreshes, refreshesBeforeVoice + 1);
 voiceActive = false;
+
+// A failed A followed by B then an explicit retry of A keeps A's persistence identity.
+ordinaryEnabled = true;
+chatState.chatSessions = [{ id: 'retry-chat', messages: [
+  { id: 'message-a', role: 'user', type: 'text', content: 'Question A' },
+  { id: 'message-b', role: 'user', type: 'text', content: 'Question B' },
+] }];
+await new api.AIService('auto').sendMessage([{ role: 'user', content: 'Question A' }], {}, undefined, 'retry-chat',
+  false, false, false, false, false, undefined, undefined, undefined, 'chat', false, 'message-a');
+assert.deepEqual(requests.at(-1).userMessage, { id: 'message-a', content: 'Question A' });
+assert.equal(registeredTurns.at(-1)[2], 'message-a', 'Cancellation and edit invalidation bind to A, not the newer B');
+await new api.AIService('auto').sendMessage([{ role: 'user', content: 'Question B' }], {}, undefined, 'retry-chat');
+assert.deepEqual(requests.at(-1).userMessage, { id: 'message-b', content: 'Question B' }, 'Existing callers retain latest-turn behavior');
+chatState.chatSessions[0].messages.shift();
+const beforeMissingTurn = requests.length;
+await assert.rejects(new api.AIService('auto').sendMessage([{ role: 'user', content: 'Question A' }], {}, undefined, 'retry-chat',
+  false, false, false, false, false, undefined, undefined, undefined, 'chat', false, 'message-a'), /no longer available/);
+assert.equal(requests.length, beforeMissingTurn, 'Deleted submitted ID never falls back to a newer turn');
+ordinaryEnabled = false; chatState.chatSessions = [];
 
 // Exercise the actual pre-await Work snapshot and request-builder expressions.
 const mobile = read('src/components/MobileChatApp.tsx');

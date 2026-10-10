@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { SettingsSurface } from '@/workspace/SettingsSurface';
+import { useWorkspaceSettingsRows } from '@/workspace/settingsPresentation';
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { Share2, Copy, Trash2, ExternalLink, Loader2 } from "lucide-react";
-import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,7 +13,12 @@ interface SharedSessionRow {
   updated_at: string;
 }
 
+function SharedLinkActions({ workspace, children }: { workspace: boolean; children: ReactNode }) {
+  return workspace ? <div className="workspace-shared-link-actions">{children}</div> : <>{children}</>;
+}
+
 export function SharedLinksCard() {
+  const workspace = useWorkspaceSettingsRows();
   const { user } = useAuth();
   const { toast } = useToast();
   const [rows, setRows] = useState<SharedSessionRow[]>([]);
@@ -62,9 +68,9 @@ export function SharedLinksCard() {
   };
 
   return (
-    <GlassCard className="p-5 space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+    <SettingsSurface className="p-5 space-y-4">
+      <div className={workspace ? "workspace-settings-card-heading" : "flex items-center gap-3"}>
+        <div className={workspace ? "workspace-settings-row-icon" : "h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center"}>
           <Share2 className="h-4 w-4" />
         </div>
         <div className="min-w-0">
@@ -74,28 +80,29 @@ export function SharedLinksCard() {
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
+        <div className={workspace ? "workspace-settings-note workspace-settings-icon-note" : "flex items-center gap-2 text-xs text-muted-foreground py-4"}>
           <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-2">
+        <p className={workspace ? "workspace-settings-note" : "text-xs text-muted-foreground py-2"}>
           You haven't shared any chats yet. Open a chat and tap Share to publish a read-only link.
         </p>
       ) : (
-        <ul className="space-y-2 max-h-80 overflow-y-auto scrollbar-hide">
+        <ul className={workspace ? "workspace-settings-shared-links" : "space-y-2 max-h-80 overflow-y-auto scrollbar-hide"}>
           {rows.map((row) => (
             <li
               key={row.id}
-              className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/40"
+              className={workspace ? "workspace-settings-row workspace-shared-link" : "flex items-center gap-2 p-2.5 rounded-xl bg-muted/20 border border-border/40"}
             >
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className={workspace ? "workspace-settings-row-title truncate" : "text-sm font-medium text-foreground truncate"}>
                   {row.title || "Untitled chat"}
                 </p>
-                <p className="text-[11px] text-muted-foreground truncate">
+                <p className={workspace ? "workspace-settings-row-description" : "text-[11px] text-muted-foreground truncate"}>
                   Shared • {new Date(row.updated_at).toLocaleDateString()}
                 </p>
               </div>
+              <SharedLinkActions workspace={workspace}>
               <GlassButton
                 size="sm"
                 variant="ghost"
@@ -128,11 +135,12 @@ export function SharedLinksCard() {
                   <Trash2 className="h-3.5 w-3.5" />
                 )}
               </GlassButton>
+              </SharedLinkActions>
             </li>
           ))}
         </ul>
       )}
-    </GlassCard>
+    </SettingsSurface>
   );
 }
 

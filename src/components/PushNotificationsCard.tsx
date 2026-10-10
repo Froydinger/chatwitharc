@@ -1,3 +1,5 @@
+import { SettingsSurface } from '@/workspace/SettingsSurface';
+import { useWorkspaceSettingsRows } from '@/workspace/settingsPresentation';
 import { Bell, BellOff, Loader2, Smartphone, Monitor, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -14,6 +16,7 @@ function notificationErrorMessage(error: unknown, fallback: string) {
 }
 
 export function PushNotificationsCard() {
+  const workspace = useWorkspaceSettingsRows();
   const {
     supported,
     permission,
@@ -88,14 +91,15 @@ export function PushNotificationsCard() {
   const canToggle = supported && !denied && !needsIOSInstall && !needsMacInstall;
 
   return (
-    <div className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md p-4 sm:p-5 space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+    <SettingsSurface plain className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md p-4 sm:p-5 space-y-4">
+      {workspace && <header><h3>Notifications</h3></header>}
+      <div className={workspace ? "workspace-settings-row workspace-push-row" : "flex flex-col gap-3 sm:flex-row sm:items-start"}>
+        <div className={workspace ? "workspace-settings-row-icon" : "h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0"}>
           {subscribed ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-semibold text-foreground">Push Notifications</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h3 className={workspace ? "workspace-settings-row-title" : "text-sm font-semibold text-foreground"}>Push Notifications</h3>
+          <p className={workspace ? "workspace-settings-row-description" : "text-xs text-muted-foreground mt-0.5"}>
             Get pinged when Arc Chat or Arc Work finishes, scheduled tasks finish, someone @mentions you in a Collab Chat, or important updates land.
           </p>
         </div>
@@ -110,7 +114,7 @@ export function PushNotificationsCard() {
             aria-label={subscribed ? "Disable push notifications" : "Enable push notifications"}
             aria-busy={loading}
             data-on={subscribed}
-            className={
+            className={workspace ? "workspace-settings-choice workspace-push-toggle" :
               "group inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-full border px-4 text-xs font-semibold transition-[background-color,border-color,box-shadow,color,transform] duration-200 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none sm:self-auto " +
               (subscribed
                 ? "border-foreground bg-foreground text-background shadow-[0_8px_24px_-16px_hsl(var(--foreground)/0.85)] hover:bg-foreground/90"
@@ -129,7 +133,7 @@ export function PushNotificationsCard() {
             </span>
             <span
               ref={notifyLabelRef}
-              className="relative block h-[18px] overflow-hidden text-left"
+              className={workspace ? "workspace-push-label" : "relative block h-[18px] overflow-hidden text-left"}
               style={notifyLabelWidth ? { width: notifyLabelWidth } : undefined}
               aria-hidden="true"
             >
@@ -158,13 +162,13 @@ export function PushNotificationsCard() {
       </div>
 
       {availabilityReason === "unsupported-browser" && (
-        <p className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
+        <p className={workspace ? "workspace-settings-note" : "text-xs text-muted-foreground bg-muted/30 rounded-lg p-3"}>
           Push notifications aren't supported in this browser. Try Safari, Chrome, or Edge.
         </p>
       )}
 
       {needsIOSInstall && (
-        <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 flex gap-2">
+        <div className={workspace ? "workspace-settings-note workspace-settings-icon-note" : "text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 flex gap-2"}>
           <Smartphone className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
           <span>
             On iPhone & iPad, push only works after installing ArcAI to your Home Screen.
@@ -175,7 +179,7 @@ export function PushNotificationsCard() {
       )}
 
       {needsMacInstall && (
-        <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 flex gap-2">
+        <div className={workspace ? "workspace-settings-note workspace-settings-icon-note" : "text-xs text-muted-foreground bg-muted/30 rounded-lg p-3 flex gap-2"}>
           <Monitor className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
           <span>
             On macOS Safari, push only works after adding ArcAI to your Dock.
@@ -186,21 +190,21 @@ export function PushNotificationsCard() {
       )}
 
       {availabilityReason === "push-service-unavailable" && (
-        <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
+        <div className={workspace ? "workspace-settings-note" : "text-xs text-muted-foreground bg-muted/30 rounded-lg p-3"}>
           The browser's push service is still waking up. Leave this open while Arc retries;
           if it still fails, fully close and reopen the installed app once.
         </div>
       )}
 
       {denied && (
-        <div className="text-xs text-muted-foreground bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+        <div className={workspace ? "workspace-settings-note workspace-settings-note--warning" : "text-xs text-muted-foreground bg-destructive/10 border border-destructive/30 rounded-lg p-3"}>
           Notifications are blocked for this site. Enable them in your browser's site settings,
           then come back and try again.
         </div>
       )}
 
       {subscribed && (
-        <div className="flex flex-wrap gap-2">
+        <div className={workspace ? "workspace-settings-actions" : "flex flex-wrap gap-2"}>
           <Button variant="outline" size="sm" onClick={handleTest} disabled={loading}>
             <Send className="h-3.5 w-3.5 mr-1.5" />
             Send test notification
@@ -210,6 +214,6 @@ export function PushNotificationsCard() {
           </Button>
         </div>
       )}
-    </div>
+    </SettingsSurface>
   );
 }
