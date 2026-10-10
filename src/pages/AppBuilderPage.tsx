@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIDEStore } from "@/store/useIDEStore";
 import { AppBuilderWorkspace } from "@/components/app-builder/AppBuilderWorkspace";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { isMobileBuilderViewport } from "@/lib/builderViewport";
 
 export function AppBuilderPage() {
   const { projectId } = useParams<{ projectId?: string }>();
@@ -12,16 +14,18 @@ export function AppBuilderPage() {
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { hasBoost, isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
+  const isMobile = useIsMobile();
+  const mobileBuilderRoute = isMobile || (typeof window !== "undefined" && isMobileBuilderViewport(window.innerWidth));
   const setIdeProjectId = useIDEStore((s) => s.setIdeProjectId);
   const localDemo = import.meta.env.DEV && searchParams.get("demo") === "1";
 
   useEffect(() => {
-    if (projectId) {
+    if (projectId && !mobileBuilderRoute) {
       setIdeProjectId(projectId);
     }
-  }, [projectId, setIdeProjectId]);
+  }, [mobileBuilderRoute, projectId, setIdeProjectId]);
 
-  const accessDenied = !localDemo && !authLoading && !subscriptionLoading && (!user || (!hasBoost && !isAdmin));
+  const accessDenied = !mobileBuilderRoute && !localDemo && !authLoading && !subscriptionLoading && (!user || (!hasBoost && !isAdmin));
   useEffect(() => {
     if (!accessDenied) return;
     navigate('/', { replace: true });
@@ -33,6 +37,19 @@ export function AppBuilderPage() {
     const returnTo = location.state?.returnTo === '/' ? '/' : '/dashboard?tab=apps';
     navigate(returnTo);
   };
+
+  if (mobileBuilderRoute) {
+    return (
+      <main className="min-h-[100dvh] flex items-center justify-center bg-background p-6 text-foreground">
+        <section className="w-full max-w-sm rounded-3xl border border-border/60 bg-card p-6 text-center shadow-lg">
+          <h1 className="text-xl font-semibold">Open on desktop</h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            App Builder is available on desktop. Your saved projects and running jobs stay available when you return there.
+          </p>
+        </section>
+      </main>
+    );
+  }
 
   // The local-only design route makes it possible to inspect desktop and phone
   // layouts without authentication, provider calls, or any production data.

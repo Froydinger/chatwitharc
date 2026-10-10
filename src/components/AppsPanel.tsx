@@ -13,6 +13,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import type { VirtualFileSystem } from "@/types/ide";
 import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
+import { isMobileBuilderViewport } from "@/lib/builderViewport";
 import { toast } from "sonner";
 
 interface IDEProject {
@@ -92,6 +93,11 @@ export function AppsPanel() {
   };
 
   const handleOpen = (project: IDEProject) => {
+    if (isMobile || isMobileBuilderViewport(window.innerWidth)) {
+      setRightPanelOpen(false);
+      navigate(`/build/${project.id}`);
+      return;
+    }
     if (!hasBoost && !isAdmin) {
       openCheckout();
       toast.error("ArcAI Boost is required to use App Builder.");

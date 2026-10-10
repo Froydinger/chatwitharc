@@ -74,7 +74,15 @@ function picker(account) {
   assert.equal(/ disabled=""/.test(astraRow), !!account.loading || !!account.authLoading);
   assert.equal(astraRow.includes('Coming soon'), false);
   assert.equal(html.includes('$30/month'), false);
-  assert.ok(html.includes('Auto can use your Sol allowance'));
+  assert.ok(html.includes('Unlimited'));
+  assert.ok(html.includes('Allowance'));
+  assert.ok(html.includes('Boost'));
+  assert.equal(html.includes('Arc Matrix™'), false);
+  assert.equal(html.includes('Choose how Arc responds.'), false);
+  assert.equal(html.includes('Auto can use your Sol allowance'), false);
+  assert.equal(html.includes('Free and unlimited for everyone'), false);
+  assert.equal(html.includes('shared Sol allowance'), false);
+  assert.equal(html.includes('separate Astra allowance'), false);
   stateIndex = 0;
   const tree = mod.ChatModelPicker({});
   let astraElement;

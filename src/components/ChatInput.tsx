@@ -98,6 +98,7 @@ import { useSubagentStore } from "@/store/useSubagentStore";
 import { getAppBuilderIntent, resolveAppBuilderProject } from "@/utils/appBuilderIntent";
 import { listOwnedAppBuilderProjects, reopenOwnedAppBuilderProject } from "@/services/openAppBuilderProject";
 import { makePrivateImageReference } from "@/lib/privateImages";
+import { isMobileBuilderViewport } from "@/lib/builderViewport";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -1337,6 +1338,10 @@ Feel free to send another message or test a prompt to see the animation again!`,
       ? getAppBuilderIntent(userMessage, hasExistingApp)
       : null;
     if (appIntent) {
+      if (isMobileBuilderViewport(window.innerWidth)) {
+        navigate('/build', { state: { returnTo: location.pathname } });
+        return false;
+      }
       if (subscriptionLoading) return false;
       if (!hasBoost && !isAdmin) {
         openCheckout();

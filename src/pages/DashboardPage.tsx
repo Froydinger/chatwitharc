@@ -60,6 +60,7 @@ import { MetalFx } from "metal-fx";
 import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
 import { DashboardPreviewPage } from "@/pages/DashboardPreviewPage";
 import { APP_BUILDER_ENABLED } from "@/lib/features";
+import { isMobileBuilderViewport } from "@/lib/builderViewport";
 
 type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -279,6 +280,10 @@ useEffect(() => {
   // The dashboard list no longer carries `files`/`messages`, so fetch just the
   // one project's payload at open time.
   const openProject = async (appId: string) => {
+    if (isMobile || isMobileBuilderViewport(window.innerWidth)) {
+      navigate(`/build/${appId}`);
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from('ide_projects')
@@ -299,6 +304,10 @@ useEffect(() => {
   };
 
   const handleLaunchAppBuilder = (prompt?: string) => {
+    if (isMobile || isMobileBuilderViewport(window.innerWidth)) {
+      navigate('/build');
+      return;
+    }
     if (!hasBoost && !isAdmin) {
       openCheckout();
       toast({

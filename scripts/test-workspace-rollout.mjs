@@ -98,6 +98,94 @@ const shell = read('src/workspace/WorkspaceShell.tsx');
 assert.ok(shell.includes('isCurrentConversationRoute(location.pathname, currentId)'));
 assert.ok(shell.includes('canvas.hydrateFromSession(conversationCanvas.content'));
 assert.ok(!shell.includes('openWithContent('));
+assert.ok(shell.includes('title: session.title'), 'saved history titles remain available');
+const chrome = read('src/workspace/WorkspaceChrome.tsx');
+assert.ok(chrome.includes("section === 'chat' ? <h1 className=\"sr-only\">{title}</h1>"));
+const composerTextarea = read('src/components/chat-input/ComposerTextarea.tsx');
+assert.ok(composerTextarea.includes('text-base md:text-base'), 'composer remains 16px at desktop breakpoints');
+assert.ok(!/maximum-scale|user-scalable\s*=\s*no/.test(read('index.html')), 'pinch zoom remains available');
+const modelPicker = read('src/components/ChatModelPicker.tsx');
+assert.ok(!modelPicker.includes('Choose how Arc responds'));
+assert.ok(!modelPicker.includes('Auto can use your Sol allowance'));
+assert.ok(modelPicker.includes("? 'Allowance'"));
+const builderViewport = load('src/lib/builderViewport.ts');
+for (const width of [320, 390, 767]) assert.equal(builderViewport.isMobileBuilderViewport(width), true);
+for (const width of [768, 1024, 1440]) assert.equal(builderViewport.isMobileBuilderViewport(width), false);
+const builderPageSource = read('src/pages/AppBuilderPage.tsx');
+assert.ok(builderPageSource.includes('if (projectId && !mobileBuilderRoute)'));
+assert.ok(builderPageSource.includes('if (mobileBuilderRoute)'));
+assert.ok(builderPageSource.includes('Open on desktop'));
+assert.ok(builderPageSource.includes('saved projects and running jobs stay available'));
+const appSource = read('src/App.tsx');
+assert.ok(appSource.includes('<Route path="/build" element={<AppBuilderPage />} />'));
+assert.ok(appSource.includes('<Route path="/build/:projectId" element={<AppBuilderPage />} />'));
+
+let ideProjectWrites = 0, checkoutCalls = 0, navigations = 0, closeCalls = 0;
+let mobileViewportWidth = 390;
+const previousWindow = globalThis.window;
+globalThis.window = { innerWidth: mobileViewportWidth };
+const ideStore = selector => selector({
+  setIdeProjectId: () => { ideProjectWrites++; },
+  closeIDE: () => { closeCalls++; },
+});
+ideStore.getState = () => ({ closeIDE: () => { closeCalls++; } });
+function renderBuilder({ isMobile, user, hasBoost }) {
+  const source = read('src/pages/AppBuilderPage.tsx').replace('import.meta.env.DEV', 'false');
+  const compiled = ts.transpileModule(source, { compilerOptions: {
+    target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX,
+  } }).outputText;
+  const aliases = {
+    react: { ...React, useEffect: effect => effect() },
+    'react-router-dom': {
+      useParams: () => ({ projectId: 'saved-project' }),
+      useNavigate: () => () => { navigations++; },
+      useSearchParams: () => [new URLSearchParams()],
+      useLocation: () => ({ state: null }),
+    },
+    '@/hooks/useAuth': { useAuth: () => ({ user, loading: false }) },
+    '@/store/useIDEStore': { useIDEStore: ideStore },
+    '@/components/app-builder/AppBuilderWorkspace': { AppBuilderWorkspace: () => React.createElement('div', { 'data-builder-workspace': true }) },
+    '@/hooks/useSubscription': { useSubscription: () => ({ hasBoost, isAdmin: false, loading: false, openCheckout: () => { checkoutCalls++; } }) },
+    '@/hooks/use-mobile': { useIsMobile: () => isMobile },
+    '@/lib/builderViewport': builderViewport,
+  };
+  const exports = {};
+  new Function('exports', 'require', compiled)(exports, name => aliases[name] ?? require(name));
+  return renderToStaticMarkup(React.createElement(exports.AppBuilderPage));
+}
+try {
+  const mobileBuilder = renderBuilder({ isMobile: false, user: null, hasBoost: false });
+  assert.ok(mobileBuilder.includes('Open on desktop'));
+  assert.ok(mobileBuilder.includes('bg-background') && mobileBuilder.includes('bg-card') && mobileBuilder.includes('text-foreground'), 'mobile notice uses theme tokens for light, dark and system themes');
+  assert.equal(mobileBuilder.includes('data-builder-workspace'), false);
+  assert.equal(ideProjectWrites, 0, 'mobile direct project URL must not write IDE store state');
+  assert.equal(checkoutCalls, 0, 'mobile Builder guard must not open billing UI');
+  assert.equal(navigations, 0, 'mobile guard keeps the project route available');
+  assert.equal(closeCalls, 0, 'mobile guard leaves saved projects and running jobs intact');
+
+  mobileViewportWidth = 1280;
+  globalThis.window.innerWidth = mobileViewportWidth;
+  const desktopBuilder = renderBuilder({ isMobile: false, user: { id: 'owner' }, hasBoost: true });
+  assert.ok(desktopBuilder.includes('data-builder-workspace'));
+  assert.equal(ideProjectWrites, 1, 'desktop project route restores its saved IDE project');
+} finally {
+  if (typeof previousWindow === 'undefined') delete globalThis.window;
+  else globalThis.window = previousWindow;
+}
+
+const appBuilderEntrypoints = [
+  ['src/components/ChatInput.tsx', "if (isMobileBuilderViewport(window.innerWidth))", "navigate('/build'"],
+  ['src/components/MobileChatApp.tsx', "if (isMobileBuilderViewport(window.innerWidth))", "navigate('/build'"],
+  ['src/components/AppsPanel.tsx', 'if (isMobile || isMobileBuilderViewport(window.innerWidth))', 'reopenIDECanvas(project.id'],
+  ['src/pages/DashboardPage.tsx', 'if (isMobile || isMobileBuilderViewport(window.innerWidth))', '.from(\'ide_projects\')'],
+];
+for (const [path, guard, mutation] of appBuilderEntrypoints) {
+  const source = read(path);
+  assert.ok(source.includes(guard), `${path} guards its mobile Builder entry`);
+  const guardIndex = source.indexOf(guard);
+  const mutationIndex = source.indexOf(mutation, guardIndex);
+  assert.ok(mutationIndex > guardIndex, `${path} leaves project state untouched before desktop guard`);
+}
 const allWorkspace = readdirSync(new URL('src/workspace/', root)).map(name => read(`src/workspace/${name}`)).join('\n');
 assert.ok(!/WorkspaceDemo|sampleData|enterSampleWorkspace|WorkspaceLogin|signInWithPassword|workspace-public-config/.test(allWorkspace));
 assert.ok(!existsSync(new URL('src/workspace/entry.tsx', root)));
@@ -106,7 +194,7 @@ assert.ok(css.includes('--ws-bg:#000000') && css.includes('--ws-sidebar:#000000'
 assert.ok(css.includes('--arcai-desktop-titlebar-safe-area') && css.includes('safe-area-inset-bottom'));
 assert.ok(css.includes('.workspace-ui .workspace-live-composer textarea'));
 assert.ok(css.includes('.ws-boost-icon') && css.includes('flex-shrink:0'));
-const changed = ['src/App.tsx', 'src/lib/installedAppRuntime.ts', 'src/components/ChatInput.tsx', 'src/components/ChatModelPicker.tsx', 'src/components/MobileChatApp.tsx', 'src/components/chat-input/ComposerView.tsx', ...readdirSync(new URL('src/workspace/', root)).filter(name => /\.tsx?$/.test(name)).map(name => `src/workspace/${name}`)];
+const changed = ['src/App.tsx', 'src/lib/installedAppRuntime.ts', 'src/lib/builderViewport.ts', 'src/components/ChatInput.tsx', 'src/components/ChatModelPicker.tsx', 'src/components/MobileChatApp.tsx', 'src/components/AppsPanel.tsx', 'src/components/chat-input/ComposerView.tsx', 'src/components/chat-input/ComposerTextarea.tsx', 'src/pages/AppBuilderPage.tsx', 'src/pages/DashboardPage.tsx', ...readdirSync(new URL('src/workspace/', root)).filter(name => /\.tsx?$/.test(name)).map(name => `src/workspace/${name}`)];
 for (const path of changed) {
   const source = read(path); const ast = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   assert.deepEqual(ast.parseDiagnostics, [], `syntax ${path}`);

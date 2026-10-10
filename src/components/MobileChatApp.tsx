@@ -6,6 +6,7 @@ import { useActiveVoiceConversationId } from '@/lib/voiceConversationOwnership';
 import { useOrdinaryChatRecovery } from '@/hooks/useOrdinaryChatRecovery';
 import { captureCloudLocationContext } from '@/lib/cloudLocationContext';
 import { hasSessionCloudProgress } from '@/lib/chatPresentation';
+import { isMobileBuilderViewport } from '@/lib/builderViewport';
 import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
 import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
 import { ChatMessageRows } from "@/components/ChatMessageRows";
@@ -1343,6 +1344,10 @@ export function MobileChatApp() {
                   onChat={() => requestWorkMode('ask')}
                   buildLoading={authLoading || subscriptionLoading}
                   onBuild={() => {
+                    if (isMobileBuilderViewport(window.innerWidth)) {
+                      navigate('/build', { state: { returnTo: '/' } });
+                      return;
+                    }
                     if (authLoading || subscriptionLoading) return;
                     if (!hasBoost && !isAdmin) { openCheckout(undefined, 'app_builder'); return; }
                     navigate('/build', { state: { returnTo: '/' } });
