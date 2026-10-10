@@ -19,6 +19,7 @@ function faviconSvg(option: FaviconOption): string {
 
 interface Props {
   open: boolean;
+  desktopAvailable: boolean;
   demo?: boolean;
   onOpenChange: (open: boolean) => void;
   currentTitle: string;
@@ -30,7 +31,7 @@ interface Props {
   onPublish: (input: { title: string; subdomain: string; description: string; hideBadge: boolean; faviconLabel: string; faviconSvg: string }) => Promise<void>;
 }
 
-export function AppBuilderPublishDialog({ open, demo = false, onOpenChange, currentTitle, currentSubdomain, currentDescription, currentHideBadge, currentFavicon, publishedUrl, onPublish }: Props) {
+export function AppBuilderPublishDialog({ open, desktopAvailable, demo = false, onOpenChange, currentTitle, currentSubdomain, currentDescription, currentHideBadge, currentFavicon, publishedUrl, onPublish }: Props) {
   const [title, setTitle] = useState('');
   const [subdomain, setSubdomain] = useState('');
   const [description, setDescription] = useState('');
@@ -63,7 +64,7 @@ export function AppBuilderPublishDialog({ open, demo = false, onOpenChange, curr
       setChecking(false);
       return;
     }
-    if (!open || isUpdate && cleanedSubdomain === currentSubdomain) {
+    if (!desktopAvailable || !open || isUpdate && cleanedSubdomain === currentSubdomain) {
       setAvailable(currentSubdomain ? true : null);
       return;
     }
@@ -80,10 +81,10 @@ export function AppBuilderPublishDialog({ open, demo = false, onOpenChange, curr
       });
     }, 350);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [demo, open, cleanedSubdomain, currentSubdomain, isUpdate]);
+  }, [demo, desktopAvailable, open, cleanedSubdomain, currentSubdomain, isUpdate]);
 
   const submit = async () => {
-    if (title.trim().length === 0 || cleanedSubdomain.length < 3 || available === false || !selectedFavicon) return;
+    if (!desktopAvailable || !open || title.trim().length === 0 || cleanedSubdomain.length < 3 || available === false || !selectedFavicon) return;
     setPublishing(true);
     setError('');
     try {
@@ -97,8 +98,8 @@ export function AppBuilderPublishDialog({ open, demo = false, onOpenChange, curr
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="app-builder-publish-dialog flex w-[calc(100vw-24px)] flex-col overflow-hidden border-white/12 bg-[#101110] p-0 text-white shadow-[0_28px_100px_rgba(0,0,0,.7)] sm:max-w-xl">
+    <Dialog open={open && desktopAvailable} onOpenChange={nextOpen => onOpenChange(nextOpen && desktopAvailable)}>
+      <DialogContent onCloseAutoFocus={event => { if (!desktopAvailable) event.preventDefault(); }} className="app-builder-publish-dialog flex w-[calc(100vw-24px)] flex-col overflow-hidden border-white/12 bg-[#101110] p-0 text-white shadow-[0_28px_100px_rgba(0,0,0,.7)] sm:max-w-xl">
         <div className="app-builder-publish-content relative z-10 flex min-h-0 flex-1 flex-col">
           <DialogHeader className="shrink-0 border-b border-white/[0.09] bg-gradient-to-br from-white/[0.055] to-transparent px-5 py-5 text-left sm:px-7 sm:py-6">
             <div className="flex items-start gap-3.5 pr-8">
@@ -145,7 +146,7 @@ export function AppBuilderPublishDialog({ open, demo = false, onOpenChange, curr
                 <div className="flex items-start gap-3 rounded-xl border border-white/[0.09] bg-black/20 px-3.5 py-3"><Globe className="mt-0.5 h-4 w-4 shrink-0 text-white/60" /><p className="text-[11px] leading-relaxed text-white/60">App Builder publishes to an Arc-hosted <span className="font-medium text-white/80">askarc.chat</span> link. Git exports use your own hosting account.</p></div>
               </div>
               <div className="shrink-0 border-t border-white/[0.09] bg-[#101110] px-5 pb-[max(16px,env(safe-area-inset-bottom))] pt-4 sm:px-7">
-                <Button onClick={() => void submit()} disabled={demo || publishing || checking || !title.trim() || cleanedSubdomain.length < 3 || available === false} className="app-builder-action h-12 w-full rounded-xl bg-white text-[13px] font-semibold text-black shadow-[0_3px_18px_rgba(255,255,255,.08)] hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101110] disabled:bg-white/15 disabled:text-white/40 disabled:shadow-none">{demo ? 'Preview only' : publishing ? <><LoaderCircle className="h-4 w-4 animate-spin" /> Publishing…</> : <><Rocket className="h-4 w-4" /> {isUpdate ? 'Publish update' : 'Publish app'}</>}</Button>
+                <Button onClick={() => void submit()} disabled={!desktopAvailable || demo || publishing || checking || !title.trim() || cleanedSubdomain.length < 3 || available === false} className="app-builder-action h-12 w-full rounded-xl bg-white text-[13px] font-semibold text-black shadow-[0_3px_18px_rgba(255,255,255,.08)] hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101110] disabled:bg-white/15 disabled:text-white/40 disabled:shadow-none">{demo ? 'Preview only' : publishing ? <><LoaderCircle className="h-4 w-4 animate-spin" /> Publishing…</> : <><Rocket className="h-4 w-4" /> {isUpdate ? 'Publish update' : 'Publish app'}</>}</Button>
                 {!demo && <p className="mt-2 text-center text-[10px] text-white/45">{isUpdate ? 'This replaces the current live version at your link.' : 'You can change these details or publish an update later.'}</p>}
               </div>
             </>

@@ -157,6 +157,16 @@ const builderNoticeSource = read('src/components/app-builder/AppBuilderDesktopNo
 assert.ok(builderNoticeSource.includes('Back to chat'));
 assert.ok(builderNoticeSource.includes('saved projects and running jobs stay available'));
 assert.ok(builderNoticeSource.includes('bg-background') && builderNoticeSource.includes('bg-card') && builderNoticeSource.includes('text-foreground'), 'mobile notice uses theme tokens for light, dark and system themes');
+assert.ok(builderNoticeSource.includes('headingRef.current?.focus({ preventScroll: true })') && builderNoticeSource.includes('tabIndex={-1}'), 'desktop-only notice receives focus after a mobile resize');
+const publishDialogSource = read('src/components/app-builder/AppBuilderPublishDialog.tsx');
+const builderWorkspaceSource = read('src/components/app-builder/AppBuilderWorkspace.tsx');
+assert.ok(publishDialogSource.includes('desktopAvailable: boolean'), 'publish portal receives shared Builder desktop eligibility');
+assert.ok(publishDialogSource.includes('<Dialog open={open && desktopAvailable}'), 'publish dialog portal closes as soon as desktop eligibility is lost');
+assert.ok(publishDialogSource.includes('if (!desktopAvailable || !open'), 'publish submit refuses mobile and stale-open state');
+assert.ok(publishDialogSource.includes('if (!desktopAvailable) event.preventDefault()'), 'closing on resize does not restore focus behind the desktop notice');
+assert.ok(builderWorkspaceSource.includes('if (!builderDesktopAvailable) setShowPublish(false)'), 'Builder owner closes publish state on mobile resize');
+assert.ok(builderWorkspaceSource.includes('if (!isAppBuilderDesktopAvailable()) throw new Error'), 'publish handler rechecks eligibility at the side-effect boundary');
+assert.ok(builderWorkspaceSource.includes('open={showPublish && builderDesktopAvailable} desktopAvailable={builderDesktopAvailable}'), 'publish portal is gated by shared Builder eligibility');
 const builderAvailabilityHook = read('src/hooks/useAppBuilderDesktopAvailability.ts');
 assert.ok(builderAvailabilityHook.includes("addEventListener('orientationchange'"));
 assert.ok(builderAvailabilityHook.includes("addEventListener('change', update)"));
