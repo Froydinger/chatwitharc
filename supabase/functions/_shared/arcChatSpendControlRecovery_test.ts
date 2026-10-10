@@ -787,14 +787,26 @@ Deno.test("no search evidence yields a transparent answer without a model call",
   assert(calls === 0 && prepared === 0);
 });
 
-Deno.test("Agents rejection classifier requires explicit unsupported spend-control evidence and confirmed zero settlement", async () => {
+Deno.test("Agents rejection classifier matches the confirmed unsupported/not-enabled spend-control category and confirmed zero settlement", async () => {
   for (
     const providerError of [
       {
         type: "invalid_request_error",
-        code: "feature_not_available",
+        code: "",
         param: "spend_control",
         message: "spend_control is not enabled for this project",
+      },
+      {
+        type: "invalid_request_error",
+        code: "",
+        param: "spend_control",
+        message: "spend_control is unsupported for this project",
+      },
+      {
+        type: "invalid_request_error",
+        code: "feature_not_available",
+        param: "spend_control",
+        message: "Feature is unavailable",
       },
       {
         type: "invalid_request_error",
