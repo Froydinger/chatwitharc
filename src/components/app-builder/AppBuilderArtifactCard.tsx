@@ -1,9 +1,10 @@
 import { ArrowUpRight, FileCode2, LoaderCircle, Smartphone } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { reopenOwnedAppBuilderProject } from '@/services/openAppBuilderProject';
+import { isAppBuilderDesktopAvailable } from '@/lib/builderViewport';
 
 interface AppBuilderArtifactCardProps {
   projectId?: string;
@@ -17,11 +18,16 @@ const PROJECT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export function AppBuilderArtifactCard({ projectId, title, prompt, fileCount, className }: AppBuilderArtifactCardProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [opening, setOpening] = useState(false);
   const canOpen = typeof projectId === 'string' && PROJECT_ID.test(projectId);
   const open = async () => {
     if (!canOpen || opening) return;
+    if (!isAppBuilderDesktopAvailable()) {
+      navigate(`/build/${encodeURIComponent(projectId!)}`, { state: { returnTo: `${location.pathname}${location.search}` } });
+      return;
+    }
     setOpening(true);
     try {
       await reopenOwnedAppBuilderProject(projectId!);

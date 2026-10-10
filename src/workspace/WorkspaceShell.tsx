@@ -61,6 +61,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     }
   }, [user?.id]);
   useEffect(() => { setDialog(null); }, [location.pathname, location.search]);
+  useEffect(() => {
+    const openUsage = () => setDialog('usage');
+    window.addEventListener('workspace-open-usage', openUsage);
+    return () => window.removeEventListener('workspace-open-usage', openUsage);
+  }, []);
 
   const flushCanvas = () => {
     if (!chatRoute || !current || !conversationCanvas) return;

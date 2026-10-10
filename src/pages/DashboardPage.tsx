@@ -60,7 +60,9 @@ import { MetalFx } from "metal-fx";
 import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
 import { DashboardPreviewPage } from "@/pages/DashboardPreviewPage";
 import { APP_BUILDER_ENABLED } from "@/lib/features";
-import { isMobileBuilderViewport } from "@/lib/builderViewport";
+import { isAppBuilderDesktopAvailable } from "@/lib/builderViewport";
+import { useAppBuilderDesktopAvailability } from "@/hooks/useAppBuilderDesktopAvailability";
+import { AppBuilderDesktopNotice } from "@/components/app-builder/AppBuilderDesktopNotice";
 
 type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -272,6 +274,12 @@ useEffect(() => {
   const openIDECanvas = useIDEStore((s) => s.openIDECanvas);
   const reopenIDECanvas = useIDEStore((s) => s.reopenIDECanvas);
   const closeIDE = useIDEStore((s) => s.closeIDE);
+  const builderDesktopAvailable = useAppBuilderDesktopAvailability();
+  const [hasMountedBuilder, setHasMountedBuilder] = useState(false);
+
+  useEffect(() => {
+    if (builderDesktopAvailable) setHasMountedBuilder(true);
+  }, [builderDesktopAvailable]);
 
   useEffect(() => {
     if (!APP_BUILDER_ENABLED && isIDEOpen) closeIDE();
@@ -280,7 +288,7 @@ useEffect(() => {
   // The dashboard list no longer carries `files`/`messages`, so fetch just the
   // one project's payload at open time.
   const openProject = async (appId: string) => {
-    if (isMobile || isMobileBuilderViewport(window.innerWidth)) {
+    if (!isAppBuilderDesktopAvailable()) {
       navigate(`/build/${appId}`);
       return;
     }
@@ -304,7 +312,7 @@ useEffect(() => {
   };
 
   const handleLaunchAppBuilder = (prompt?: string) => {
-    if (isMobile || isMobileBuilderViewport(window.innerWidth)) {
+    if (!isAppBuilderDesktopAvailable()) {
       navigate('/build');
       return;
     }
@@ -2586,7 +2594,12 @@ useEffect(() => {
         <AnimatePresence>
           {APP_BUILDER_ENABLED && isIDEOpen && (
             <div className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col">
-              <AppBuilderWorkspace onClose={closeIDE} />
+              {(builderDesktopAvailable || hasMountedBuilder) && (
+                <div className={builderDesktopAvailable ? 'h-full min-h-0' : 'hidden'} aria-hidden={!builderDesktopAvailable}>
+                  <AppBuilderWorkspace onClose={closeIDE} />
+                </div>
+              )}
+              {!builderDesktopAvailable && <AppBuilderDesktopNotice overlay onBackToChat={closeIDE} />}
             </div>
           )}
         </AnimatePresence>,

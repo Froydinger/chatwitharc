@@ -6,7 +6,7 @@ import { useActiveVoiceConversationId } from '@/lib/voiceConversationOwnership';
 import { useOrdinaryChatRecovery } from '@/hooks/useOrdinaryChatRecovery';
 import { captureCloudLocationContext } from '@/lib/cloudLocationContext';
 import { hasSessionCloudProgress } from '@/lib/chatPresentation';
-import { isMobileBuilderViewport } from '@/lib/builderViewport';
+import { isAppBuilderDesktopAvailable } from '@/lib/builderViewport';
 import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
 import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
 import { ChatMessageRows } from "@/components/ChatMessageRows";
@@ -55,6 +55,8 @@ import { CanvasPanel } from "@/components/CanvasPanel";
 import { SearchCanvas } from "@/components/SearchCanvas";
 import { useIDEStore } from "@/store/useIDEStore";
 import { AppBuilderWorkspace } from "@/components/app-builder/AppBuilderWorkspace";
+import { AppBuilderDesktopNotice } from "@/components/app-builder/AppBuilderDesktopNotice";
+import { useAppBuilderDesktopAvailability } from "@/hooks/useAppBuilderDesktopAvailability";
 // CanvasTile removed - canvas now renders inline as chat message artifacts
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -754,6 +756,12 @@ export function MobileChatApp() {
   // App Builder workspace state
   const isIDEOpen = useIDEStore((s) => s.isOpen);
   const closeIDE = useIDEStore((s) => s.closeIDE);
+  const builderDesktopAvailable = useAppBuilderDesktopAvailability();
+  const [hasMountedBuilder, setHasMountedBuilder] = useState(false);
+
+  useEffect(() => {
+    if (builderDesktopAvailable) setHasMountedBuilder(true);
+  }, [builderDesktopAvailable]);
 
   useEffect(() => {
     if (!APP_BUILDER_ENABLED && isIDEOpen) closeIDE();
@@ -1344,7 +1352,7 @@ export function MobileChatApp() {
                   onChat={() => requestWorkMode('ask')}
                   buildLoading={authLoading || subscriptionLoading}
                   onBuild={() => {
-                    if (isMobileBuilderViewport(window.innerWidth)) {
+                    if (!isAppBuilderDesktopAvailable()) {
                       navigate('/build', { state: { returnTo: '/' } });
                       return;
                     }
@@ -1924,10 +1932,13 @@ export function MobileChatApp() {
       {/* App Builder workspace takeover — portaled directly to document.body */}
       {createPortal(
         <ConditionalTransition preset="fade">{APP_BUILDER_ENABLED && isIDEOpen && (
-            <div
-              className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col"
-            >
-              <AppBuilderWorkspace onClose={closeIDE} />
+            <div className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col">
+              {(builderDesktopAvailable || hasMountedBuilder) && (
+                <div className={builderDesktopAvailable ? 'h-full min-h-0' : 'hidden'} aria-hidden={!builderDesktopAvailable}>
+                  <AppBuilderWorkspace onClose={closeIDE} />
+                </div>
+              )}
+              {!builderDesktopAvailable && <AppBuilderDesktopNotice overlay onBackToChat={closeIDE} />}
             </div>
           )}</ConditionalTransition>,
         document.body

@@ -191,6 +191,19 @@ export function ChatModelPicker({
                     />
                   );
                 })}
+                <div className="mt-1 flex items-center justify-between gap-2 border-t border-border/30 px-2.5 pt-2">
+                  <span className="text-[10px] text-muted-foreground">Auto can use Sol allowance</span>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-md px-1.5 py-1 text-[10px] font-medium text-foreground/80 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    onClick={() => {
+                      setOpen(false);
+                      window.dispatchEvent(new Event('workspace-open-usage'));
+                    }}
+                  >
+                    Usage details
+                  </button>
+                </div>
               </div>
             )}
           </ConditionalTransition>

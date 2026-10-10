@@ -77,6 +77,9 @@ function picker(account) {
   assert.ok(html.includes('Unlimited'));
   assert.ok(html.includes('Allowance'));
   assert.ok(html.includes('Boost'));
+  assert.ok(html.includes('Auto can use Sol allowance'));
+  assert.ok(html.includes('Usage details'));
+  assert.equal(html.includes('workspace-open-usage'), false, 'internal usage event name is not exposed as copy');
   assert.equal(html.includes('Arc Matrix™'), false);
   assert.equal(html.includes('Choose how Arc responds.'), false);
   assert.equal(html.includes('Auto can use your Sol allowance'), false);

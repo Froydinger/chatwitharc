@@ -47,7 +47,7 @@ function fixture(options = {}) {
     enqueueComposerRequest: (...args) => calls.push(['queue', ...args]), useIDEStore: { getState: () => ({}) },
     subscriptionLoading: false, hasBoost: true, isAdmin: true, canGenerateVideo: false, isWriteCanvasOpen: false,
     getAppBuilderIntent: appIntent.getAppBuilderIntent, parseSubagentDirective: () => ({ requested: false }),
-    isMobileBuilderViewport: () => false,
+    isAppBuilderDesktopAvailable: () => true,
     requestsCurrentLocation: () => false, useCorporateModeStore: { getState: () => ({ enabled: false }) },
     useCanvasStore: { getState: () => ({ ...workspace, isOpen: true, content: 'newer canvas' }) },
     setLoading: value => { state.isLoading = value; calls.push(['loading', value]); },
