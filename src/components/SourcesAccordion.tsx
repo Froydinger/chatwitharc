@@ -1,3 +1,5 @@
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext";
+import { WorkspaceWebSearchDialog } from "@/workspace/WorkspaceWebSearchDialog";
 import { Transition } from "@/components/transitions/Transition";
 import { useId, useState } from "react";
 import { Globe, ChevronDown, ExternalLink, Play, Image as ImageIcon } from "lucide-react";
@@ -11,6 +13,7 @@ interface SourcesAccordionProps {
 }
 
 export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageContent }: SourcesAccordionProps) => {
+  const workspaceUI = useWorkspaceUI();
   const [isOpen, setIsOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
   const panelId = useId();
@@ -72,6 +75,9 @@ export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageConte
         />
       )}
 
+      {/* The same recorded sources open the Workspace result viewer, including
+          automatic tool searches and reply metadata. Keep native/legacy intact. */}
+      {workspaceUI ? <div className="mt-3"><WorkspaceWebSearchDialog sources={sources} content={messageContent} initialTab="sources" /></div> : <>
       {/* Trigger Button */}
       <button
         aria-expanded={isOpen}
@@ -148,6 +154,7 @@ export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageConte
           )}
         </div>
       </div>
+      </>}
     </div></Transition>
   );
 };

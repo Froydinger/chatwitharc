@@ -1,3 +1,5 @@
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext";
+import { WorkspaceWebSearchDialog } from "@/workspace/WorkspaceWebSearchDialog";
 import { ExternalLink, Globe2, Search, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -12,6 +14,7 @@ interface SearchSource {
   title?: string;
   url: string;
   snippet?: string;
+  content?: string;
 }
 
 interface SearchResultsCardProps {
@@ -54,6 +57,7 @@ const searchMarkdownComponents = {
 };
 
 export function SearchResultsCard({ content, sources, query, images = [] }: SearchResultsCardProps) {
+  const workspaceUI = useWorkspaceUI();
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [carouselTurn, setCarouselTurn] = useState(0);
@@ -249,9 +253,10 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
       className={cn(
         "min-w-0 w-[min(46rem,calc(100vw-1.5rem))] sm:w-[min(46rem,calc(100vw-2.5rem))] max-w-full overflow-hidden rounded-3xl",
         "border border-primary/20 bg-background/80 shadow-[0_18px_60px_-28px_hsl(var(--primary)/0.45)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl",
+        workspaceUI && "wsw-inline-card",
       )}
     >
-      <div className="flex items-center gap-3 border-b border-border/45 bg-muted/15 px-4 py-3 sm:px-5">
+      {workspaceUI ? <div className="wsw-inline-header"><span className="wsw-inline-label"><Globe2 aria-hidden="true" />Web search</span><WorkspaceWebSearchDialog content={content} sources={sources} query={query}><button type="button" className="wsw-open-sources" aria-label="Open web search answer and sources"><span>View search</span><ExternalLink aria-hidden="true" /></button></WorkspaceWebSearchDialog></div> : <div className="flex items-center gap-3 border-b border-border/45 bg-muted/15 px-4 py-3 sm:px-5">
         <div className="flex gap-1.5" aria-hidden="true">
           <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
           <span className="h-2.5 w-2.5 rounded-full bg-foreground/10" />
@@ -262,9 +267,9 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
           <span className="truncate">{query || "Arc Search"}</span>
         </div>
         <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">Complete</span>
-      </div>
+      </div>}
 
-      <div className="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+      {!workspaceUI && <div className="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
         <div className="mt-0.5 rounded-2xl border border-primary/20 bg-primary/10 p-2.5 text-primary shadow-inner">
           <Sparkles className="h-4 w-4" />
         </div>
@@ -272,7 +277,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
           <p className="text-sm font-semibold text-foreground">Search result</p>
           <p className="mt-0.5 text-xs text-muted-foreground">Synthesized from {sources.length} source{sources.length === 1 ? "" : "s"}</p>
         </div>
-      </div>
+      </div>}
 
       <div className="px-4 py-4 sm:px-5 sm:pb-5">
         <div className="search-result-copy rounded-2xl border border-border/40 bg-background/45 px-4 py-4 text-foreground/90 sm:px-5">
@@ -286,7 +291,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
       </div>
 
       {sources.length > 0 && (
-        <div className="border-t border-border/45 bg-muted/20 px-4 py-4 sm:px-5">
+        <div className="wsw-inline-sources border-t border-border/45 bg-muted/20 px-4 py-4 sm:px-5">
           <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Sources used
           </p>
@@ -311,6 +316,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
               </a>
             ))}
           </div>
+          {workspaceUI && <div className="mt-3"><WorkspaceWebSearchDialog content={content} sources={sources} query={query} initialTab="sources" /></div>}
         </div>
       )}
 

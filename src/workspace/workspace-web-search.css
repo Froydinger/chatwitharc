@@ -1,0 +1,109 @@
+/* Ordinary search is a read-only view of a reply. Every rule is opt-in;
+   legacy/native UI and the separate Deep/Ultra research canvas stay unchanged. */
+.workspace-ui .wsw-open-sources { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:8px 11px; border:1px solid var(--ws-line); border-radius:9px; background:var(--ws-canvas); color:var(--ws-text); font-size:13px; text-align:left; }
+.workspace-ui .wsw-open-sources:hover { background:var(--ws-hover); }
+.workspace-ui .wsw-open-sources svg { width:16px; height:16px; flex:none; }
+.workspace-ui.wsw-dialog.wsw-dialog { display:flex; flex-direction:column; gap:0; width:calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width:860px; container:wsw-dialog / size; left:calc((100vw + env(safe-area-inset-left) - env(safe-area-inset-right)) / 2); height:min(760px,calc(var(--ws-viewport-height,100dvh) - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); max-height:calc(var(--ws-viewport-height,100dvh) - 24px); min-height:0; padding:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; top:calc(var(--ws-viewport-top,0px) + (var(--ws-viewport-height,100dvh) + env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 2); border-radius:18px; }
+.workspace-ui.wsw-dialog .wsw-heading { display:flex; gap:20px; align-items:flex-start; padding:25px 26px 21px; flex:none; }
+.workspace-ui.wsw-dialog .wsw-heading-copy { flex:1; min-width:0; }
+.workspace-ui.wsw-dialog .wsw-eyebrow { display:flex; align-items:center; gap:8px; color:var(--ws-muted); font-size:12px; font-weight:550; margin:0 0 12px; }
+.workspace-ui.wsw-dialog .wsw-eyebrow svg { width:16px; height:16px; }
+.workspace-ui.wsw-dialog .wsw-heading h2 { font-size:clamp(21px,3vw,29px); font-weight:570; letter-spacing:-.6px; line-height:1.25; overflow-wrap:anywhere; max-height:3.75em; overflow:auto; outline-offset:4px; }
+.workspace-ui.wsw-dialog .wsw-heading p:last-child { margin-top:10px; font-size:13px; color:var(--ws-muted); }
+.workspace-ui.wsw-dialog .wsw-icon-button { display:inline-flex; align-items:center; justify-content:center; flex:none; min-width:44px; height:44px; border:0; border-radius:10px; background:transparent; color:var(--ws-text); }
+.workspace-ui.wsw-dialog .wsw-icon-button:hover { background:var(--ws-hover); }
+.workspace-ui.wsw-dialog .wsw-icon-button svg { width:19px; height:19px; }
+.workspace-ui.wsw-dialog .wsw-tabs { display:flex; flex-direction:column; flex:1; min-height:0; min-width:0; }
+.workspace-ui.wsw-dialog .wsw-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 26px 12px; border-bottom:1px solid var(--ws-line); flex:none; }
+.workspace-ui.wsw-dialog .wsw-tab-list { display:flex; gap:4px; }
+.workspace-ui.wsw-dialog .wsw-tab-list button { min-height:44px; padding:8px 13px; display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid transparent; border-radius:9px; color:var(--ws-muted); font-size:14px; }
+.workspace-ui.wsw-dialog .wsw-tab-list button[data-state=active] { color:var(--ws-text); background:var(--ws-hover); }
+.workspace-ui.wsw-dialog .wsw-tab-list span { min-width:20px; font-size:11px; border:1px solid var(--ws-line); padding:1px 5px; border-radius:5px; }
+.workspace-ui.wsw-dialog .wsw-copy { display:flex; gap:7px; align-items:center; min-height:44px; padding:8px; border-radius:9px; color:var(--ws-muted); font-size:12px; }
+.workspace-ui.wsw-dialog .wsw-copy:hover { color:var(--ws-text); background:var(--ws-hover); }
+.workspace-ui.wsw-dialog .wsw-copy svg { width:16px; height:16px; }
+.workspace-ui.wsw-dialog .wsw-copy-status:empty { display:none; }
+.workspace-ui.wsw-dialog .wsw-copy-status { flex:none; margin:0; padding:9px 26px; border-bottom:1px solid var(--ws-line); font-size:12px; color:var(--ws-muted); }
+.workspace-ui.wsw-dialog .wsw-panel { flex:1; min-height:0; min-width:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; padding:25px 26px 30px; overflow-wrap:anywhere; }
+.workspace-ui.wsw-dialog .wsw-panel[data-state=inactive] { display:none; }
+.workspace-ui.wsw-dialog .wsw-answer { font-size:16px; line-height:1.75; color:var(--ws-text); }
+.workspace-ui.wsw-dialog .wsw-answer :is(p,li) { font-size:16px; line-height:1.75; }
+.workspace-ui.wsw-dialog .wsw-answer :is(pre,table) { max-width:100%; overflow-x:auto; }
+.workspace-ui.wsw-dialog .wsw-answer pre { white-space:pre; }
+.workspace-ui.wsw-dialog .wsw-answer img { max-width:100%; }
+.workspace-ui.wsw-dialog .wsw-filter { display:flex; align-items:center; gap:10px; border:1px solid var(--ws-line); border-radius:11px; padding:3px 5px 3px 13px; background:var(--ws-bg); }
+.workspace-ui.wsw-dialog .wsw-filter > svg { width:18px; height:18px; flex:none; color:var(--ws-muted); }
+.workspace-ui.wsw-dialog .wsw-filter:focus-within { outline:2px solid var(--ws-text); outline-offset:2px; }
+/* Outrank the global Noir input !important rules, including in Safari. */
+.workspace-ui.wsw-dialog.wsw-dialog .wsw-filter input:not([type=file]) { flex:1; width:0; min-width:0; min-height:44px; padding:6px 0!important; border:0!important; border-radius:0!important; background:transparent!important; background-image:none!important; color:var(--ws-text)!important; font:inherit; font-size:16px!important; line-height:1.5!important; box-shadow:none!important; outline:none!important; }
+.workspace-ui.wsw-dialog .wsw-filter input::placeholder { color:var(--ws-muted); opacity:1; }
+.workspace-ui.wsw-dialog .wsw-source-count { margin:16px 0 12px; font-size:12px; color:var(--ws-muted); }
+.workspace-ui.wsw-dialog .wsw-source-list { padding:0; margin:0; list-style:none; display:grid; gap:10px; }
+.workspace-ui.wsw-dialog .wsw-source-list li { display:flex; align-items:flex-start; gap:13px; padding:17px; border:1px solid var(--ws-line); border-radius:12px; background:var(--ws-bg); }
+.workspace-ui.wsw-dialog .wsw-source-number { display:flex; align-items:center; justify-content:center; width:26px; height:26px; border:1px solid var(--ws-line); border-radius:7px; color:var(--ws-muted); font-size:11px; flex:none; }
+.workspace-ui.wsw-dialog .wsw-source-copy { flex:1; min-width:0; }
+.workspace-ui.wsw-dialog .wsw-source-host { display:flex; align-items:center; gap:6px; margin:0 0 5px; color:var(--ws-muted); font-size:11px; overflow-wrap:anywhere; }
+.workspace-ui.wsw-dialog .wsw-source-host svg { width:12px; height:12px; flex:none; }
+.workspace-ui.wsw-dialog .wsw-source-copy a,.workspace-ui.wsw-dialog .wsw-source-title { display:block; padding-block:5px; color:var(--ws-text); font-size:15px; font-weight:550; line-height:1.5; }
+.workspace-ui.wsw-dialog .wsw-source-copy a:hover { text-decoration:underline; text-underline-offset:3px; }
+.workspace-ui.wsw-dialog .wsw-source-copy a > svg { width:15px; height:15px; display:inline-block; vertical-align:middle; margin-left:5px; }
+.workspace-ui.wsw-dialog .wsw-source-snippet { font-size:13px; line-height:1.6; color:var(--ws-muted); margin:5px 0 0; }
+.workspace-ui.wsw-dialog .wsw-empty { min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:22px; text-align:center; }
+.workspace-ui.wsw-dialog .wsw-empty > svg { width:28px; height:28px; color:var(--ws-muted); margin-bottom:8px; }
+.workspace-ui.wsw-dialog .wsw-empty p { font-size:16px; }
+.workspace-ui.wsw-dialog .wsw-empty span { font-size:13px; line-height:1.65; color:var(--ws-muted); max-width:350px; }
+.workspace-ui.wsw-dialog .wsw-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; flex:none; padding:10px 26px; border-top:1px solid var(--ws-line); }
+.workspace-ui.wsw-dialog .wsw-footer > span { font-size:11px; color:var(--ws-muted); }
+.workspace-ui.wsw-dialog .wsw-text-button { min-height:44px; padding:8px 10px; border-radius:8px; color:var(--ws-text); font-size:13px; }
+.workspace-ui.wsw-dialog .wsw-text-button:hover { background:var(--ws-hover); }
+.workspace-ui.wsw-dialog .wsw-spinner { animation:wsw-spin 1s linear infinite; }
+@keyframes wsw-spin { to { transform:rotate(360deg); } }
+/* The inline result and modal use the same restrained materials. */
+.workspace-ui .wsw-inline-card.wsw-inline-card { border:1px solid var(--ws-line); border-radius:15px; background:var(--ws-bg); background-image:none; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+.workspace-ui .wsw-inline-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 18px; border-bottom:1px solid var(--ws-line); }
+.workspace-ui .wsw-inline-label { display:flex; align-items:center; gap:8px; min-width:0; font-size:13px; font-weight:550; }
+.workspace-ui .wsw-inline-label svg { width:17px; height:17px; flex:none; }
+.workspace-ui .wsw-inline-card .search-result-copy { border:0; border-radius:0; background:transparent; padding:0; }
+.workspace-ui .wsw-inline-card .wsw-inline-sources { border-color:var(--ws-line); background:var(--ws-canvas); }
+.workspace-ui .wsw-inline-card .wsw-inline-sources a { border-color:var(--ws-line); border-radius:9px; background:var(--ws-bg); min-height:54px; }
+.workspace-ui .wsw-inline-card .wsw-inline-sources a:hover { background:var(--ws-hover); }
+.workspace-ui .wsw-inline-card [aria-label="Choose search result image"] button { background:var(--ws-muted); box-shadow:none; }
+.workspace-ui .wsw-inline-card [aria-label="Choose search result image"] button[aria-pressed=true] { background:var(--ws-text)!important; }
+@media(max-width:600px) {
+  .workspace-ui.wsw-dialog.wsw-dialog { width:calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)); height:calc(var(--ws-viewport-height,100dvh) - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); max-height:calc(var(--ws-viewport-height,100dvh) - 16px); border-radius:14px; }
+  .workspace-ui.wsw-dialog .wsw-heading { padding:19px 16px 16px; gap:8px; }
+  .workspace-ui.wsw-dialog .wsw-toolbar { padding:0 16px 11px; }
+  .workspace-ui.wsw-dialog .wsw-panel { padding:20px 16px; }
+  .workspace-ui.wsw-dialog .wsw-copy-status { padding-inline:16px; }
+  .workspace-ui.wsw-dialog .wsw-copy span { display:none; }
+  .workspace-ui.wsw-dialog .wsw-copy { width:44px; justify-content:center; }
+  .workspace-ui.wsw-dialog .wsw-source-list li { padding:14px 12px; gap:9px; }
+  .workspace-ui.wsw-dialog .wsw-footer { padding:8px 16px; }
+  .workspace-ui.wsw-dialog .wsw-footer > span { max-width:160px; line-height:1.5; }
+  .workspace-ui .wsw-inline-header { padding-inline:14px; }
+}
+@media(prefers-reduced-motion:reduce) { .workspace-ui.wsw-dialog .wsw-spinner { animation:none; } }
+
+/* Container height follows visualViewport, including the iOS keyboard. Keep
+   controls and some results visible even with a long title on a short screen. */
+@container wsw-dialog (max-height:480px) {
+  .workspace-ui.wsw-dialog .wsw-heading { padding:10px 16px; gap:8px; }
+  .workspace-ui.wsw-dialog .wsw-eyebrow { margin-bottom:5px; }
+  .workspace-ui.wsw-dialog .wsw-heading h2 { font-size:18px; max-height:1.25em; }
+  .workspace-ui.wsw-dialog .wsw-heading p:last-child { display:none; }
+  .workspace-ui.wsw-dialog .wsw-toolbar { padding:0 16px 6px; }
+  .workspace-ui.wsw-dialog .wsw-panel { padding:12px 16px; }
+  .workspace-ui.wsw-dialog .wsw-footer { padding:4px 16px; }
+}
+
+/* A landscape keyboard can leave less room than the header and tabs together.
+   Scroll the whole dialog in that case rather than collapsing/overlapping the
+   panel and footer. Close stays reachable at the top of the scrollport. */
+@container wsw-dialog (max-height:320px) {
+  .workspace-ui.wsw-dialog .wsw-heading { position:sticky; top:0; z-index:2; background:var(--ws-canvas); padding:4px 12px; }
+  .workspace-ui.wsw-dialog .wsw-eyebrow { display:none; }
+  .workspace-ui.wsw-dialog .wsw-heading-copy { align-self:center; }
+  .workspace-ui.wsw-dialog .wsw-tabs { flex:none; min-height:auto; }
+  .workspace-ui.wsw-dialog .wsw-panel { flex:none; overflow:visible; }
+  .workspace-ui.wsw-dialog .wsw-copy-status { padding-block:6px; }
+}
