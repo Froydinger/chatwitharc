@@ -10,6 +10,8 @@ type ChatFolderOption = { id: string; name: string };
 
 export function ChatRowActions({ title = "", onRename, pinned, onPin, onDelete, folders = [], folderId, onMove, workspaceUI = false }: { workspaceUI?: boolean; title?: string; onRename?: (title: string) => Promise<void>; pinned: boolean; onPin: (value: boolean) => Promise<void>; onDelete: () => Promise<void> | void; folders?: ChatFolderOption[]; folderId?: string; onMove?: (folderId: string | null) => Promise<void> }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
+  // Inline layers beat the shared z-[100] utility in the production CSS order.
+  // Radix also copies this layer onto its portaled positioning wrapper.
   const menuClass = workspaceUI ? "workspace-ui ws-menu ws-chat-actions-menu" : undefined;
   const dialogClass = workspaceUI ? "workspace-ui ws-chat-actions-dialog" : undefined;
   const restoreFocus = (event: Event) => { if (workspaceUI) { event.preventDefault(); triggerRef.current?.focus(); } };
@@ -26,11 +28,11 @@ export function ChatRowActions({ title = "", onRename, pinned, onPin, onDelete, 
     <div className={workspaceUI ? "ws-chat-row-actions" : "w-11 shrink-0"} onClick={event => event.stopPropagation()}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild><Button ref={triggerRef} size="icon" variant="ghost" className={workspaceUI ? "ws-icon-button ws-chat-options" : "h-11 w-11 rounded-full"} aria-label={workspaceUI ? `Options for ${title || 'Untitled chat'}` : "Chat options"} disabled={busy}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className={menuClass} collisionPadding={workspaceUI ? 12 : undefined} onCloseAutoFocus={workspaceUI ? event => { if (renaming || confirm) event.preventDefault(); } : undefined}>
+        <DropdownMenuContent align="end" className={menuClass} style={workspaceUI ? { zIndex: 12020 } : undefined} collisionPadding={workspaceUI ? 12 : undefined} onCloseAutoFocus={workspaceUI ? event => { if (renaming || confirm) event.preventDefault(); } : undefined}>
           <DropdownMenuItem onSelect={() => { setBusy(true); void onPin(!pinned).catch(() => toast.error('Could not save the pin. Please try again.')).finally(() => setBusy(false)); }}>{pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}{pinned ? 'Unpin chat' : 'Pin chat'}</DropdownMenuItem>
           {onMove && <DropdownMenuSub>
             <DropdownMenuSubTrigger><Folder className="mr-2 h-4 w-4" />Move to folder</DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className={workspaceUI ? menuClass : "w-56"} collisionPadding={workspaceUI ? 12 : undefined}>
+            <DropdownMenuSubContent className={workspaceUI ? menuClass : "w-56"} style={workspaceUI ? { zIndex: 12020 } : undefined} collisionPadding={workspaceUI ? 12 : undefined}>
               {folderId && <DropdownMenuItem onSelect={() => moveTo(null)}><X className="mr-2 h-4 w-4" />Remove from folder</DropdownMenuItem>}
               {folderId && folders.length > 0 && <DropdownMenuSeparator />}
               {folders.length === 0 ? <DropdownMenuItem disabled>No folders yet</DropdownMenuItem> : folders.map(folder => <DropdownMenuItem key={folder.id} disabled={folder.id === folderId} onSelect={() => moveTo(folder.id)}><Folder className="mr-2 h-4 w-4" /><span className="min-w-0 flex-1 truncate">{folder.name}</span>{folder.id === folderId && <><span className="sr-only">Current folder</span><Check aria-hidden="true" className="ml-2 h-4 w-4" /></>}</DropdownMenuItem>)}

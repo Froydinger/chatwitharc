@@ -118,7 +118,7 @@ const sourceModules = new Set([
   'components/LocalAIPanel', 'components/CorporateModePanel', 'components/SharedLinksCard', 'components/GitHubIntegrationCard',
   'components/VoiceSelector', 'components/VoiceMagneticPicker', 'components/PlanUsageBreakdown',
   'components/TextUsageMeters', 'components/ImageCreditSummary', 'components/BoostIcon',
-  'workspace/WorkspaceSettingsPage', 'workspace/settingsSections', 'workspace/settingsPresentation', 'workspace/SettingsSurface',
+  'workspace/WorkspaceContext', 'workspace/WorkspaceSettingsPage', 'workspace/settingsSections', 'workspace/settingsPresentation', 'workspace/SettingsSurface',
   'constants/voices', 'services/arcTextUsage', 'lib/utils', 'lib/chatModelIcons', 'lib/planCopy', 'lib/boostPricing', '../supabase/functions/_shared/boostCatalog',
 ]);
 const moduleCache = new Map();
@@ -176,7 +176,8 @@ function render(section, patch = {}, workspace = true) {
   fixture = { ...baseFixture(), ...patch, section };
   stateCalls = new Map();
   eventCaptures = [];
-  const markup = renderToStaticMarkup(React.createElement(SettingsPanel, { workspacePresentation: workspace }));
+  const { WorkspaceUIContext } = loadSource('workspace/WorkspaceContext');
+  const markup = renderToStaticMarkup(React.createElement(WorkspaceUIContext.Provider, { value: workspace }, React.createElement(SettingsPanel, { workspacePresentation: workspace })));
   cases++;
   rendered.push({ section, workspace, scenario: patch.scenario ?? 'default', markup });
   return markup;

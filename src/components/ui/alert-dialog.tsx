@@ -2,6 +2,7 @@ import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext"
 import { buttonVariants } from "@/components/ui/button"
 import { LiquidMetalOverlay } from "@/components/ui/liquid-metal-overlay"
 
@@ -14,16 +15,20 @@ const AlertDialogPortal = AlertDialogPrimitive.Portal
 const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
+>(({ className, ...props }, ref) => {
+  const workspaceUI = useWorkspaceUI()
+  return (
   <AlertDialogPrimitive.Overlay
     className={cn(
       "arc-overlay fixed inset-0 z-50 bg-black/60 backdrop-blur-md",
+      workspaceUI && "ws-flat-overlay",
       className
     )}
     {...props}
     ref={ref}
   />
-))
+)
+})
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 
 const AlertDialogContent = React.forwardRef<
@@ -32,7 +37,9 @@ const AlertDialogContent = React.forwardRef<
     /** Nested confirmations sit above their owning dialog. */
     layer?: number;
   }
->(({ className, children, layer, style, ...props }, ref) => (
+>(({ className, children, layer, style, ...props }, ref) => {
+  const workspaceUI = useWorkspaceUI()
+  return (
   <AlertDialogPortal>
     <AlertDialogOverlay style={layer === undefined ? undefined : { zIndex: layer - 1 }} />
     <AlertDialogPrimitive.Content
@@ -40,15 +47,17 @@ const AlertDialogContent = React.forwardRef<
       style={{ ...style, ...(layer === undefined ? {} : { zIndex: layer }) }}
       className={cn(
         "arc-modal liquid-metal-surface fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 glass-panel border border-border/40 p-6 shadow-2xl rounded-2xl",
+        workspaceUI && "workspace-ui ws-flat-portal",
         className
       )}
       {...props}
     >
-      <LiquidMetalOverlay />
+      {!workspaceUI && <LiquidMetalOverlay />}
       {children}
     </AlertDialogPrimitive.Content>
   </AlertDialogPortal>
-))
+)
+})
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 
 const AlertDialogHeader = ({

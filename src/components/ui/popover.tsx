@@ -2,6 +2,7 @@ import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 
 import { cn } from "@/lib/utils"
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext"
 import { LiquidMetalOverlay } from "@/components/ui/liquid-metal-overlay"
 
 const Popover = PopoverPrimitive.Root
@@ -17,7 +18,9 @@ type PopoverContentProps = React.ComponentPropsWithoutRef<typeof PopoverPrimitiv
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   PopoverContentProps
->(({ className, align = "center", sideOffset = 4, children, metalPreset = "silver", metalStrength = 0.25, ...props }, ref) => (
+>(({ className, align = "center", sideOffset = 4, children, metalPreset = "silver", metalStrength = 0.25, ...props }, ref) => {
+  const workspaceUI = useWorkspaceUI()
+  return (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
@@ -25,15 +28,17 @@ const PopoverContent = React.forwardRef<
       sideOffset={sideOffset}
       className={cn(
         "arc-dropdown relative liquid-metal-surface z-50 w-72 rounded-xl glass-panel border border-border/40 p-4 text-foreground shadow-2xl outline-none",
+        workspaceUI && "workspace-ui ws-flat-portal",
         className
       )}
       {...props}
     >
-      <LiquidMetalOverlay preset={metalPreset} strength={metalStrength} />
+      {!workspaceUI && <LiquidMetalOverlay preset={metalPreset} strength={metalStrength} />}
       {children}
     </PopoverPrimitive.Content>
   </PopoverPrimitive.Portal>
-))
+)
+})
 PopoverContent.displayName = PopoverPrimitive.Content.displayName
 
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor }

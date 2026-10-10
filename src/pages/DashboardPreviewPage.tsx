@@ -14,7 +14,6 @@ import {
   FileText,
   Image as ImageIcon,
   LayoutDashboard,
-  Mail,
   MessageSquare,
   Plus,
   Search,
@@ -41,6 +40,8 @@ import { logDashboardNavPhase, type DashboardNavPhase } from "@/lib/dashboardNav
 import { isIOSPWA } from "@/utils/platform";
 import { APP_BUILDER_ENABLED } from "@/lib/features";
 import { useWorkspaceUI } from "@/workspace/WorkspaceContext";
+import { WorkspaceDashboardNotifications } from "@/workspace/WorkspaceDashboardNotifications";
+import { DashboardNotificationTray as NotificationTray, type DashboardNotification as PreviewNotification } from "@/components/dashboard/DashboardNotificationTray";
 const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
 
 type DashboardTab = "overview" | "chats" | "images" | "apps" | "canvases" | "memory";
@@ -88,16 +89,6 @@ type PushNotificationHistoryRow = {
   read_at: string | null;
 };
 
-type PreviewNotification = {
-  id: string;
-  title: string;
-  detail: string;
-  time: string;
-  unread: boolean;
-  channel: 'push' | 'email';
-  chatId?: string;
-  url?: string;
-};
 const previewNotifications: PreviewNotification[] = [
   { id: "preview-cloud-run", title: "Cloud run complete", detail: "Restore Mac dashboard is ready.", time: "8 min ago", unread: true, channel: 'push', chatId: "preview-restore" },
   { id: "preview-reminder", title: "Reminder due soon", detail: "Review your latest image set.", time: "1 hr ago", unread: false, channel: 'push' },
@@ -426,52 +417,6 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
   );
 }
 
-function NotificationTray({ notifications, onClear, onOpen }: { notifications: PreviewNotification[]; onClear: () => void | Promise<void>; onOpen: (notification: PreviewNotification) => void }) {
-  const unreadCount = notifications.filter((notification) => notification.unread).length;
-
-  return (
-    <div
-      id="dashboard-preview-notification-tray"
-      role="dialog"
-      aria-label="Recent notifications"
-      className="dashboard-preview-notification-tray absolute right-0 top-[calc(100%+0.75rem)] z-[60] w-[min(88vw,360px)] overflow-hidden rounded-[24px] border p-3 shadow-[0_24px_70px_rgba(0,0,0,0.35)]"
-    >
-      <div className="flex items-start justify-between gap-3 px-2 pb-2">
-        <div>
-          <p className="text-sm font-semibold">Recent notifications</p>
-
-        </div>
-        {unreadCount > 0 && <span className="dashboard-preview-notification-count rounded-full px-2 py-1 text-[10px] font-medium">{unreadCount} new</span>}
-      </div>
-      {notifications.length > 0 ? (
-        <div className="space-y-1">
-          {notifications.map((notification) => (
-            <button key={notification.id} type="button" onClick={() => onOpen(notification)} className="dashboard-preview-notification-row flex w-full items-start gap-2.5 rounded-xl border px-2 py-2 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.06]">
-              <span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", notification.unread ? "dashboard-preview-notification-unread-icon" : "bg-muted text-muted-foreground")}>
-                {notification.channel === 'email' ? <Mail className="h-3 w-3" /> : <Bell className="h-3 w-3" />}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="truncate text-[10px] font-medium">{notification.title}</span>
-                  <span className="shrink-0 text-[8px] text-muted-foreground/70">{notification.channel === 'email' ? 'Email' : 'Push'}</span>
-                  {notification.unread && <span className="dashboard-preview-notification-unread-dot h-1.5 w-1.5 shrink-0 rounded-full" />}
-                </span>
-                <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{notification.detail}</span>
-              </span>
-              <span className="shrink-0 text-[9px] text-muted-foreground">{notification.time}</span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="dashboard-preview-notification-empty rounded-xl border px-3 py-4 text-center text-[11px] text-muted-foreground">You’re all caught up.</p>
-      )}
-      <button type="button" onClick={onClear} disabled={notifications.length === 0} className="mt-2 w-full rounded-xl border px-3 py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50">
-        Clear notifications
-      </button>
-    </div>
-  );
-}
-
 function DashboardOverview({ activeTab, onNavigate, onOpenUsage, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders, onOpenCollab, unreadChatIds, immediateEntry = false, greeting = "Good morning", displayName = "there" }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onOpenUsage: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void; onOpenCollab?: () => void; unreadChatIds?: Set<string>; immediateEntry?: boolean; greeting?: string; displayName?: string }) {
   const [query, setQuery] = useState("");
   const visibleChats = useMemo(() => chatItems.filter((chat) => chat.title.toLowerCase().includes(query.toLowerCase())), [chatItems, query]);
@@ -554,6 +499,7 @@ function DashboardOverview({ activeTab, onNavigate, onOpenUsage, chatItems = rec
 function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   useAccentColor();
   const workspaceUI = useWorkspaceUI();
+  const workspaceDashboard = live && workspaceUI;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile: authProfile, loading: authLoading } = useAuth();
@@ -844,7 +790,9 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   return (
     <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground">
 
-      <header className="dashboard-preview-header relative z-50 flex w-full flex-row items-center justify-between gap-2 px-4 pb-5 sm:gap-4">
+      {workspaceDashboard ? (
+        <WorkspaceDashboardNotifications open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen} notifications={notifications} onClear={clearNotifications} onOpen={handleOpenNotification} />
+      ) : <header className="dashboard-preview-header relative z-50 flex w-full flex-row items-center justify-between gap-2 px-4 pb-5 sm:gap-4">
         <div className="flex min-w-0 items-center gap-2"><ArcMark iconOnly onClick={returnToChat} /><div className="min-w-0"><p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground">ArcAI</p><p className="truncate text-[11px] text-muted-foreground">{live ? `${liveDisplayName}’s workspace` : "Jake’s workspace"}</p></div>{!cleanPreview && <span className="hidden rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary sm:inline-flex">Dashboard preview</span>}</div>
         <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button type="button" onClick={cycleThemeMode} className="dashboard-preview-control flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label={`Theme: ${themeLabel}`} title={`Theme: ${themeLabel}`}><motion.span key={themeMode} initial={{ rotate: -90, opacity: 0, scale: 0.7 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} transition={{ type: "spring", damping: 14, stiffness: 320 }} className="inline-flex"><ThemeIcon className="h-4 w-4" /></motion.span></button>
@@ -864,7 +812,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
           </div>
           {isNotificationsOpen && <NotificationTray notifications={notifications} onClear={clearNotifications} onOpen={handleOpenNotification} />}
         </div>
-      </header>
+      </header>}
 
       <div className="dashboard-preview-page-content relative z-10 mx-auto flex w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
         <main className="min-w-0 flex-1">

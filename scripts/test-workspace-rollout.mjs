@@ -132,7 +132,8 @@ for (const [width, safeSide] of [[320, 0], [390, 0], [852, 59], [1024, 0], [1440
 const modelPicker = read('src/components/ChatModelPicker.tsx');
 assert.ok(!modelPicker.includes('Choose how Arc responds'));
 assert.ok(!modelPicker.includes('Auto can use your Sol allowance'));
-assert.ok(modelPicker.includes("? 'Allowance'"));
+assert.ok(!modelPicker.includes("? 'Allowance'"), "Sol no longer has an Allowance badge");
+assert.ok(modelPicker.includes("? 'Unlimited'"), "Luna retains neutral Unlimited");
 const builderViewport = load('src/lib/builderViewport.ts');
 const profile = (overrides = {}) => ({ viewportWidth: 1280, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', maxTouchPoints: 0,
   screenWidth: 1920, screenHeight: 1080, coarsePointer: false, ...overrides });

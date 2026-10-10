@@ -3,8 +3,11 @@ import { CircleGauge, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PlanUsageBreakdown } from '@/components/PlanUsageBreakdown';
+import { useWorkspaceUI } from '@/workspace/WorkspaceContext';
+import { cn } from '@/lib/utils';
 
 export function FreeUsageButton() {
+  const workspaceUI = useWorkspaceUI();
   const { user, loading: authLoading } = useAuth();
   const { hasBoost, isAdmin, loading } = useSubscription();
   if (!user || authLoading || loading || hasBoost || isAdmin) return null;
@@ -17,8 +20,8 @@ export function FreeUsageButton() {
       </button>
     </Dialog.Trigger>
     <Dialog.Portal>
-      <Dialog.Overlay className="fixed inset-0 z-[9998] bg-black/45 backdrop-blur-sm" />
-      <Dialog.Content className="fixed left-1/2 top-1/2 z-[9999] w-[min(calc(100vw-24px),440px)] max-h-[calc(100dvh-24px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[28px] border border-border/60 bg-background p-4 text-foreground shadow-2xl outline-none sm:p-5">
+      <Dialog.Overlay className={cn('fixed inset-0 z-[9998] bg-black/45 backdrop-blur-sm', workspaceUI && 'ws-flat-overlay')} />
+      <Dialog.Content className={cn('fixed left-1/2 top-1/2 z-[9999] w-[min(calc(100vw-24px),440px)] max-h-[calc(100dvh-24px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[28px] border border-border/60 bg-background p-4 text-foreground shadow-2xl outline-none sm:p-5', workspaceUI && 'workspace-ui ws-flat-dialog ws-usage-dialog')}>
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <Dialog.Title className="text-lg font-semibold">Your usage</Dialog.Title>

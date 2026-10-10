@@ -4,6 +4,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { MessageCircle, Plus, Code2, LayoutGrid, Image, FileText, Database, Bell, Users, Settings, ChevronRight, Menu, X, Search, MoreHorizontal, Share, PanelRight, PanelLeftOpen, PanelLeftClose, CircleHelp, CircleGauge, LogIn, Pin } from 'lucide-react';
 import { ChatRowActions } from '@/components/ChatRowActions';
 import { useWorkspaceSidebar } from './useWorkspaceSidebar';
+import { WorkspaceHeaderActionsContext } from './WorkspaceContext';
 export type WorkspaceSection = 'chat' | 'build' | 'apps' | 'images' | 'canvases' | 'memory' | 'reminders' | 'shared' | 'settings';
 export const workspaceNav = [
   { id: 'chat', label: 'Chat', icon: MessageCircle }, { id: 'build', label: 'Build', icon: Code2 },
@@ -57,6 +58,7 @@ export function WorkspaceChrome({ section, onNavigate, onNewChat, recent, curren
   onUsage: () => void; onInfo: () => void; onAccount: () => void; accountId?: string; accountName?: string; headerActions?: ReactNode;
 }) {
   const [drawer, setDrawer] = useState(false);
+  const [pageHeaderActionsTarget, setPageHeaderActionsTarget] = useState<HTMLDivElement | null>(null);
   const sidebar = useWorkspaceSidebar(accountId);
   const { closePeek, desktop } = sidebar;
   useEffect(() => { setDrawer(false); closePeek(); }, [section, currentId, allChatsActive, closePeek]);
@@ -119,10 +121,10 @@ export function WorkspaceChrome({ section, onNavigate, onNewChat, recent, curren
     <div className="ws-stage"><header className="ws-header" aria-label="Workspace toolbar"><button className="ws-mobile-menu ws-icon-button" aria-label="Open navigation" onClick={() => setDrawer(true)}><Menu /></button>
       {desktop && sidebar.panel !== 'docked' && <button type="button" className="ws-icon-button ws-desktop-sidebar-trigger" ref={sidebar.triggerRef} aria-label={sidebar.panel === 'peek' ? 'Dock sidebar' : 'Show sidebar'} title={sidebar.panel === 'peek' ? 'Dock sidebar' : 'Show sidebar'} aria-expanded={sidebar.panel === 'peek'} aria-controls="workspace-desktop-navigation" onClick={() => sidebar.panel === 'peek' ? sidebar.dock() : sidebar.peek(true)}><PanelLeftOpen /></button>}
       <div className="ws-header-spacer" aria-hidden="true" />
-      <div className="ws-header-actions">{headerActions}{onCanvasToggle && <IconButton label={canvasOpen ? 'Close canvas' : 'Open canvas'} onClick={onCanvasToggle}><PanelRight /></IconButton>}{onShare && <IconButton label="Share or export chat" onClick={onShare}><Share /></IconButton>}
+      <div className="ws-header-actions"><div className="ws-page-header-actions" ref={setPageHeaderActionsTarget} />{headerActions}{onCanvasToggle && <IconButton label={canvasOpen ? 'Close canvas' : 'Open canvas'} onClick={onCanvasToggle}><PanelRight /></IconButton>}{onShare && <IconButton label="Share or export chat" onClick={onShare}><Share /></IconButton>}
         <DropdownMenu.Root><DropdownMenu.Trigger asChild><button className="ws-icon-button" aria-label="More workspace options"><MoreHorizontal /></button></DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content className="workspace-ui ws-menu" align="end" sideOffset={8}>
           <DropdownMenu.Item onSelect={onUsage}><CircleGauge /> Usage</DropdownMenu.Item><DropdownMenu.Item onSelect={onInfo}><CircleHelp /> About Arc</DropdownMenu.Item><DropdownMenu.Separator /><DropdownMenu.Item onSelect={onAccount}><LogIn /> Account settings</DropdownMenu.Item>
         </DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root>
-      </div></header><main className="ws-main" aria-label={title}>{children}</main></div>
+      </div></header><main className="ws-main" aria-label={title}><WorkspaceHeaderActionsContext.Provider value={pageHeaderActionsTarget}>{children}</WorkspaceHeaderActionsContext.Provider></main></div>
   </div>;
 }

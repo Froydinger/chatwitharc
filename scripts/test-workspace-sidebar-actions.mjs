@@ -33,7 +33,7 @@ const flush = async () => { await Promise.resolve(); await Promise.resolve(); aw
 // Render the active production Chrome, rather than the Workspace-hidden legacy sidebar.
 const chromeHooks = hooks();
 const chatActions = props => React.createElement('button', { 'aria-label': `Options for ${props.title}` });
-const { WorkspaceChrome } = load('src/workspace/WorkspaceChrome.tsx', { react: chromeHooks.react, '@/components/ChatRowActions': { ChatRowActions: chatActions }, './useWorkspaceSidebar': load('src/workspace/useWorkspaceSidebar.ts', { react: chromeHooks.react }) });
+const { WorkspaceChrome } = load('src/workspace/WorkspaceChrome.tsx', { react: chromeHooks.react, './WorkspaceContext': load('src/workspace/WorkspaceContext.ts'), '@/components/ChatRowActions': { ChatRowActions: chatActions }, './useWorkspaceSidebar': load('src/workspace/useWorkspaceSidebar.ts', { react: chromeHooks.react }) });
 const events = [];
 const chromeProps = {
   section: 'chat', title: 'Saved title', currentId: 'mine', recent: [{ id: 'mine', title: 'Saved title', work: true, pinned: true, folderId: 'folder' }],

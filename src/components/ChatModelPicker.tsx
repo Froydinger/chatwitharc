@@ -8,6 +8,7 @@ import { ASTRA_MODEL, canSelectAstra, useModelStore, type ArcModelSelection } fr
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
+import { useWorkspaceUI } from '@/workspace/WorkspaceContext';
 
 interface Props {
   className?: string;
@@ -36,6 +37,7 @@ export function ChatModelPicker({
   arcMode = 'ask',
   onArcModeChange,
 }: Props) {
+  const workspaceUI = useWorkspaceUI();
   const {
     hasVerifiedBoost,
     isVerifiedModelAdmin: isAdmin,
@@ -104,6 +106,7 @@ export function ChatModelPicker({
         onClick={() => setOpen((value) => !value)}
         className={cn(
           'glass-btn inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-foreground/90',
+          workspaceUI && 'ws-model-trigger',
           compact ? 'px-2.5' : 'px-3',
           className,
         )}
@@ -126,7 +129,7 @@ export function ChatModelPicker({
                 style={placement === 'up'
                   ? { bottom: coords.bottom, left: coords.left, maxHeight: coords.maxHeight, overflowY: 'auto' }
                   : { top: coords.top, left: coords.left }}
-                className="fixed z-[9999] w-[17rem] rounded-2xl border border-border/40 glass shadow-2xl p-1.5"
+                className={cn('fixed z-[9999] w-[17rem] rounded-2xl border border-border/40 shadow-2xl p-1.5', workspaceUI ? 'workspace-ui ws-model-menu' : 'glass')}
               >
                 {showArcWork && (
                   <div className="px-2.5 pt-2 pb-2 border-b border-border/30">
@@ -175,8 +178,6 @@ export function ChatModelPicker({
                     ? 'Boost'
                     : preset.selection === 'gpt-6-luna'
                     ? 'Unlimited'
-                    : preset.selection === 'gpt-6.1-sol'
-                    ? 'Allowance'
                     : undefined;
                   return (
                     <Row
@@ -246,7 +247,7 @@ function Row({ icon, title, badge, active, disabled, locked, onClick }: {
                 badge === 'Unlimited' ? 'bg-primary/10 text-primary font-medium' : 'bg-muted/80 text-muted-foreground font-medium',
               )}
             >
-              {badge === 'Boost' && <BoostIcon hasBoost={false} className="h-3 w-3 shrink-0" />}
+              {badge === 'Boost' && locked && <BoostIcon hasBoost={false} className="h-3 w-3 shrink-0" />}
               {badge}
             </span>
           )}

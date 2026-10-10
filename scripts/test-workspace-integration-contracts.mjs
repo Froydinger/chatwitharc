@@ -12,8 +12,8 @@ const declarations = selector => {
   return result;
 };
 assert.equal(declarations('.ws-mode-switch')['border-radius'], '999px');
-assert.equal(declarations('.ws-mode-switch button')['border-radius'], '999px');
-assert.equal(declarations('.ws-mode-switch button[aria-pressed=true]').background, 'var(--ws-hover)');
+assert.equal(declarations('.ws-mode-switch button')['border-radius'], '12px');
+assert.equal(declarations('.workspace-ui .ws-mode-switch button[aria-pressed=true]').background, 'var(--ws-hover)');
 assert.equal(declarations('.workspace-ui :focus-visible').outline, '2px solid var(--ws-text)');
 assert.equal(declarations('.workspace-ui')['--ws-bg'], '#000000');
 assert.ok(declarations('html[data-workspace-theme=light] .workspace-ui')['--ws-text']);

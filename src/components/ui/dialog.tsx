@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext"
 import { LiquidMetalOverlay } from "@/components/ui/liquid-metal-overlay"
 
 const Dialog = DialogPrimitive.Root
@@ -16,16 +17,20 @@ const DialogClose = DialogPrimitive.Close
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
+>(({ className, ...props }, ref) => {
+  const workspaceUI = useWorkspaceUI()
+  return (
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
       "arc-overlay fixed inset-0 z-[9998] bg-black/60 backdrop-blur-md",
+      workspaceUI && "ws-flat-overlay",
       className
     )}
     {...props}
   />
-))
+)
+})
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 const DialogContent = React.forwardRef<
@@ -34,18 +39,21 @@ const DialogContent = React.forwardRef<
     hideCloseButton?: boolean;
     hideOverlay?: boolean;
   }
->(({ className, children, hideCloseButton, hideOverlay, ...props }, ref) => (
+>(({ className, children, hideCloseButton, hideOverlay, ...props }, ref) => {
+  const workspaceUI = useWorkspaceUI()
+  return (
   <DialogPortal>
     {!hideOverlay && <DialogOverlay />}
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
         "arc-modal liquid-metal-surface fixed left-[50%] top-[50%] z-[9999] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 glass-panel border border-border/40 p-6 shadow-2xl rounded-2xl",
+        workspaceUI && "workspace-ui ws-flat-portal",
         className
       )}
       {...props}
     >
-      <LiquidMetalOverlay />
+      {!workspaceUI && <LiquidMetalOverlay />}
       {children}
       {!hideCloseButton && (
         <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full glass hover:glass-glow opacity-70 ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 disabled:pointer-events-none p-2">
@@ -55,7 +63,8 @@ const DialogContent = React.forwardRef<
       )}
     </DialogPrimitive.Content>
   </DialogPortal>
-))
+)
+})
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({

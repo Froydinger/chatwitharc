@@ -51,9 +51,29 @@ assert.deepEqual(selections.map(selection => iconModule.CHAT_MODEL_ICONS[selecti
 for (const selection of selections.slice(1)) assert.equal(iconModule.getRecordedChatModelIcon(selection), iconModule.CHAT_MODEL_ICONS[selection]);
 assert.equal(iconModule.getRecordedChatModelIcon('gemini-3.8-flash'), undefined);
 assert.equal(iconModule.getRecordedChatModelIcon(undefined), undefined);
-function picker(account) {
+const boostIconModule = {};
+new Function('exports', 'require', transpile(read('src/components/BoostIcon.tsx')))(boostIconModule, require);
+const buttonRows = html => [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(value => value[0]);
+function assertModelBadges(rows, allowed) {
+  const row = name => rows.find(value => value.includes(`>${name}</span>`));
+  const luna = row('GPT 6 Luna'), sol = row('GPT 6.1 Sol'), astra = row('GPT 6 Astra'), auto = row('Auto');
+  assert.ok(luna && sol && astra && auto);
+  const badges = value => [...value.matchAll(/<span\b[^>]*font-mono[^>]*>[\s\S]*?<\/span>/g)].map(value => value[0]);
+  assert.equal(badges(auto).length, 0, 'Auto has no tier or allowance badge');
+  assert.equal(badges(sol).length, 0, 'Sol has no Allowance badge');
+  assert.equal(badges(luna).length, 1);
+  assert.equal(badges(luna)[0].replace(/<[^>]+>/g, ''), 'Unlimited');
+  assert.equal(badges(astra).length, 1);
+  assert.equal(badges(astra)[0].replace(/<[^>]+>/g, ''), 'Boost', 'Astra retains its neutral Boost label for every account');
+  assert.equal(astra.includes('aria-label="Get Boost"'), !allowed, 'only locked Astra shows an upgrade icon');
+  assert.equal(astra.includes('lucide-circle-fading-arrow-up'), !allowed);
+  assert.equal(astra.includes('aria-label="Boost active"'), false, 'entitled Astra uses plain text without another tier icon');
+  assert.equal(astra.includes('data-icon="Lock"'), !allowed);
+  assert.equal(astra.includes('Pro'), false);
+}
+function picker(account, workspaceUI = false) {
   let stateIndex = 0, checkoutCalls = 0;
-  const deps = { ...models, ...icons, ...iconModule, BoostIcon: () => React.createElement('svg', { 'data-icon': 'Boost' }), useModelStore: selector => selector(models.useModelStore.getState()), useEffect() {}, useRef: () => ({ current: null }),
+  const deps = { ...models, ...icons, ...iconModule, ...boostIconModule, useWorkspaceUI: () => workspaceUI, useModelStore: selector => selector(models.useModelStore.getState()), useEffect() {}, useRef: () => ({ current: null }),
     useState: initial => [stateIndex++ === 0 ? true : { top: 40, left: 20 }, () => {}],
     useAuth: () => ({ user: Object.hasOwn(account, 'user') ? account.user : { id: 'fixture' }, loading: account.authLoading ?? false }),
     useSubscription: () => ({ hasBoost: false, hasVerifiedBoost: false, isAdmin: false, loading: false, ...account, isVerifiedModelAdmin: account.isVerifiedModelAdmin ?? account.isAdmin ?? false, openCheckout: () => checkoutCalls++ }),
@@ -67,7 +87,7 @@ function picker(account) {
   const html = renderToStaticMarkup(React.createElement(mod.ChatModelPicker));
   const astra = html.match(/<button[^>]*>[\s\S]*?<span class="text-xs font-semibold">GPT 6 Astra<\/span>[\s\S]*?<\/button>/g)?.at(-1);
   // Match the row directly; the menu's first button is the picker trigger.
-  const rows = [...html.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].map(value => value[0]);
+  const rows = buttonRows(html);
   const astraRow = rows.find(value => value.includes('GPT 6 Astra'));
   assert.ok(astra && astraRow);
   const allowed = ((account.isVerifiedModelAdmin ?? account.isAdmin) === true || account.hasVerifiedBoost === true) && !account.loading && !account.authLoading && account.user !== null && !account.user?.is_anonymous;
@@ -75,8 +95,11 @@ function picker(account) {
   assert.equal(astraRow.includes('Coming soon'), false);
   assert.equal(html.includes('$30/month'), false);
   assert.ok(html.includes('Unlimited'));
-  assert.ok(html.includes('Allowance'));
+  assert.equal(html.includes('Allowance'), false);
   assert.ok(html.includes('Boost'));
+  assertModelBadges(rows, allowed);
+  assert.equal(html.includes('workspace-ui ws-model-menu'), workspaceUI, 'portal opts into Workspace only within its context');
+  assert.equal(html.includes('ws-model-trigger'), workspaceUI);
   assert.ok(html.includes('Auto can use Sol allowance'));
   assert.ok(html.includes('Usage details'));
   assert.equal(html.includes('workspace-open-usage'), false, 'internal usage event name is not exposed as copy');
@@ -102,12 +125,44 @@ function picker(account) {
   for (const label of ['GPT 6 Luna', 'GPT 6.1 Sol']) assert.equal(/ disabled=""/.test(rows.find(value => value.includes(`<span class="text-xs font-semibold">${label}</span>`))), false);
   assert.equal(html.includes('Arc Flash'), false);
   assert.equal(html.includes('Arc Think'), false);
+
+  // The alternate model/voice dialog renders its own rows from the same presets.
+  // Exercise that actual model tab without mounting voice or any account service.
+  checkoutCalls = 0;
+  const Wrapper = ({ children, className }) => React.createElement('div', { className }, children);
+  const controlDeps = { ...deps, PRESETS: mod.PRESETS,
+    useState: initial => [initial === false ? true : initial, () => {}], useIsMobile: () => false,
+    DialogPrimitive: Object.fromEntries(['Root', 'Trigger', 'Portal', 'Overlay', 'Content', 'Title', 'Close'].map(key => [key, Wrapper])),
+    FreeUsageButton: () => null,
+    VoiceMagneticPicker: () => { throw Error('Model-only test must not open voice'); },
+  };
+  const controlMod = {};
+  new Function('exports', 'require', ...Object.keys(controlDeps), transpile(read('src/components/ArcControlPicker.tsx').replace(/^import .*;\n/gm, '')))(controlMod, require, ...Object.values(controlDeps));
+  const controlTree = controlMod.ArcControlPicker({ name: 'Arc', selectedVoice: 'alloy', onSelectVoice: () => { throw Error('Model selection must not change voice'); } });
+  const controlHtml = renderToStaticMarkup(controlTree);
+  assert.equal(controlHtml.includes('workspace-ui ws-flat-dialog ws-model-voice-dialog'), workspaceUI);
+  assert.equal(controlHtml.includes('ws-flat-overlay'), workspaceUI);
+  const controlRows = buttonRows(controlHtml);
+  assertModelBadges(controlRows, allowed);
+  const controlAstra = controlRows.find(value => value.includes('>GPT 6 Astra</span>'));
+  assert.equal(/ disabled=""/.test(controlAstra), !!account.loading || !!account.authLoading);
+  let astraButton;
+  function visitControl(value) {
+    if (Array.isArray(value)) { value.forEach(visitControl); return; }
+    if (!value || typeof value !== 'object') return;
+    if (value.type === 'button' && renderToStaticMarkup(value).includes('>GPT 6 Astra</span>')) astraButton = value;
+    visitControl(value.props?.children);
+  }
+  visitControl(controlTree); assert.ok(astraButton); astraButton.props.onClick();
+  assert.equal(models.useModelStore.getState().modelSelection, allowed ? 'gpt-6-astra' : 'auto');
+  assert.equal(checkoutCalls, !allowed && !account.loading && !account.authLoading ? 1 : 0);
+  models.useModelStore.getState().setModelSelection('auto');
   return { mod, html };
 }
 models.useModelStore.getState().setModelSelection('auto');
-for (const account of [{}, { hasBoost: true }, { hasVerifiedBoost: true }, { isAdmin: true }, { isAdmin: true, isVerifiedModelAdmin: false }, { isAdmin: true, loading: true }, { isAdmin: true, authLoading: true }, { isAdmin: true, user: null }, { isAdmin: true, user: { id: 'guest', is_anonymous: true } }]) picker(account);
+for (const workspaceUI of [false, true]) for (const account of [{}, { hasBoost: true }, { hasVerifiedBoost: true }, { isAdmin: true }, { isAdmin: true, isVerifiedModelAdmin: false }, { isAdmin: true, loading: true }, { isAdmin: true, authLoading: true }, { isAdmin: true, user: null }, { isAdmin: true, user: { id: 'guest', is_anonymous: true } }]) picker(account, workspaceUI);
 const control = read('src/components/ArcControlPicker.tsx');
-assert.ok(control.includes('disabled={disabled}') && control.includes("badge = locked ? 'Boost'"));
+assert.ok(control.includes('disabled={disabled}') && control.includes("badge = preset.selection === ASTRA_MODEL ? 'Boost'"));
 assert.ok(control.includes("openCheckout(undefined, 'astra_boost_required')") && !control.includes('flynn'));
 const subscription = read('src/hooks/useSubscription.tsx');
 assert.ok(subscription.includes('modelEntitlements?.ownerId === user?.id'));
@@ -292,4 +347,4 @@ for (const selection of selections) {
   assert.equal(request.modelSelection, selection); assert.equal(request.reasoningSelection, selection);
   assert.equal(request.model, undefined); assert.equal(request.browserbaseDevice, 'desktop');
 }
-console.log('PASS GPT frontend: four choices/icons, migration/persistence, Free/verified-Boost/admin/loading gates, historical labels, captured chat/stream/analysis/file/Work routes, unique submission IDs, event artifacts, and authoritative metadata.');
+console.log('PASS GPT frontend: both real pickers with Luna Unlimited/Astra Boost and locked-only upgrade icons; four choices, migration/persistence, Free/verified-Boost/admin/loading gates, historical labels, captured chat/stream/analysis/file/Work routes, unique submission IDs, event artifacts, and authoritative metadata.');

@@ -1,0 +1,106 @@
+/* Active Workspace only. Legacy and rollback surfaces retain their defaults.
+   The repeated scope beats the global light/Noir !important glass rules without
+   changing dimensions, hit targets, transitions, or meaningful popup shadows. */
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is(.glass,.glass-strong,.glass-card,.glass-panel,.glass-shimmer,.outline-shimmer,.glass-btn,.panel-solid),
+:root[data-workspace-theme] .workspace-ui.workspace-ui:is(.glass,.glass-strong,.glass-card,.glass-panel,.glass-shimmer,.outline-shimmer,.glass-btn,.panel-solid) {
+  background:var(--ws-canvas)!important;
+  background-image:none!important;
+  border-color:var(--ws-line)!important;
+  color:var(--ws-text)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  box-shadow:none!important;
+}
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is(.glass-btn,.glass-shimmer,.outline-shimmer):hover {
+  background:var(--ws-hover)!important;
+  background-image:none!important;
+  border-color:var(--ws-muted)!important;
+  box-shadow:none!important;
+}
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is(.glass-btn,.glass-shimmer,.outline-shimmer)::before,
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is(.glass-btn,.glass-shimmer,.outline-shimmer)::after {
+  content:none!important;
+  display:none!important;
+}
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is(.glass-btn,.glass-shimmer,.outline-shimmer).text-destructive {
+  color:hsl(var(--destructive))!important;
+}
+:root[data-workspace-theme] .workspace-ui.workspace-ui .glass-dock {
+  background:var(--ws-surface)!important;
+  background-image:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is([class*="backdrop-blur"],[class*="backdrop-saturate"]) {
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+/* Selection stays visible without the legacy global blue/glossy halo. */
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is(button[aria-pressed=true]:not([data-push-toggle=true]),button[role=tab][data-state=active],button[role=radio][data-state=on]) {
+  background:var(--ws-hover)!important;
+  background-image:none!important;
+  border-color:var(--ws-muted)!important;
+  color:var(--ws-text)!important;
+  box-shadow:none!important;
+}
+/* Portaled model and usage surfaces explicitly opt into Workspace tokens. */
+:root[data-workspace-theme] .workspace-ui.ws-model-menu,
+:root[data-workspace-theme] .workspace-ui.ws-flat-dialog,
+:root[data-workspace-theme] .workspace-ui.workspace-ui.ws-flat-portal {
+  background:var(--ws-canvas)!important;
+  background-image:none!important;
+  border-color:var(--ws-line)!important;
+  color:var(--ws-text)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  box-shadow:0 18px 50px #0004!important;
+}
+:root[data-workspace-theme] .workspace-ui.ws-model-menu button:hover,
+:root[data-workspace-theme] .workspace-ui.ws-model-voice-dialog button:hover {
+  background-color:var(--ws-hover)!important;
+}
+:root[data-workspace-theme] .workspace-ui.ws-model-voice-dialog .t-tabs {
+  background:var(--ws-bg)!important;
+  background-image:none!important;
+  border-color:var(--ws-line)!important;
+  box-shadow:none!important;
+}
+:root[data-workspace-theme] .workspace-ui.ws-model-voice-dialog .t-tabs-pill {
+  background:var(--ws-hover)!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+:root[data-workspace-theme] .workspace-ui.ws-usage-dialog [aria-label="Usage breakdown"] {
+  background:var(--ws-canvas)!important;
+  background-image:none!important;
+}
+/* Dimming remains; frosted backdrop effects do not. Shared alert dialogs are
+   selected only when their adjacent content is the opted-in Workspace view. */
+:root[data-workspace-theme] :is(.ws-modal-overlay,.ws-drawer-overlay,.workspace-mode-dialog-overlay,.ws-prompt-overlay,.ws-flat-overlay),
+:root[data-workspace-theme] .arc-overlay:has(+ .workspace-ui.ws-chat-actions-dialog) {
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+/* Replacing decorative shadows must never erase keyboard focus feedback. */
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is(.glass-btn,.glass-shimmer,.outline-shimmer,button[aria-pressed=true]):focus-visible,
+:root[data-workspace-theme] .workspace-ui.ws-model-menu button:focus-visible,
+:root[data-workspace-theme] .workspace-ui.ws-flat-dialog button:focus-visible {
+  outline:2px solid var(--ws-text)!important;
+  outline-offset:2px!important;
+}
+
+/* Dialog cards, including the inline Work summary, keep structural separation. */
+:root[data-workspace-theme] .workspace-ui.workspace-ui.ws-chat-actions-dialog,
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is([role=dialog],[role=alertdialog]):is(.glass-card,.glass-panel),
+:root[data-workspace-theme] .workspace-ui.workspace-ui:is([role=dialog],[role=alertdialog]):is(.glass-card,.glass-panel) { box-shadow:0 24px 90px #0005!important; }
+
+/* Cancel only the old liquid-glass control pulse, not voice or progress motion. */
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is(.glass,.glass-shimmer,.glass-btn,.glass-panel,.glass-card):is(:hover,:focus-within),
+:root[data-workspace-theme] .workspace-ui.workspace-ui :is(.glass,.glass-shimmer,.glass-btn,.glass-panel,.glass-card) :is(button,a,input,textarea,select):is(:hover,:focus-visible),
+:root[data-workspace-theme] .workspace-ui.workspace-ui:is(.glass,.glass-shimmer,.glass-btn,.glass-panel,.glass-card) :is(button,a,input,textarea,select):is(:hover,:focus-visible) {
+  animation:none!important;
+  filter:none!important;
+}
+:root[data-workspace-theme] .workspace-ui.ws-model-voice-dialog .t-tab { text-shadow:none!important; }
+:root[data-workspace-theme] .workspace-ui.workspace-ui .liquid-metal-overlay-frame { display:none!important; }
+:root[data-workspace-theme] .workspace-ui.ws-flat-portal :focus-visible { outline:2px solid var(--ws-text)!important; outline-offset:2px!important; }

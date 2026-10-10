@@ -1,10 +1,12 @@
+@import './workspace-flat-surfaces.css';
+
 /* Arc Workspace: restrained monochrome, the supplied Arc mark, and room to think.
    Layout-only layer; live request/state/voice ownership stays in existing code. */
 .workspace-ui { --ws-bg:#000000; --ws-sidebar:#000000; --ws-surface:#1d1d1d; --ws-elevated:#232323; --ws-hover:#292929; --ws-text:#f3f3f1; --ws-muted:#9c9c99; --ws-line:#30302e; --ws-soft-line:#242423; --ws-canvas:#191919; --ws-nav-width:248px; --ws-header-height:64px; --ws-canvas-width:360px; --background:0 0% 0%; --foreground:60 6% 95%; --primary:0 0% 96%; --primary-foreground:0 0% 8%; --border:0 0% 19%; --muted:0 0% 13%; --muted-foreground:0 0% 63%; --card:0 0% 10%; --popover:0 0% 11%; --popover-foreground:0 0% 96%; background:var(--ws-bg); color:var(--ws-text); font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:16px; overscroll-behavior:none; }
 html[data-workspace-theme=light] .workspace-ui { --ws-bg:#fcfcfa; --ws-sidebar:#f1f1ef; --ws-surface:#ededeb; --ws-elevated:#fff; --ws-hover:#e2e2df; --ws-text:#20201f; --ws-muted:#73736f; --ws-line:#d7d7d2; --ws-soft-line:#e7e7e2; --ws-canvas:#f5f5f2; --background:60 14% 99%; --foreground:60 2% 12%; --primary:0 0% 10%; --primary-foreground:0 0% 98%; --border:60 5% 85%; --muted:60 6% 94%; --muted-foreground:60 2% 45%; --card:60 12% 97%; --popover:60 14% 99%; --popover-foreground:60 2% 12%; }
 .workspace-ui * { -webkit-tap-highlight-color:transparent; }
 .workspace-ui #root { min-height:100dvh; }
-.workspace-ui button,.workspace-ui input,.workspace-ui textarea { font:inherit; }
+.workspace-ui:not(:where(.ws-model-menu,.ws-flat-dialog,.ws-flat-portal)) :is(button,input,textarea) { font:inherit; }
 .workspace-ui button,.workspace-ui a { touch-action:manipulation; }
 .workspace-ui button { cursor:pointer; }
 .workspace-ui button:disabled { cursor:not-allowed; opacity:.38; }
@@ -67,9 +69,13 @@ html[data-workspace-theme=light] .workspace-ui { --ws-bg:#fcfcfa; --ws-sidebar:#
 .workspace-ui .workspace-live-composer textarea { background:transparent!important; background-image:none!important; border:0!important; border-radius:0!important; box-shadow:none!important; outline:none!important; resize:none!important; --tw-ring-shadow:none!important; --tw-ring-color:transparent!important; }
 .workspace-ui .workspace-live-composer:focus-within { outline:none; }
 .workspace-ui .ws-live-content .glass-dock:focus-within { border-color:var(--ws-muted)!important; box-shadow:inset 0 0 0 1px var(--ws-muted)!important; }
-.ws-mode-switch { margin-left:auto; border:1px solid var(--ws-line); padding:3px; display:flex; border-radius:999px; height:40px; min-width:154px; flex:0 0 auto; }
-.ws-mode-switch button { display:flex; align-items:center; justify-content:center; gap:6px; flex:1 0 auto; border-radius:999px; min-width:max-content; padding:0 12px; font-size:13px; white-space:nowrap; }
-.ws-mode-switch button[aria-pressed=true] { background:var(--ws-hover); }
+.ws-mode-switch { --ws-mode-edge-radius:16px; box-sizing:border-box; margin-left:auto; border:1px solid var(--ws-line); padding:3px; display:flex; border-radius:999px; height:40px; min-width:154px; flex:0 0 auto; }
+.ws-mode-switch button { display:flex; align-items:center; justify-content:center; gap:6px; flex:1 0 auto; border:0; border-radius:12px; min-width:max-content; padding:0 12px; font-size:13px; white-space:nowrap; }
+/* Match the outside curve to the rail; keep the center-facing corners quieter. */
+.ws-mode-switch button:first-child { border-top-left-radius:var(--ws-mode-edge-radius); border-bottom-left-radius:var(--ws-mode-edge-radius); }
+.ws-mode-switch button:last-child { border-top-right-radius:var(--ws-mode-edge-radius); border-bottom-right-radius:var(--ws-mode-edge-radius); }
+/* Keep the inset selection independent of the legacy global pressed-button glow. */
+.workspace-ui .ws-mode-switch button[aria-pressed=true] { background:var(--ws-hover)!important; box-shadow:none!important; }
 .ws-mode-switch small { margin-left:4px; background:#ffffff1c; color:var(--ws-text); padding:2px 5px; font-size:10px; border-radius:5px; }
 @keyframes ws-pulse { 50%{opacity:.25} }
 .ws-modal-overlay,.ws-drawer-overlay { position:fixed; inset:0; z-index:12000; background:#0009; backdrop-filter:blur(5px); animation:ws-overlay-in .14s ease both; }
@@ -155,8 +161,9 @@ html[data-workspace-theme=light] .workspace-ui { --ws-bg:#fcfcfa; --ws-sidebar:#
 /* Touch hit areas without changing desktop density. */
 @media (pointer:coarse) {
   .workspace-ui .ws-icon-button { min-width:44px!important; width:44px!important; min-height:44px!important; height:44px!important; }
-  .workspace-ui .ws-mode-switch,.workspace-ui .ws-mode-switch>button { min-height:44px; }
-  .workspace-ui .ws-mode-switch { min-width:118px; }
+  /* The rail must include the 44px hit target plus its border and even inset. */
+  .workspace-ui .ws-mode-switch { --ws-mode-edge-radius:22px; height:52px; min-width:118px; }
+  .workspace-ui .ws-mode-switch>button { min-height:44px; }
 }
 
 /* Icons keep Work compact; the label, icon and focus ring stay inside the rail. */
@@ -256,10 +263,8 @@ html[data-workspace-theme=light] .workspace-ui { --ws-bg:#fcfcfa; --ws-sidebar:#
 }
 @media(max-height:520px) { .ws-live-content .ws-chat-welcome { margin-top:24px; } }
 
-/* Keep the real dashboard account/notification header and handlers. */
+/* Dashboard controllers remain live; their notification control uses the toolbar. */
 .ws-live-dashboard .dashboard-preview-shell { min-height:100%; }
-.ws-live-dashboard .dashboard-preview-header { justify-content:flex-end; padding-top:14px; padding-bottom:14px; }
-.ws-live-dashboard .dashboard-preview-header>div:first-child,
 .ws-live-dashboard [data-dashboard-nav-pill] { display:none; }
 .ws-live-dashboard .dashboard-preview-page-content { padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px)); }
 body.standalone-app.is-ipad .workspace-ui.ws-frame { height:calc(var(--ws-viewport-height, 100dvh) - 30px); }
@@ -287,3 +292,19 @@ body.standalone-app.is-ipad .workspace-ui.ws-frame { height:calc(var(--ws-viewpo
 .ws-chat-actions-dialog button { min-height:44px; border-radius:10px; }
 @media(pointer:coarse) { .ws-chat-row-actions { width:44px; }.ws-recent .ws-chat-options { width:44px; min-width:44px; height:44px; min-height:44px; }.ws-recent .ws-recent-open { min-height:44px; } }
 @media(max-height:900px) { .ws-sidebar,.ws-mobile-sidebar { overflow-y:auto; }.ws-recent { flex:none; min-height:80px; max-height:32vh; } }
+
+/* The dashboard owns the real notification data and actions. Only their view is
+   portaled into this outlet; no second subscription or account control is mounted. */
+.ws-page-header-actions { display:flex; align-items:center; }
+.ws-page-header-actions:empty { display:none; }
+.ws-notification-trigger { position:relative; }
+.ws-notification-unread { position:absolute; right:10px; top:10px; width:6px; height:6px; border-radius:50%; background:var(--ws-text); }
+.workspace-ui.ws-dashboard-notification-popover { width:min(360px,calc(100vw - 24px)); max-height:min(480px,var(--radix-popover-content-available-height)); overflow-y:auto; overscroll-behavior:contain; border:1px solid var(--ws-line); border-radius:18px; background:var(--ws-elevated); color:var(--ws-text); background-image:none; backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:none; outline:0; z-index:11900; }
+html .workspace-ui.ws-dashboard-notification-popover .ws-notification-tray { background:var(--ws-elevated); color:var(--ws-text); background-image:none; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+html .workspace-ui.ws-dashboard-notification-popover .dashboard-preview-notification-row { min-height:44px; border-color:var(--ws-line); background:var(--ws-surface); }
+html .workspace-ui.ws-dashboard-notification-popover .dashboard-preview-notification-row:hover { border-color:var(--ws-muted); background:var(--ws-hover); }
+html .workspace-ui.ws-dashboard-notification-popover .dashboard-preview-notification-count,
+html .workspace-ui.ws-dashboard-notification-popover .dashboard-preview-notification-unread-icon { color:var(--ws-text); background:var(--ws-hover); }
+html .workspace-ui.ws-dashboard-notification-popover .dashboard-preview-notification-unread-dot { background:var(--ws-text); box-shadow:none; }
+html .workspace-ui.ws-dashboard-notification-popover .dashboard-preview-notification-empty { border-color:var(--ws-line); background:var(--ws-surface); }
+html .workspace-ui.ws-dashboard-notification-popover .ws-notification-tray>button { min-height:44px; }

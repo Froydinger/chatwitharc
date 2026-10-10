@@ -11,6 +11,7 @@ import { PRESETS } from '@/components/ChatModelPicker';
 import type { VoiceName } from '@/store/useVoiceModeStore';
 import { cn } from '@/lib/utils';
 import { FreeUsageButton } from '@/components/FreeUsageButton';
+import { useWorkspaceUI } from '@/workspace/WorkspaceContext';
 
 type ArcControlPickerProps = {
   name: string;
@@ -20,6 +21,7 @@ type ArcControlPickerProps = {
 
 /** The input's voice button is the home for both per-request voice and model controls. */
 export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcControlPickerProps) {
+  const workspaceUI = useWorkspaceUI();
   const mobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'model' | 'voice'>('model');
@@ -56,10 +58,10 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
         </button>
       </DialogPrimitive.Trigger>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[9998] bg-black/45 backdrop-blur-sm" />
+        <DialogPrimitive.Overlay className={cn('fixed inset-0 z-[9998] bg-black/45 backdrop-blur-sm', workspaceUI && 'ws-flat-overlay')} />
         <DialogPrimitive.Content
           aria-describedby={undefined}
-          className="fixed left-1/2 top-1/2 z-[9999] w-[min(calc(100vw-24px),500px)] max-h-[min(760px,calc(100dvh-24px))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[30px] border border-border/60 bg-background text-foreground shadow-2xl outline-none"
+          className={cn('fixed left-1/2 top-1/2 z-[9999] w-[min(calc(100vw-24px),500px)] max-h-[min(760px,calc(100dvh-24px))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[30px] border border-border/60 bg-background text-foreground shadow-2xl outline-none', workspaceUI && 'workspace-ui ws-flat-dialog ws-model-voice-dialog')}
         >
           <DialogPrimitive.Title className="sr-only">Choose Arc model or voice</DialogPrimitive.Title>
           <div className="relative p-4 sm:p-5">
@@ -114,7 +116,7 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                 {presets.map((preset) => {
                   const locked = preset.selection === ASTRA_MODEL && !astraAvailable;
                   const disabled = locked && (authLoading || subscriptionLoading);
-                  const badge = locked ? 'Boost' : preset.selection === 'gpt-6-luna' ? 'Unlimited' : undefined;
+                  const badge = preset.selection === ASTRA_MODEL ? 'Boost' : preset.selection === 'gpt-6-luna' ? 'Unlimited' : undefined;
                   const Icon = preset.icon;
                   const active = !locked && modelSelection === preset.selection;
                   return (
@@ -135,7 +137,7 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                     >
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/70"><Icon className="h-4.5 w-4.5 text-primary" /></span>
                       <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-2"><span className="text-sm font-semibold text-foreground">{preset.title}</span>{badge && <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">{badge === 'Boost' ? <BoostIcon hasBoost={hasVerifiedBoost || isAdmin} className="h-3.5 w-3.5 shrink-0" /> : badge}</span>}</span>
+                        <span className="flex items-center gap-2"><span className="text-sm font-semibold text-foreground">{preset.title}</span>{badge && <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">{badge === 'Boost' && locked && <BoostIcon hasBoost={false} className="h-3.5 w-3.5 shrink-0" />}{badge}</span>}</span>
                         <span className="mt-0.5 block truncate text-xs text-muted-foreground">{preset.subtitle}</span>
                       </span>
                       {locked && <Lock className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
