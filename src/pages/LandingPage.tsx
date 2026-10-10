@@ -276,7 +276,7 @@ function MarketingLandingPage() {
           <Sparkles className="h-3.5 w-3.5" /> Ask, Reflect, Create
         </div>
         <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl lg:text-8xl animate-in fade-in slide-in-from-bottom-3 duration-700">
-          Ask. Reflect. Create.
+          Powered by GPT 6 &amp; Gemini
         </h1>
         <p
           className="mx-auto mt-6 max-w-xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
