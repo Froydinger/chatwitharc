@@ -222,6 +222,79 @@ html[data-workspace-theme=light] .workspace-ui { --ws-bg:#fcfcfa; --ws-sidebar:#
 .ci-workspace-create-label { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ci-workspace-create-badge { padding:2px 6px; border:1px solid var(--ws-line); border-radius:999px; color:var(--ws-muted)!important; font-size:10px!important; }
 .ci-workspace-create-check { width:16px; height:16px; flex:none; color:var(--ws-text); }
+.ws-create-mode { color:var(--ws-text); font-family:inherit; border:1px solid var(--ws-line); background:var(--ws-canvas); box-shadow:0 12px 34px #0004; }
+.ws-git-mode-dock { display:flex; flex-direction:column; align-items:stretch; gap:12px; width:min(760px,calc(100vw - 24px)); max-width:100%; padding:13px; border-radius:17px; font-size:13px; }
+.ws-git-mode-heading { display:flex; align-items:center; gap:12px; min-width:0; }
+.ws-git-mode-brand { display:flex; align-items:center; gap:9px; min-width:0; font-size:14px; font-weight:560; }
+.ws-git-mode-brand svg { color:var(--ws-text); flex:none; }
+.ws-git-model-controls { height:40px; margin-left:auto; border-color:var(--ws-line); background:var(--ws-bg); padding:3px; }
+.ws-git-mode-option { height:32px; min-width:60px; padding:0 12px; border-radius:8px; color:var(--ws-muted); }
+.ws-git-mode-option[aria-pressed=true] { color:var(--ws-bg); background:var(--ws-text); box-shadow:none; }
+.ws-git-connect-row { display:flex; align-items:center; gap:10px; min-width:0; color:var(--ws-muted); font-size:12px; }
+.ws-git-connect { min-height:42px; padding:9px 15px; border:1px solid var(--ws-text); border-radius:10px; font-size:13px!important; }
+.ws-git-connected-row { display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap; }
+.ws-git-connected-row>span { max-width:150px; color:var(--ws-muted); }
+.ws-git-repository-picker { flex:1 1 220px; min-width:150px; }
+.ws-git-repository-picker>div:first-child { min-height:42px; padding:0 12px; border-color:var(--ws-line); background:var(--ws-bg); border-radius:10px; color:var(--ws-text); font-size:13px; }
+.ws-git-repository-picker>select { font-size:16px; }
+.ws-git-branch { padding:0 4px; font-size:11px; }
+.ws-git-repository-actions { gap:2px; }
+.ws-git-repository-actions .ws-icon-button { width:42px; min-width:42px; height:42px; min-height:42px; border:1px solid var(--ws-line); border-radius:10px; color:var(--ws-muted); }
+.ws-git-repository-actions .ws-icon-button:hover { background:var(--ws-hover); color:var(--ws-text); }
+.ws-image-options-dock { width:100%; padding:13px; border-radius:17px; border-color:var(--ws-line); background:var(--ws-canvas); box-shadow:0 12px 34px #0004; }
+.ws-image-options-content { color:var(--ws-text); }
+.ws-image-options-heading { margin:0 0 10px; padding-bottom:9px; border-bottom:1px solid var(--ws-line); font-size:14px; font-weight:560; }
+.ws-image-credit-row { color:var(--ws-muted); }
+.ws-image-models { gap:6px; margin-bottom:12px; }
+.ws-image-model-option { min-height:40px; padding:8px 12px; border-color:var(--ws-line)!important; border-radius:9px; color:var(--ws-muted); background:transparent; font-size:12px; }
+.ws-image-model-option[aria-pressed=true] { color:var(--ws-bg)!important; background:var(--ws-text)!important; border-color:var(--ws-text)!important; }
+.ws-image-model-option:hover { border-color:var(--ws-text)!important; color:var(--ws-text); background:var(--ws-hover); }
+.ws-image-settings { gap:10px; }
+.ws-image-setting>span { color:var(--ws-muted); padding-left:2px; font-size:10px; letter-spacing:.08em; }
+.ws-image-setting-trigger { min-height:42px; height:42px; border-color:var(--ws-line); border-radius:10px; background:var(--ws-bg); color:var(--ws-text); }
+.ws-image-option-menu { z-index:13000; padding:5px; border-color:var(--ws-line); border-radius:12px; background:var(--ws-canvas); color:var(--ws-text); box-shadow:0 14px 40px #0006; }
+.ws-image-option-item { min-height:42px; border-radius:8px; }
+.ws-image-option-item:hover,.ws-image-option-item:focus-visible { background:var(--ws-hover)!important; }
+.ws-attachment-tray { width:100%; max-width:760px; padding:13px; border-radius:17px; border:1px solid var(--ws-line); color:var(--ws-text); background:var(--ws-canvas); box-shadow:0 12px 34px #0004; }
+.ws-attachment-tray>div:first-child { margin-bottom:10px; }
+.ws-attachment-clear { min-height:40px; padding:7px 10px; border-radius:9px; color:var(--ws-muted); font-size:12px; }
+.ws-attachment-clear:hover { color:var(--ws-text); background:var(--ws-hover); }
+.ws-attachment-item { display:flex; align-items:center; gap:10px; min-width:0; padding:9px 10px; border:1px solid var(--ws-line); border-radius:10px; background:var(--ws-bg); }
+.ws-attachment-item>svg { color:var(--ws-muted); }
+.ws-attachment-thumbnail { width:56px; height:56px; object-fit:cover; border:1px solid var(--ws-line); border-radius:10px; }
+.ws-attachment-remove { display:inline-flex; align-items:center; justify-content:center; width:40px; min-width:40px; height:40px; min-height:40px; border:1px solid var(--ws-line); border-radius:10px; color:var(--ws-muted); background:transparent; }
+.ws-attachment-remove:hover { color:var(--ws-text); background:var(--ws-hover); }
+.ws-prompt-overlay { background:#0009; backdrop-filter:blur(5px); }
+.ws-prompt-dialog { width:min(760px,calc(100vw - 24px)); max-width:760px; }
+.ws-prompt-card { max-height:calc(var(--ws-viewport-height,100dvh) - 28px); border:1px solid var(--ws-line); border-radius:18px; color:var(--ws-text); background:var(--ws-canvas); box-shadow:0 24px 80px #0007; }
+.ws-prompt-card>.absolute { display:none; }
+.ws-prompt-heading { padding:16px 20px; border-color:var(--ws-line); background:var(--ws-canvas); }
+.ws-prompt-mark { display:none!important; }
+.ws-prompt-title { color:var(--ws-text); background:none; -webkit-text-fill-color:currentColor; font-size:18px; font-weight:560; }
+.ws-prompt-count { color:var(--ws-muted); }
+.ws-prompt-icon-button { border:1px solid var(--ws-line)!important; color:var(--ws-muted)!important; background:transparent!important; box-shadow:none!important; }
+.ws-prompt-icon-button:hover { color:var(--ws-text)!important; background:var(--ws-hover)!important; }
+.ws-prompt-tabs-wrap { padding:12px 20px; border-color:var(--ws-line); }
+.ws-prompt-tab { min-height:42px; border-color:var(--ws-line)!important; border-radius:9px!important; color:var(--ws-muted)!important; background:transparent!important; font-size:13px; }
+.ws-prompt-tab[aria-selected=true] { color:var(--ws-bg)!important; border-color:var(--ws-text)!important; background:var(--ws-text)!important; }
+.ws-prompt-list { padding:0 20px 20px; }
+.ws-prompt-option { min-height:78px; padding:15px; border:1px solid var(--ws-line)!important; border-radius:11px!important; color:var(--ws-text); background:var(--ws-bg)!important; box-shadow:none!important; }
+.ws-prompt-option:hover { border-color:var(--ws-text)!important; background:var(--ws-hover)!important; }
+.ws-prompt-option>div { display:none; }
+@media(max-width:650px) {
+  .ws-git-mode-dock { padding:11px; gap:10px; }
+  .ws-git-connect-row { align-items:stretch; flex-direction:column; gap:8px; }
+  .ws-git-connect { width:100%; }
+  .ws-git-connected-row { gap:6px; }
+  .ws-git-repository-picker { flex:1 1 100%; }
+  .ws-git-repository-actions { margin-left:auto; }
+  .ws-image-options-dock { padding:11px; }
+  .ws-image-model-option { padding:7px 9px; }
+  .ws-prompt-heading { padding:13px 14px; }
+  .ws-prompt-tabs-wrap { padding:10px 14px; }
+  .ws-prompt-list { padding:0 14px 14px; }
+  .ws-prompt-option { min-height:58px; padding:12px; }
+}
 @media(prefers-reduced-motion:reduce) {
   .ci-workspace-create-menu,.ci-workspace-create-menu * { animation:none!important; transition:none!important; }
 }

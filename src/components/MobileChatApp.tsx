@@ -1869,6 +1869,7 @@ export function MobileChatApp() {
           isOpen={showLibrary}
           onClose={() => setShowLibrary(false)}
           prompts={quickPrompts}
+          workspaceUI={workspaceUI}
           onSelectPrompt={prefillPrompt}
         />
 

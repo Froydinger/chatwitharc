@@ -23,12 +23,13 @@ interface PromptLibraryProps {
   onClose: () => void;
   prompts: QuickPrompt[];
   onSelectPrompt: (prompt: string) => void;
+  workspaceUI?: boolean;
 }
 
 // The library mirrors what ArcAI stands for: Ask, Reflect, Create.
 type TabType = 'ask' | 'reflect' | 'create';
 
-export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: PromptLibraryProps) {
+export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt, workspaceUI = false }: PromptLibraryProps) {
   const [activeTab, setActiveTab] = useState<TabType>('ask');
 
   // State for dynamically generated prompts (initialized immediately so tabs never show empty or wrong prompts)
@@ -199,36 +200,34 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
           <div
             onClick={onClose}
             data-testid="arc-prompt-library"
-            className="fixed inset-0 bg-black/40 backdrop-blur-md z-[9998] flex items-center justify-center p-4"
+            role={workspaceUI ? 'presentation' : undefined}
+            className={cn("fixed inset-0 bg-black/40 backdrop-blur-md z-[9998] flex items-center justify-center p-4", workspaceUI && "workspace-ui ws-prompt-overlay")}
           >
             {/* Center Modal - gorgeous redesign */}
             <TransitionPart><div
-              className="w-full max-w-3xl"
+              className={cn("w-full max-w-3xl", workspaceUI && "ws-prompt-dialog")}
               onClick={(e) => e.stopPropagation()}
               style={{ willChange: 'transform, opacity' }}
+              role={workspaceUI ? 'dialog' : undefined}
+              aria-modal={workspaceUI ? true : undefined}
+              aria-label={workspaceUI ? 'Prompts and ideas' : undefined}
             >
               {/* Glass card container with proper glass theming */}
-              <div className="glass-panel relative flex flex-col max-h-[80vh] rounded-3xl overflow-hidden border border-white/[0.08] shadow-2xl">
+              <div className={cn("glass-panel relative flex flex-col max-h-[80vh] rounded-3xl overflow-hidden border border-white/[0.08] shadow-2xl", workspaceUI && "ws-prompt-card")}>
               {/* Ambient glow effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
 
               {/* Header with elegant design */}
-              <div className="relative flex items-center justify-between px-6 sm:px-8 py-5 sm:py-6 border-b border-border/30 backdrop-blur-xl bg-background/40">
+              <div className={cn("relative flex items-center justify-between px-6 sm:px-8 py-5 sm:py-6 border-b border-border/30 backdrop-blur-xl bg-background/40", workspaceUI && "ws-prompt-heading")}>
                 <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center"
-                  >
+                  <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center", workspaceUI && "ws-prompt-mark")}>
                     <Lightbulb className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <Transition preset="page" delay={0.08}><h3
-                      className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
-                    >
+                    <Transition preset="page" delay={0.08}><h3 className={cn("text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent", workspaceUI && "ws-prompt-title")}>
                       Ideas
                     </h3></Transition>
-                    <Transition preset="page" delay={0.1}><p
-                      className="text-xs text-muted-foreground hidden sm:block"
-                    >
+                    <Transition preset="page" delay={0.1}><p className={cn("text-xs text-muted-foreground hidden sm:block", workspaceUI && "ws-prompt-count")}>
                       {getCurrentPrompts().length} prompts available
                     </p></Transition>
                   </div>
@@ -245,7 +244,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                           refreshPrompts(activeTab, true);
                           toast.success('Prompts refreshed!');
                         }}
-                        className="h-9 w-9 rounded-full glass-shimmer hover:border-primary/50 transition-all z-20"
+                        className={cn("h-9 w-9 rounded-full glass-shimmer hover:border-primary/50 transition-all z-20", workspaceUI && "ws-prompt-icon-button")}
                         title="Refresh prompts"
                         data-prompt-refresh
                       >
@@ -261,7 +260,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                       size="icon"
                       onClick={onClose}
                       aria-label="Close prompt library"
-                      className="h-9 w-9 rounded-full glass-shimmer hover:border-destructive/50 transition-all z-20"
+                      className={cn("h-9 w-9 rounded-full glass-shimmer hover:border-destructive/50 transition-all z-20", workspaceUI && "ws-prompt-icon-button")}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -270,19 +269,22 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               </div>
 
               {/* Tab Navigation — three equal, color-coded pills spanning the sheet */}
-              <div className="px-6 sm:px-8 pt-5 pb-4 border-b border-border/20">
-                <div className="grid grid-cols-3 gap-2">
+              <div className={cn("px-6 sm:px-8 pt-5 pb-4 border-b border-border/20", workspaceUI && "ws-prompt-tabs-wrap")}>
+                <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="Prompt categories">
                   {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (
                       <button
                         key={tab.id}
+                        type="button"
                         onClick={() => setActiveTab(tab.id)}
-
+                        role="tab"
+                        aria-selected={isActive}
                         className={cn(
                           "arc-prompt-press w-full py-2.5 px-2 rounded-2xl border text-center font-semibold transition-all duration-200",
                           "text-[13px] sm:text-sm tracking-wide",
-                          isActive ? tab.activeClass : tab.idleClass
+                          isActive ? tab.activeClass : tab.idleClass,
+                          workspaceUI && "ws-prompt-tab",
                         )}
                       >
                         {tab.label}
@@ -294,7 +296,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
               {/* Prompt Grid - beautiful cards with single scroll container */}
               <div 
-                className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6" 
+                className={cn("flex-1 overflow-y-auto px-6 sm:px-8 pb-6", workspaceUI && "ws-prompt-list")}
                 style={{ 
                   WebkitOverflowScrolling: 'touch',
                   touchAction: 'pan-y',
@@ -325,7 +327,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                           onSelectPrompt(prompt.prompt);
                           onClose();
                         }}
-                        className="arc-prompt-card arc-prompt-press group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 text-left overflow-hidden"
+                        className={cn("arc-prompt-card arc-prompt-press group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 text-left overflow-hidden", workspaceUI && "ws-prompt-option")}
                       >
                         {/* Gradient overlay on hover */}
                         <div

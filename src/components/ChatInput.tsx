@@ -2908,6 +2908,7 @@ ${safeCode}
               bottomOffset={dockBottom}
               leftPx={rect?.left}
               widthPx={rect?.width}
+              workspaceUI={workspaceUI}
             />
           );
         })()}
@@ -2922,7 +2923,7 @@ ${safeCode}
           const anchored = composerDockStyle(rect, window.innerHeight, 12 + imgStack, 110 + imgStack);
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
-              <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} />
+              <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} workspaceUI={workspaceUI} />
             </div>,
             portalRoot,
           );
@@ -2937,7 +2938,7 @@ ${safeCode}
           const anchored = composerDockStyle(rect, window.innerHeight, 12, 110);
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
-              <AttachmentTray kind="images" files={selectedImages} previewUrls={imagePreviewUrls} onClear={clearSelected} onRemove={removeImage}>
+              <AttachmentTray kind="images" files={selectedImages} previewUrls={imagePreviewUrls} onClear={clearSelected} onRemove={removeImage} workspaceUI={workspaceUI}>
 {selectedImages.length > 0 && (
                   <div className="mt-3 pt-2 border-t border-border/30">
                     <button
@@ -2973,7 +2974,7 @@ ${safeCode}
                 )}
 {(shouldShowBanana || allImagesEditMode) && (
                   <div className="mt-3 pt-2 border-t border-border/30">
-                    <ImageOptionsContent editMode={allImagesEditMode} />
+                    <ImageOptionsContent editMode={allImagesEditMode} workspaceUI={workspaceUI} />
                   </div>
                 )}
 </AttachmentTray>
@@ -3038,13 +3039,13 @@ ${safeCode}
               }
               style={anchored}
             >
-              <GitModeDock />
+              <GitModeDock workspaceUI={workspaceUI} />
             </div>,
             portalRoot,
           );
         })()}
 
-      {inline && shouldShowGitMode && <GitModeDock />}
+      {inline && shouldShowGitMode && <GitModeDock workspaceUI={workspaceUI} />}
       {shouldShowAppMode && (hasBoost || isAdmin) && <div className="mb-2 flex justify-center"><AppBuilderModelChoice ownerId={user?.id ?? null} disabled={isLoading} /></div>}
       <ComposerView
         footer={workspaceUI ? <div className="ws-live-footer">
@@ -3226,6 +3227,7 @@ ${safeCode}
         isOpen={showPromptLibrary}
         onClose={() => setShowPromptLibrary(false)}
         prompts={quickPrompts}
+        workspaceUI={workspaceUI}
         onSelectPrompt={(p) => {
           // Image presets are complete as written — send them. Everything else
           // waits in the composer, already switched into its mode, to be edited.
