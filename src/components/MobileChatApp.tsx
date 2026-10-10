@@ -42,8 +42,9 @@ import { notifyTextUsageChanged } from '@/services/arcTextUsage';
 import { showModelSwitchNotice } from '@/services/modelSwitchNotice';
 import { normalizeModelSelection, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
-import { WelcomeSection } from "@/components/WelcomeSection";
+import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { WorkspaceChatWelcome } from "@/components/WorkspaceChatWelcome";
+import { pickWorkspacePrompts } from '@/workspace/workspacePrompts';
 import { ChatResponseStatus } from "@/components/ChatResponseStatus";
 import { useLiveAnswerStore } from "@/store/useLiveAnswerStore";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
@@ -886,7 +887,7 @@ export function MobileChatApp() {
   const pendingWorkHandoffRef = useRef<{ sessionId: string; prompt: string } | null>(null);
 
   // Static random prompts - picked once on mount, no AI call
-  const staticSuggestions = useMemo(() => pickRandomPrompts(3), []);
+  const staticSuggestions = useMemo(() => workspaceUI ? pickWorkspacePrompts() : pickRandomPrompts(3), [workspaceUI]);
 
   // Music store (audio element now in GlobalMusicPlayer)
   const {
@@ -1062,6 +1063,13 @@ export function MobileChatApp() {
 
     const sessionChanged = currentSessionId !== lastScrolledSessionRef.current;
     const countIncreased = messages.length > lastMessageCountRef.current;
+    let scrollFrame: number | undefined;
+    let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+    if (workspaceUI && !isVoiceActive && messages.length === 0 && (sessionChanged || lastMessageCountRef.current > 0)) {
+      el.scrollTo({ top: 0, behavior: 'auto' });
+      userScrolledUpRef.current = false;
+      lastScrolledSessionRef.current = currentSessionId;
+    }
 
     if (messages.length > 0 && (sessionChanged || countIncreased)) {
       // A brand-new message arriving resets the "scrolled up" guard
@@ -1072,12 +1080,16 @@ export function MobileChatApp() {
         if (!node) return;
         node.scrollTo({ top: node.scrollHeight, behavior: sessionChanged ? "auto" : "smooth" });
       };
-      requestAnimationFrame(scrollToBottom);
-      setTimeout(scrollToBottom, 60);
+      scrollFrame = requestAnimationFrame(scrollToBottom);
+      scrollTimer = setTimeout(scrollToBottom, 60);
       lastScrolledSessionRef.current = currentSessionId;
     }
     lastMessageCountRef.current = messages.length;
-  }, [messages.length, currentSessionId]);
+    return () => {
+      if (scrollFrame !== undefined) cancelAnimationFrame(scrollFrame);
+      if (scrollTimer !== undefined) clearTimeout(scrollTimer);
+    };
+  }, [messages.length, currentSessionId, workspaceUI, isVoiceActive]);
 
   // Reset the scroll-up guard when AI finishes responding
   useEffect(() => {
@@ -1629,7 +1641,11 @@ export function MobileChatApp() {
                   <p className="text-sm text-muted-foreground">Loading messages...</p>
                 </div>
               ) : (
-                <div className="flex items-end justify-center pb-6" style={{ minHeight: `calc(50vh - 5rem)` }}>
+                workspaceUI ? <WorkspaceChatWelcome
+                  suggestions={staticSuggestions}
+                  onSelectPrompt={triggerPrompt}
+                  onShowMore={() => setShowLibrary(true)}
+                /> : <div className="flex items-end justify-center pb-6" style={{ minHeight: `calc(50vh - 5rem)` }}>
                   <WelcomeSection
                     greeting={greeting}
                     heroAvatar={null}
@@ -1782,15 +1798,6 @@ export function MobileChatApp() {
                   />
                 </div>
               )}</ConditionalTransition>
-
-              {/* Keep the rotating greeting and its quick prompts together in the Workspace welcome area. */}
-              {!isVoiceActive && messages.length === 0 && workspaceUI && (
-                <WorkspaceChatWelcome
-                  suggestions={staticSuggestions}
-                  onSelectPrompt={triggerPrompt}
-                  onShowMore={() => setShowLibrary(true)}
-                />
-              )}
 
               {/* Legacy chat keeps its existing greeting and prompt placement. */}
               {!isVoiceActive && messages.length === 0 && !workspaceUI && (

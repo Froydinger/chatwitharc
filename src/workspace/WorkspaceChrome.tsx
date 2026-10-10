@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { MessageCircle, Plus, Code2, LayoutGrid, Image, FileText, Database, Bell, Users, Settings, ChevronRight, Menu, X, Search, MoreHorizontal, Share, PanelRight, CircleHelp, CircleGauge, LogIn } from 'lucide-react';
+import { MessageCircle, Plus, Code2, LayoutGrid, Image, FileText, Database, Bell, Users, Settings, ChevronRight, Menu, X, Search, MoreHorizontal, Share, PanelRight, CircleHelp, CircleGauge, LogIn, Pin } from 'lucide-react';
+import { ChatRowActions } from '@/components/ChatRowActions';
 export type WorkspaceSection = 'chat' | 'build' | 'apps' | 'images' | 'canvases' | 'memory' | 'reminders' | 'shared' | 'settings';
 export const workspaceNav = [
   { id: 'chat', label: 'Chat', icon: MessageCircle }, { id: 'build', label: 'Build', icon: Code2 },
@@ -20,9 +21,12 @@ export function WorkspaceDialog({ title, description, open, onOpenChange, childr
     <div className="ws-modal-heading"><div><Dialog.Title>{title}</Dialog.Title>{description && <Dialog.Description id="workspace-dialog-description">{description}</Dialog.Description>}</div><Dialog.Close asChild><button className="ws-icon-button" aria-label="Close dialog"><X /></button></Dialog.Close></div>{children}
   </Dialog.Content></Dialog.Portal></Dialog.Root>;
 }
-export function WorkspaceChrome({ section, onNavigate, onNewChat, recent, currentId, onOpenChat, title, children, canvasOpen, onCanvasToggle, onShare, onSearch, onUsage, onInfo, onAccount, accountName = 'Account', subtitle, headerActions }: {
+export function WorkspaceChrome({ section, onNavigate, onNewChat, recent, currentId, onOpenChat, onAllChats, allChatsActive = false, folders = [], onPinChat, onRenameChat, onMoveChat, onDeleteChat, title, children, canvasOpen, onCanvasToggle, onShare, onSearch, onUsage, onInfo, onAccount, accountName = 'Account', subtitle, headerActions }: {
   section: WorkspaceSection; onNavigate: (id: WorkspaceSection) => void; onNewChat: () => void;
-  recent: { id: string; title: string; work?: boolean }[]; currentId?: string | null; onOpenChat: (id: string) => void;
+  recent: { id: string; title: string; work?: boolean; pinned?: boolean; folderId?: string }[]; currentId?: string | null; onOpenChat: (id: string) => void;
+  onAllChats?: () => void; allChatsActive?: boolean; folders?: { id: string; name: string }[];
+  onPinChat?: (id: string, pinned: boolean) => Promise<void>; onRenameChat?: (id: string, title: string) => Promise<void>;
+  onMoveChat?: (id: string, folderId: string | null) => Promise<void>; onDeleteChat?: (id: string) => Promise<void>;
   title: string; children: ReactNode; canvasOpen?: boolean; onCanvasToggle?: () => void; onShare?: () => void; onSearch?: () => void;
   onUsage: () => void; onInfo: () => void; onAccount: () => void; accountName?: string; subtitle?: string; headerActions?: ReactNode;
 }) {
@@ -55,9 +59,16 @@ export function WorkspaceChrome({ section, onNavigate, onNewChat, recent, curren
   const nav = <>
     <div className="ws-brand"><ArcMark /><span>Arc</span><button className="ws-brand-search ws-icon-button" aria-label="Search workspace" onClick={onSearch}><Search /></button></div>
     <button className="ws-new-chat" onClick={() => { setDrawer(false); onNewChat(); }}><Plus /><span>New chat</span><span className="ws-shortcut">⌘ O</span></button>
-    <nav className="ws-nav" aria-label="Workspace navigation">{workspaceNav.map(item => <button key={item.id} className={section === item.id ? 'is-active' : ''} aria-current={section === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}><item.icon /><span>{item.label}</span></button>)}</nav>
+    <nav className="ws-nav" aria-label="Workspace navigation">{workspaceNav.map(item => <button key={item.id} className={section === item.id && !allChatsActive ? 'is-active' : ''} aria-current={section === item.id && !allChatsActive ? 'page' : undefined} onClick={() => navigate(item.id)}><item.icon /><span>{item.label}</span></button>)}</nav>
+    <div className="ws-history-nav">{onAllChats && <button type="button" className={allChatsActive ? 'is-active' : ''} aria-current={allChatsActive ? 'page' : undefined} onClick={() => { setDrawer(false); onAllChats(); }}><MessageCircle /><span>All chats</span></button>}</div>
     <div className="ws-recent-heading"><span>Recent</span><button className="ws-icon-button" aria-label="Find chats" onClick={onSearch}><Search /></button></div>
-    <nav className="ws-recent" aria-label="Recent conversations">{recent.map(item => <button key={item.id} className={section === 'chat' && currentId === item.id ? 'is-active' : ''} onClick={() => { setDrawer(false); onOpenChat(item.id); }}><MessageCircle /><span>{item.title || 'Untitled chat'}</span>{item.work && <span className="ws-recent-work">Work</span>}</button>)}{!recent.length && <p className="ws-no-recent">Your conversations will appear here.</p>}</nav>
+    <nav className="ws-recent" aria-label="Recent conversations">{recent.map(item => <div key={item.id} className={`ws-recent-row${section === 'chat' && !allChatsActive && currentId === item.id ? ' is-active' : ''}`}>
+      <button type="button" className="ws-recent-open" aria-current={section === 'chat' && !allChatsActive && currentId === item.id ? 'page' : undefined} onClick={() => { setDrawer(false); onOpenChat(item.id); }}><MessageCircle /><span>{item.title || 'Untitled chat'}</span>{item.pinned && <Pin className="ws-recent-pin" aria-label="Pinned" />}{item.work && <span className="ws-recent-work">Work</span>}</button>
+      {onPinChat && onDeleteChat && <ChatRowActions workspaceUI title={item.title} pinned={!!item.pinned} folders={folders} folderId={item.folderId}
+        onPin={value => onPinChat(item.id, value)} onDelete={() => onDeleteChat(item.id)}
+        onRename={onRenameChat ? value => onRenameChat(item.id, value) : undefined}
+        onMove={onMoveChat ? folderId => onMoveChat(item.id, folderId) : undefined} />}
+    </div>)}{!recent.length && <p className="ws-no-recent">Your conversations will appear here.</p>}</nav>
     <div className="ws-sidebar-bottom"><button className={section === 'settings' ? 'is-active' : ''} onClick={() => navigate('settings')}><Settings /><span>Settings</span></button>
       <button className="ws-account" onClick={onAccount}><span className="ws-avatar">{accountName.split(' ').map(s => s[0]).slice(0, 2).join('') || 'A'}</span><span>{accountName}<small>Account settings</small></span><ChevronRight /></button>
     </div>

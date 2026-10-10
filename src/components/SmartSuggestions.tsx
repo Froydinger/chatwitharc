@@ -14,13 +14,13 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore, work
   const hasAnimated = useRef(false);
   const [showChips, setShowChips] = useState(true);
 
-  // Hide chips when viewport is too short for them to fit
+  // Legacy chips share the fixed dock. Workspace chips scroll with the welcome.
   useEffect(() => {
-    const check = () => setShowChips(window.innerHeight >= 500);
+    const check = () => setShowChips(workspaceUI || window.innerHeight >= 500);
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
-  }, []);
+  }, [workspaceUI]);
 
   if (!hasAnimated.current) {
     const sessionKey = "arc_suggestions_animated";
@@ -39,7 +39,7 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore, work
     >
       {/* Suggestion Chips - hidden on very short viewports */}
       {showChips && (
-        <div className="flex flex-wrap items-center justify-center gap-2 max-w-sm sm:max-w-xl lg:max-w-2xl">
+        <div data-prompt-suggestions className="flex flex-wrap items-center justify-center gap-2 max-w-sm sm:max-w-xl lg:max-w-2xl">
           {suggestions.map((suggestion, index) => (
             <Transition key={suggestion.label} preset="fade" delay={index * 0.04}><button
               onClick={() => onSelectPrompt(suggestion.fullPrompt || suggestion.prompt)}
