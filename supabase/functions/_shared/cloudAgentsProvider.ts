@@ -6,6 +6,25 @@ import type { EngineProvider } from './cloudRunEngine.ts';
 type Json = Record<string, unknown>;
 type AgentCall = { id: string; turnId: string; name: string; arguments: string };
 
+/** Structured, sanitized provider rejection. Raw provider messages never leave
+ * the request parser because they may contain echoed customer input. */
+export class CloudAgentsApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly method: string,
+    readonly path: string,
+    readonly code: string,
+    readonly param: string,
+    readonly type: string,
+    readonly spendControlUnavailable: boolean,
+    readonly confirmedZero: boolean,
+  ) {
+    super(message);
+    this.name = 'CloudAgentsApiRequestError';
+  }
+}
+
 function record(value: unknown): Json {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid Agents API response');
   return value as Json;
@@ -169,21 +188,41 @@ export function cloudAgentsProvider(options: {
       // fixed API path, and code/param are the provider's structured fields.
       let code = '';
       let param = '';
+      let type = '';
+      let providerMessage = '';
       try {
         const payload = record(await response.json());
         const upstream = record(payload.error);
         code = stringValue(upstream.code).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
         param = stringValue(upstream.param).replace(/[^a-zA-Z0-9_.\[\]-]/g, '').slice(0, 120);
+        type = stringValue(upstream.type).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
+        providerMessage = stringValue(upstream.message).slice(0, 1_000);
       } catch {
         // Some gateway errors are not JSON. Status and endpoint remain useful.
       }
       const endpoint = `${method} /agents${path.replace(/\/sess_[a-zA-Z0-9_-]+/g, '/{session_id}')}`;
       const details = [code, param ? `param=${param}` : ''].filter(Boolean).join(' ');
       console.error('Agents API request rejected', { status: response.status, endpoint, code, param });
+      const explicitlyUnavailableCode = new Set([
+        'unsupported_parameter', 'feature_not_available', 'feature_not_supported', 'unsupported_feature',
+      ]).has(code.toLowerCase());
+      const explicitlyUnavailableMessage = /spend[ _-]?control/i.test(providerMessage)
+        && /(?:not enabled|disabled|unsupported|not supported|unavailable|not available)/i.test(providerMessage);
+      const spendControlUnavailable = response.status === 400
+        && method === 'POST' && path === '/sessions' && param === 'spend_control'
+        && type === 'invalid_request_error'
+        && (explicitlyUnavailableCode || explicitlyUnavailableMessage);
+      let confirmedZero = false;
       if (method === 'POST' && path === '/sessions' && response.status >= 400 && response.status < 500) {
-        await options.onRejected?.(`provider-rejected-${response.status}`);
+        if (options.onRejected) {
+          await options.onRejected(`provider-rejected-${response.status}`);
+          confirmedZero = true;
+        }
       }
-      throw new Error(`Agents API HTTP ${response.status} on ${endpoint}${details ? ` (${details})` : ''}`);
+      throw new CloudAgentsApiRequestError(
+        `Agents API HTTP ${response.status} on ${endpoint}${details ? ` (${details})` : ''}`,
+        response.status, method, path, code, param, type, spendControlUnavailable, confirmedZero,
+      );
     }
     const text = await response.text();
     if (!text) return {};
