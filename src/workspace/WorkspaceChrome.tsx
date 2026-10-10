@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type MouseEvent, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { MessageCircle, Plus, Code2, LayoutGrid, Image, FileText, Database, Bell, Users, Settings, ChevronRight, Menu, X, Search, MoreHorizontal, Share, PanelRight, PanelLeftOpen, PanelLeftClose, CircleHelp, CircleGauge, LogIn, Pin } from 'lucide-react';
@@ -17,7 +17,7 @@ export function ArcMark({ className = '' }: { className?: string }) {
 export function IconButton({ label, children, onClick, className = '', disabled = false }: { label: string; children: ReactNode; onClick?: () => void; className?: string; disabled?: boolean }) {
   return <button type="button" className={`ws-icon-button ${className}`} aria-label={label} title={label} onClick={onClick} disabled={disabled}>{children}</button>;
 }
-export function WorkspaceDialog({ title, description, open, onOpenChange, children, wide = false }: { title: string; description?: string; open: boolean; onOpenChange: (open: boolean) => void; children: ReactNode; wide?: boolean }) {
+export function WorkspaceDialog({ title, description, open, onOpenChange, children, wide = false, returnFocusRef }: { title: string; description?: string; open: boolean; onOpenChange: (open: boolean) => void; children: ReactNode; wide?: boolean; returnFocusRef?: RefObject<HTMLElement> }) {
   const opener = useRef<HTMLElement | null>(null);
   const content = useRef<HTMLDivElement>(null);
   const visible = (element: HTMLElement | null): element is HTMLElement => {
@@ -38,7 +38,10 @@ export function WorkspaceDialog({ title, description, open, onOpenChange, childr
       requestAnimationFrame(() => {
         const fallback = ['.ws-desktop-sidebar-trigger', '.ws-mobile-menu', '.ws-header [aria-label="More workspace options"]']
           .map(selector => document.querySelector<HTMLElement>(selector)).find(visible);
-        (visible(opener.current) ? opener.current : fallback)?.focus();
+        // Explicit invokers also cover an autoFocus child, which can bypass
+        // Radix's open-autofocus event before we observe the active element.
+        const target = returnFocusRef?.current ?? opener.current;
+        (visible(target) ? target : fallback)?.focus();
       });
     }}>
     <div className="ws-modal-heading"><div><Dialog.Title>{title}</Dialog.Title>{description && <Dialog.Description id="workspace-dialog-description">{description}</Dialog.Description>}</div><Dialog.Close asChild><button className="ws-icon-button" aria-label="Close dialog"><X /></button></Dialog.Close></div>{children}
@@ -50,7 +53,7 @@ export function WorkspaceChrome({ section, onNavigate, onNewChat, recent, curren
   onAllChats?: () => void; allChatsActive?: boolean; folders?: { id: string; name: string }[];
   onPinChat?: (id: string, pinned: boolean) => Promise<void>; onRenameChat?: (id: string, title: string) => Promise<void>;
   onMoveChat?: (id: string, folderId: string | null) => Promise<void>; onDeleteChat?: (id: string) => Promise<void>;
-  title: string; children: ReactNode; canvasOpen?: boolean; onCanvasToggle?: () => void; onShare?: () => void; onSearch?: () => void;
+  title: string; children: ReactNode; canvasOpen?: boolean; onCanvasToggle?: () => void; onShare?: () => void; onSearch?: (trigger?: HTMLElement) => void;
   onUsage: () => void; onInfo: () => void; onAccount: () => void; accountId?: string; accountName?: string; headerActions?: ReactNode;
 }) {
   const [drawer, setDrawer] = useState(false);
@@ -83,7 +86,13 @@ export function WorkspaceChrome({ section, onNavigate, onNewChat, recent, curren
   }, [onNewChat, onSearch]);
   const closeNavigation = () => { setDrawer(false); closePeek(); };
   const navigate = (id: WorkspaceSection) => { closeNavigation(); onNavigate(id); };
-  const searchWorkspace = () => { closeNavigation(); onSearch?.(); };
+  const searchWorkspace = (event: MouseEvent<HTMLButtonElement>) => {
+    // Safari pointer clicks do not focus buttons. Explicitly establish the
+    // invoking control before the dialog captures its return-focus target.
+    event.currentTarget.focus({ preventScroll: true });
+    closeNavigation();
+    onSearch?.(event.currentTarget);
+  };
   const nav = <>
     <div className="ws-brand"><ArcMark /><span>Arc</span><button className="ws-brand-search ws-icon-button" aria-label="Search workspace" onClick={searchWorkspace}><Search /></button>
       {desktop && <IconButton className="ws-sidebar-dock-control" label={sidebar.panel === 'docked' ? 'Hide sidebar' : 'Dock sidebar'} onClick={sidebar.panel === 'docked' ? sidebar.hide : sidebar.dock}>{sidebar.panel === 'docked' ? <PanelLeftClose /> : <PanelLeftOpen />}</IconButton>}

@@ -43,6 +43,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const setTheme = useAccentStore(state => state.setThemeMode);
   const [dialog, setDialog] = useState<'about' | 'usage' | 'search' | null>(null);
   const [search, setSearch] = useState('');
+  const searchReturnFocusRef = useRef<HTMLElement | null>(null);
   const pendingCanvasOpen = useRef<WorkspaceCanvasOpenIntent | null>(null);
   const chatRoute = location.pathname === '/' || location.pathname.startsWith('/chat/');
   const section = sectionFor(location.pathname, location.search);
@@ -178,7 +179,12 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       if (deletingCurrent) navigate('/');
       await deletion;
     }}
-    currentId={currentId} onOpenChat={openChat} onSearch={() => setDialog('search')}
+    currentId={currentId} onOpenChat={openChat} onSearch={trigger => {
+      if (dialog === 'search') return;
+      const active = document.activeElement;
+      searchReturnFocusRef.current = trigger ?? (active instanceof HTMLElement ? active : null);
+      setDialog('search');
+    }}
     onUsage={() => setDialog('usage')} onInfo={() => setDialog('about')}
     onAccount={() => go('/dashboard/settings')}
     headerActions={chatRoute ? <IconButton label="Music player" onClick={() => window.dispatchEvent(new Event('workspace-open-music'))}><Music /></IconButton> : undefined}
@@ -199,7 +205,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         <div className="ws-dialog-actions"><button className="ws-secondary-button" onClick={() => go('/docs')}>Documentation</button><button className="ws-secondary-button" onClick={() => go('/support')}>Support</button></div>
       </div>
     </WorkspaceDialog>
-    <WorkspaceDialog title="Search your chats" open={dialog === 'search'} onOpenChange={open => !open && setDialog(null)}>
+    <WorkspaceDialog title="Search your chats" returnFocusRef={searchReturnFocusRef} open={dialog === 'search'} onOpenChange={open => !open && setDialog(null)}>
       <div className="ws-search-field"><Search /><input autoFocus placeholder="Search chat titles…" aria-label="Search chat titles" value={search} onChange={event => setSearch(event.target.value)} /></div>
       <div className="ws-search-results">{ownedSessions.filter(session => session.title.toLowerCase().includes(search.toLowerCase())).slice(0, 30).map(session =>
         <button key={session.id} onClick={() => openChat(session.id)}><MessageCircle /><span><strong>{session.title}</strong><small>{session.isWork ? 'Work' : 'Chat'}</small></span><ChevronRight /></button>)}
