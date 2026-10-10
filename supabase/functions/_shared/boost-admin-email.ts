@@ -1,9 +1,7 @@
 type StripeEnv = "sandbox" | "live";
 
-const BOOST_PLAN_NAMES: Record<string, string> = {
-  arcai_boost_monthly: "ArcAI Boost Monthly",
-  arcai_boost_annual: "ArcAI Boost Annual",
-};
+import { boostBillingInterval, isBoostPriceId } from "./boostCatalog.ts";
+export { isBoostPriceId } from "./boostCatalog.ts";
 
 interface BoostAdminEmailOptions {
   userId: string;
@@ -14,14 +12,9 @@ interface BoostAdminEmailOptions {
   displayName?: string | null;
 }
 
-export function isBoostPriceId(
-  priceId: string | null,
-): priceId is keyof typeof BOOST_PLAN_NAMES {
-  return !!priceId && Object.hasOwn(BOOST_PLAN_NAMES, priceId);
-}
-
 export function getBoostPlanName(priceId: string | null): string {
-  return (priceId && BOOST_PLAN_NAMES[priceId]) || "ArcAI Boost";
+  const interval = boostBillingInterval(priceId);
+  return interval === "monthly" ? "ArcAI Boost Monthly" : interval === "annual" ? "ArcAI Boost Annual" : "ArcAI Boost";
 }
 
 export function getStripeSubscriptionUrl(subscriptionId: string): string {

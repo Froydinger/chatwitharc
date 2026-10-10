@@ -1,3 +1,4 @@
+import { arcProviderEffort, type ArcTextModel } from './arcModelRouting.ts';
 import { CloudModelTerminalError, type AgentToolResult, type ModelTurn } from './cloudRunEngine.ts';
 import type { CloudToolDefinition } from './cloudRunProvider.ts';
 import type { EngineProvider } from './cloudRunEngine.ts';
@@ -131,14 +132,22 @@ export function cloudAgentsProvider(options: {
   apiKey: string;
   instructions: string;
   reasoningEffort: 'none' | 'low' | 'medium' | 'high';
-  model?: 'gpt-6-luna' | 'gpt-6.1-sol';
+  model?: ArcTextModel;
   tools: CloudToolDefinition[];
   firstTool?: string;
   expandInput?: (transcript: unknown[]) => Promise<unknown[]>;
+  /** Whole USD cents, returned by the atomic usage reservation. */
+  spendLimitCents?: number;
+  beforeStart?: () => void;
+  onUsage?: (usage: unknown, final: boolean, sessionId: string) => Promise<void>;
+  onRejected?: (reason: string) => Promise<void>;
   fetcher?: typeof fetch;
 }): EngineProvider {
   if (options.firstTool && !options.tools.some(tool => tool.name === options.firstTool)) {
     throw new Error('Requested initial tool is not registered');
+  }
+  if (options.spendLimitCents !== undefined && (!Number.isSafeInteger(options.spendLimitCents) || options.spendLimitCents < 1)) {
+    throw new Error('Invalid provider spend control.');
   }
   const fetcher = options.fetcher ?? fetch;
   async function request(path: string, method = 'GET', body?: unknown, idempotencyKey?: string): Promise<Json> {
@@ -171,6 +180,9 @@ export function cloudAgentsProvider(options: {
       const endpoint = `${method} /agents${path.replace(/\/sess_[a-zA-Z0-9_-]+/g, '/{session_id}')}`;
       const details = [code, param ? `param=${param}` : ''].filter(Boolean).join(' ');
       console.error('Agents API request rejected', { status: response.status, endpoint, code, param });
+      if (method === 'POST' && path === '/sessions' && response.status >= 400 && response.status < 500) {
+        await options.onRejected?.(`provider-rejected-${response.status}`);
+      }
       throw new Error(`Agents API HTTP ${response.status} on ${endpoint}${details ? ` (${details})` : ''}`);
     }
     const text = await response.text();
@@ -188,11 +200,12 @@ export function cloudAgentsProvider(options: {
       ? `For the first action of this task, call the ${options.firstTool} function before giving a final answer. After its result, continue normally.`
       : '';
     const system = [options.instructions, ...input.system, initialToolInstruction].filter(Boolean).join('\n\n');
+    options.beforeStart?.();
     const response = await request('/sessions', 'POST', {
       agent: {
         model: options.model ?? 'gpt-6-luna',
         instructions: system,
-        reasoning: { effort: options.model === 'gpt-6.1-sol' ? 'low' : options.reasoningEffort, ...(options.reasoningEffort === 'none' ? {} : { summary: 'concise' }) },
+        reasoning: { effort: arcProviderEffort(options.model ?? 'gpt-6-luna', options.reasoningEffort), ...(arcProviderEffort(options.model ?? 'gpt-6-luna', options.reasoningEffort) === 'none' ? {} : { summary: 'concise' }) },
         text: { verbosity: 'low' },
         tools: options.tools.map(tool => ({
           type: 'function', name: tool.name, description: tool.description,
@@ -203,6 +216,7 @@ export function cloudAgentsProvider(options: {
         })),
       },
       environment: { type: 'none' },
+      ...(options.spendLimitCents !== undefined ? { spend_control: { limit: options.spendLimitCents } } : {}),
       input: [{ role: 'user', content: input.content }],
       metadata: { arc_request_key: requestKey.slice(0, 512) },
     });
@@ -212,16 +226,36 @@ export function cloudAgentsProvider(options: {
     return response.id;
   }
 
+  async function ensureSessionBudget(sessionId: string, session: Json): Promise<Json> {
+    if (options.spendLimitCents === undefined || session.status === 'failed') return session;
+    const existing = session.spend_control && typeof session.spend_control === 'object'
+      ? (session.spend_control as Json).limit : undefined;
+    if (existing === options.spendLimitCents) return session;
+    // Legacy in-flight sessions may predate spend_control. On resume, attach the
+    // same absolute ceiling reserved for this provider attempt before another
+    // tool result can let the model continue. The documented update preserves
+    // accumulated spend; never send null or reset a session's consumption.
+    const updated = await request(`/sessions/${sessionId}`, 'POST', {
+      spend_control: { limit: options.spendLimitCents },
+    });
+    return typeof updated.status === 'string' ? updated : session;
+  }
+
   async function pollAgentSession(sessionId: string, previousUsageTokens = 0): Promise<ModelTurn | null> {
     if (!/^sess_[a-zA-Z0-9_-]+$/.test(sessionId)) throw new Error('Invalid Agents API session ID');
-    const session = await request(`/sessions/${sessionId}`);
-    if (session.status === 'failed') throw new CloudModelTerminalError('failed');
+    const session = await ensureSessionBudget(sessionId, await request(`/sessions/${sessionId}`));
+    if (session.status === 'failed') {
+      await options.onUsage?.(session.usage, true, sessionId);
+      throw new CloudModelTerminalError('failed');
+    }
     if (session.status === 'requires_action') {
+      await options.onUsage?.(session.usage, false, sessionId);
       const calls = parseActions(session.required_actions);
       if (!calls.length) throw new Error('Agents API requested unsupported environment input');
       return { calls, text: '', tokens: usageDelta(session.usage, previousUsageTokens), providerActive: true };
     }
     if (session.status === 'in_progress') {
+      await options.onUsage?.(session.usage, false, sessionId);
       return {
         calls: [], text: '', tokens: usageDelta(session.usage, previousUsageTokens),
         progressOnly: true, providerActive: true,
@@ -235,6 +269,7 @@ export function cloudAgentsProvider(options: {
     const latest = record(turns[0]);
     if (latest.status === 'in_progress' || latest.status === 'queued' || latest.status === 'waiting') return null;
     if (latest.status === 'failed' || latest.status === 'cancelled') {
+      await options.onUsage?.(session.usage, true, sessionId);
       throw new CloudModelTerminalError(latest.status);
     }
     if (latest.status !== 'completed' || typeof latest.id !== 'string') {
@@ -260,6 +295,9 @@ export function cloudAgentsProvider(options: {
     const tokens = sessionTotal !== null
       ? usageDelta(session.usage, previousUsageTokens)
       : Math.max(totalTokens(detail.usage) ?? 0, usageDelta(detail.usage, previousUsageTokens));
+    // Session usage is cumulative across tool rounds. A turn-only report must
+    // not be mistaken for the entire session when earlier turns are missing.
+    await options.onUsage?.(session.usage ?? (previousUsageTokens === 0 ? detail.usage : undefined), true, sessionId);
     return {
       calls: [], text: output.text, tokens,
       ...(output.summary ? { reasoningSummary: output.summary } : {}),
@@ -283,7 +321,7 @@ export function cloudAgentsProvider(options: {
     // session. `required_actions` is the source of truth for whether these
     // results are still pending; do not post an event that the session has
     // already consumed.
-    const currentSession = await request(`/sessions/${sessionId}`);
+    const currentSession = await ensureSessionBudget(sessionId, await request(`/sessions/${sessionId}`));
     let stillPending = await pendingResults(currentSession);
     if (!stillPending.length && ['in_progress', 'idle', 'requires_action'].includes(stringValue(currentSession.status))) {
       return;
@@ -319,6 +357,19 @@ export function cloudAgentsProvider(options: {
     await request(`/sessions/${sessionId}/events`, 'POST', {
       events: [{ type: 'agent.session.input.cancel' }],
     }, idempotencyKey);
+    if (options.onUsage) {
+      // An accepted cancel is not proof of zero spend or termination. Only a
+      // confirmed terminal status can release the remaining metered hold.
+      const session = await request(`/sessions/${sessionId}`);
+      let terminal = session.status === 'failed';
+      if (session.status === 'idle') {
+        const page = await request(`/sessions/${sessionId}/turns?order=desc&limit=1`);
+        const latest = Array.isArray(page.data) && page.data[0] && typeof page.data[0] === 'object'
+          ? page.data[0] as Json : {};
+        terminal = ['completed', 'failed', 'cancelled'].includes(stringValue(latest.status));
+      }
+      await options.onUsage(session.usage, terminal, sessionId);
+    }
   }
 
   return {

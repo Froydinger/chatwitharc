@@ -1,0 +1,85 @@
+{
+  "observedAt": "2026-10-10T05:09:00Z",
+  "project": "jpqtoixhjnfdubvqshwk",
+  "gitBaseline": "e562f1fdc5f1a729d083b3b95d5a190c9efc4f63",
+  "netlifyDeploy": "6ac9aec72a09190008c924eb",
+  "functions": [
+    {
+      "slug": "analyze-document",
+      "version": 36,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "a2055879ca57aa3385c5282b799fcd101998e3eca67b185f7a64925be1cbff2a"
+    },
+    {
+      "slug": "analyze-image",
+      "version": 36,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "f51b8df15f931e63ab4ed8dcd0f84590dc0b892bc7be8c3d526992978089752a"
+    },
+    {
+      "slug": "chat",
+      "version": 105,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "c99ec7bd599ac96b5bdac7ec43472632c4e44242914002357a4adeedd53b8642"
+    },
+    {
+      "slug": "create-checkout",
+      "version": 36,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "69f580521b7cd0b4047e4ed7e76eac947646c101a25404f9a6c7d5900aa9d059"
+    },
+    {
+      "slug": "edit-image",
+      "version": 45,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "9af03e915ccc3663d797c012a44a248fc18927c50802a2e51302706823566c41"
+    },
+    {
+      "slug": "generate-file",
+      "version": 36,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "7152ec6723175fd7ae5c3fe5e141387bf7d8495b9ba8a3404820898ce70c6942"
+    },
+    {
+      "slug": "generate-image",
+      "version": 42,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "d2e24095805f4e7e4f873022c93bd892d0307f712f787a28c901d243eec7e9e8"
+    },
+    {
+      "slug": "payments-webhook",
+      "version": 35,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "ezbr_sha256": "78ee8fc564be20e8be877c12e7497d50a386b761be5a2ecbee664a3ae7c842f1"
+    },
+    {
+      "slug": "cloud-run",
+      "version": 50,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "d4d3a218197cc585275c6736b647d53198a1994d919c3226a6cc4c5389f7c817"
+    },
+    {
+      "slug": "cloud-worker",
+      "version": 68,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "cb4bf23d83cd259446dfb54f0dc59c72bd6a821fc90560725fc11cc3dd0cf7e4"
+    },
+    {
+      "slug": "cloud-scheduled-worker",
+      "version": 21,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "ezbr_sha256": "2a5be4a24dfe9719fb299ef5de69018953d202f5cb9dc0080c3dad991fffec72"
+    }
+  ]
+}

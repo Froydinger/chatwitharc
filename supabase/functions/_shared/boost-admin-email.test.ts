@@ -11,9 +11,21 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-Deno.test("recognizes only ArcAI Boost lookup keys", () => {
+Deno.test("recognizes current and grandfathered ArcAI Boost billing identities", () => {
   assert(isBoostPriceId("arcai_boost_monthly"), "monthly should be recognized");
   assert(isBoostPriceId("arcai_boost_annual"), "annual should be recognized");
+  for (const priceId of [
+    "arcai_boost_monthly_202610",
+    "arcai_boost_annual_202610",
+    "price_1UOrq0AB32948AKDzDqPg1vp",
+    "price_1UOrqPAB32948AKDjnqWyyC4",
+    "price_1TpXatAB32948AKD6EmXcZo0",
+    "price_1TpXf9AB32948AKDtKNThFaZ",
+    "price_1TcFYeAB32948AKDObaHk0fz",
+    "price_1TpKUdAB32948AKD4CUxINQY",
+  ]) {
+    assert(isBoostPriceId(priceId), `${priceId} should be recognized`);
+  }
   assert(
     !isBoostPriceId("price_unrelated"),
     "unrelated prices must be ignored",
@@ -30,6 +42,22 @@ Deno.test("labels each Boost billing interval", () => {
     getBoostPlanName("arcai_boost_annual") === "ArcAI Boost Annual",
     "annual label mismatch",
   );
+  for (const priceId of [
+    "arcai_boost_monthly_202610",
+    "price_1UOrq0AB32948AKDzDqPg1vp",
+    "price_1TpXatAB32948AKD6EmXcZo0",
+    "price_1TcFYeAB32948AKDObaHk0fz",
+  ]) {
+    assert(getBoostPlanName(priceId) === "ArcAI Boost Monthly", `${priceId} monthly label mismatch`);
+  }
+  for (const priceId of [
+    "arcai_boost_annual_202610",
+    "price_1UOrqPAB32948AKDjnqWyyC4",
+    "price_1TpXf9AB32948AKDtKNThFaZ",
+    "price_1TpKUdAB32948AKD4CUxINQY",
+  ]) {
+    assert(getBoostPlanName(priceId) === "ArcAI Boost Annual", `${priceId} annual label mismatch`);
+  }
 });
 
 Deno.test("only live Boost purchases trigger an admin alert", () => {
@@ -45,6 +73,15 @@ Deno.test("only live Boost purchases trigger an admin alert", () => {
     !shouldSendBoostAdminEmail("live", "price_unrelated"),
     "unrelated live payments must not notify",
   );
+  for (const priceId of [
+    "arcai_boost_monthly_202610",
+    "arcai_boost_annual_202610",
+    "price_1UOrq0AB32948AKDzDqPg1vp",
+    "price_1UOrqPAB32948AKDjnqWyyC4",
+  ]) {
+    assert(shouldSendBoostAdminEmail("live", priceId), `${priceId} live Boost should notify`);
+    assert(!shouldSendBoostAdminEmail("sandbox", priceId), `${priceId} sandbox Boost must not notify`);
+  }
 });
 
 Deno.test("deduplicates both activation paths by Stripe subscription", () => {

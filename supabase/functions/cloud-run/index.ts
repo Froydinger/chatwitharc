@@ -1,3 +1,6 @@
+import { authorizedArcModelRoute } from '../_shared/arcModelAccess.ts';
+import { ArcModelAccessError, arcRequestSelection } from '../_shared/arcModelRouting.ts';
+import { arcTextModel } from '../_shared/arcModelCatalog.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 import { authorizeCloudAppSubmission, CloudAppIngressError } from '../_shared/cloudAppIngress.ts';
 import { validateCloudMediaReferences } from '../_shared/cloudMedia.ts';
@@ -211,6 +214,7 @@ export function validateAction(value: unknown, bearer = ""): Action {
   keys(input, [
     "messages",
     "model",
+    "modelSelection",
     "reasoningEffort",
     "gitModelMode",
     "appModelMode",
@@ -297,6 +301,10 @@ export function validateAction(value: unknown, bearer = ""): Action {
     }
   }
   if (input.model !== undefined) request.model = string(input.model, 100);
+  if (input.modelSelection !== undefined) {
+    if (!['auto', 'gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'].includes(String(input.modelSelection))) invalid('Invalid model selection.');
+    request.modelSelection = input.modelSelection;
+  }
   if (input.reasoningEffort !== undefined) {
     if (!["none", "low", "medium", "high"].includes(input.reasoningEffort as string)) {
       invalid("Invalid reasoning effort.");
@@ -461,7 +469,7 @@ export function publicRun(row: Obj) {
     audit.push({
       kind: 'model',
       label: typeof engine.responseId === 'string' || typeof engine.agentSessionId === 'string'
-        ? 'Waiting for Luna' : 'Choosing the next step',
+        ? `Waiting for ${arcTextModel(String(asRecord(checkpoint.modelRoute).model ?? ''))?.name ?? 'Arc'}` : 'Choosing the next step',
       status: 'working',
     });
   }
@@ -635,8 +643,13 @@ export async function handleCloudRun(req: Request): Promise<Response> {
       invalid("Invalid JSON.");
     }
   const action = validateAction(raw, match[1]);
-    // Work is GPT-only, including stale Flash selections sent by older clients.
-    if (action.action === 'submit') delete action.request.model;
+    // Preserve captured GPT selections; retire stale Gemini/provider hints.
+    // Admission rejects Astra before persistence and every Work lease checks again.
+    if (action.action === 'submit') {
+      await authorizedArcModelRoute(db as unknown as Parameters<typeof authorizedArcModelRoute>[0], user, action.request);
+      action.request.modelSelection = arcRequestSelection(action.request);
+      delete action.request.model;
+    }
     if (action.action === 'submit' && action.request.attachments !== undefined) {
       try {
         action.request.attachments = validateCloudMediaReferences(action.request.attachments, {
@@ -861,6 +874,7 @@ export async function handleCloudRun(req: Request): Promise<Response> {
     return json(publicRun(resumed), 202);
   } catch (error) {
     if (error instanceof CloudAppIngressError) return json({ error: error.message }, error.status);
+    if (error instanceof ArcModelAccessError) return json({ error: error.message }, error.status);
     if (error instanceof HttpError) {
       return json({ error: error.message }, error.status);
     }

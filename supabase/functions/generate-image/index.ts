@@ -1,9 +1,8 @@
-import { assertImageModelReady, imageConfiguration, imageRequestIdentity, isGoogleImage } from "../_shared/imagePolicy.ts";
+import { imageConfiguration, imageIdentityConfiguration, imageRequestIdentity, isGoogleImage, ImageModelUnavailableError } from "../_shared/imagePolicy.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { uploadPrivateImage } from "../_shared/privateImageStorage.ts";
-import { ARC_IMAGE_FLASH_MODEL, callImageFlash } from "../_shared/arcImageFlash.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,13 +12,13 @@ const corsHeaders = {
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const REQUEST_TIMEOUT_MS = 180_000;
 const RETRY_DELAY_MS = 3_000;
 
-// Existing OpenAI models and explicit Google image selection.
+// New image requests use OpenAI only. The Google adapter remains dormant in
+// _shared/arcImageFlash.ts; historical jobs and credit settlement stay intact.
 // GPT Image 2.5 accepts custom dimensions in multiples of 16.
 function aspectToSize(aspectRatio: string): string {
   if (aspectRatio === "16:9") return "1536x864";
@@ -248,12 +247,11 @@ async function processGenerateJob(
   count: number,
   aspectRatio: string,
   quality: string,
+  fallbackModel: string | null,
 ) {
   try {
-    console.log(`[job ${jobId}] generating ${count} image(s) with ${selectedModel} (${size}, medium)`);
-    const result = isGoogleImage(selectedModel)
-      ? await callImageFlash({ apiKey: GEMINI_API_KEY, model: selectedModel, prompt, aspect: aspectRatio, count })
-      : await callImageGateway(prompt, selectedModel, size, count, quality);
+    console.log(`[job ${jobId}] generating ${count} image(s) with ${selectedModel} (${size}, ${quality})`);
+    const result = await callImageGateway(prompt, selectedModel, size, count, quality);
     const finalModel = selectedModel;
 
     if (!result.ok) {
@@ -302,7 +300,7 @@ async function processGenerateJob(
       result_image_url: persistedImageUrls[0],
       result_image_urls: persistedImageUrls,
       preferred_model: finalModel,
-      fallback_model: finalModel !== selectedModel ? finalModel : null,
+      fallback_model: fallbackModel,
       error_message: null,
       error_type: null,
     });
@@ -353,13 +351,10 @@ serve(async (req) => {
     if (policyError || !policy) throw new Error("Image policy unavailable");
     const config = imageConfiguration(body?.preferredModel, body?.quality, policy.tier, aspectToSize(aspectRatio));
     const selectedModel = config.model;
-    assertImageModelReady(selectedModel, policy);
+    const fallbackModel = typeof body?.preferredModel === "string" && isGoogleImage(body.preferredModel) ? selectedModel : null;
     const size = config.size;
-    if (!(isGoogleImage(selectedModel) ? GEMINI_API_KEY : OPENAI_API_KEY)) {
+    if (!OPENAI_API_KEY) {
       return jsonResponse({ success: false, error: "The selected image mode is unavailable.", errorType: "configuration_error" });
-    }
-    if (isGoogleImage(selectedModel) && wantsTransparentBackground(rawPrompt)) {
-      return jsonResponse({ success: false, error: "For a transparent background, choose Flare or Sunburst.", errorType: "invalid_request" });
     }
     const requestedCount = Number(body?.count);
     const count = Number.isFinite(requestedCount)
@@ -372,7 +367,7 @@ serve(async (req) => {
       return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" });
     }
 
-    const identity = await imageRequestIdentity(body?.requestKey, { rawPrompt, aspectRatio, config, count });
+    const identity = await imageRequestIdentity(body?.requestKey, { rawPrompt, aspectRatio, config: imageIdentityConfiguration(body?.preferredModel, config), count });
     const { data: jobData, error: jobError } = await supabaseAdmin
       .from("image_generation_jobs")
       .upsert({
@@ -383,6 +378,7 @@ serve(async (req) => {
         prompt: rawPrompt,
         aspect_ratio: aspectRatio,
         preferred_model: selectedModel,
+        fallback_model: fallbackModel,
         image_quality: config.quality,
         image_size: config.size,
         status: "processing",
@@ -393,9 +389,9 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!jobError && !jobData) {
-      const { data: existing, error } = await supabaseAdmin.from('image_generation_jobs').select('id,image_request_hash').eq('user_id',user.id).eq('image_request_key',identity.key).single();
+      const { data: existing, error } = await supabaseAdmin.from('image_generation_jobs').select('id,image_request_hash,preferred_model,fallback_model').eq('user_id',user.id).eq('image_request_key',identity.key).single();
       if (error || existing?.image_request_hash !== identity.hash) throw new Error('Image request conflict');
-      return jsonResponse({ success: true, jobId: existing.id, status: 'pending' });
+      return jsonResponse({ success: true, jobId: existing.id, status: 'pending', preferredModel: existing.preferred_model, fallbackModel: existing.fallback_model ?? null });
     }
     if (jobError || !jobData) {
       console.error("Failed to create image job:", jobError);
@@ -439,6 +435,7 @@ serve(async (req) => {
       count,
       aspectRatio,
       config.quality,
+      fallbackModel,
     );
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);
@@ -447,9 +444,12 @@ serve(async (req) => {
       task.catch((e) => console.error("Background generate job failed:", e));
     }
 
-    return jsonResponse({ jobId: currentJobId, status: "pending", success: true, quota });
+    return jsonResponse({ jobId: currentJobId, status: "pending", success: true, quota, preferredModel: selectedModel, fallbackModel });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
+    if (error instanceof ImageModelUnavailableError) {
+      return jsonResponse({ success: false, error: message, errorType: "model_unavailable" });
+    }
     console.error("Error in generate-image function:", error);
     if (jobId) {
       await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: message, error_type: "processing_error" });

@@ -2,6 +2,7 @@
 // Registered for both sandbox and live by enable_stripe_payments.
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { type StripeEnv, verifyWebhook } from "../_shared/stripe.ts";
+import { resolveBoostPriceId } from "../_shared/boostCatalog.ts";
 import { sendBoostAdminEmail } from "../_shared/boost-admin-email.ts";
 
 let _supabase: ReturnType<typeof createClient> | null = null;
@@ -14,13 +15,6 @@ function getSupabase() {
     );
   }
   return _supabase;
-}
-
-function resolvePriceId(item: any): string | null {
-  return item?.price?.lookup_key
-    || item?.price?.metadata?.lovable_external_id
-    || item?.price?.id
-    || null;
 }
 
 async function sendBoostUpgradeEmail(
@@ -96,7 +90,7 @@ async function upsertSubscription(subscription: any, env: StripeEnv, options?: {
     return;
   }
   const item = subscription.items?.data?.[0];
-  const priceId = resolvePriceId(item);
+  const priceId = resolveBoostPriceId(item?.price) ?? item?.price?.id ?? null;
   const productId = typeof item?.price?.product === "string" ? item.price.product : item?.price?.product?.id;
   const periodStart = item?.current_period_start ?? subscription.current_period_start;
   const periodEnd = item?.current_period_end ?? subscription.current_period_end;

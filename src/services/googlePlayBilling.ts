@@ -1,9 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
-import { BOOST_ANNUAL_PRICE_ID, BOOST_PRICE_ID } from '@/lib/stripe';
+import { GOOGLE_PLAY_BOOST_PRODUCT_IDS } from '../../supabase/functions/_shared/boostCatalog';
 
 const PLAY_STORE_ID = 'https://play.google.com/billing';
 const PLAY_TWA_MARKER = 'arcai-play-store-twa';
-const ALLOWED_PRODUCTS = new Set([BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID]);
+const ALLOWED_PRODUCTS = new Set<string>(Object.values(GOOGLE_PLAY_BOOST_PRODUCT_IDS));
 
 export interface GooglePlayItemDetails {
   itemId: string;

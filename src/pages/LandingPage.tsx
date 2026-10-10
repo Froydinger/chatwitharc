@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ANDROID_APK_URL } from "@/lib/androidDownload";
+import { BOOST_NEW_SUBSCRIBER_PRICE_COPY } from "@/lib/boostPricing";
 import {
   Dialog,
   DialogContent,
@@ -41,11 +42,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Free includes Arc Think and Arc Flash with less usage, Canvas, living memory, images with less usage, research, GitHub Normal, and 3 voice sessions per UTC day up to 10 minutes each. Boost adds unlimited chat and research, 250 shared monthly image credits, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. Free includes unlimited GPT 6 Luna, Auto, a GPT 6.1 Sol allowance, Canvas, living memory, 30 GPT 2.5 Flare image outputs per UTC calendar month, research, GitHub Normal, and 3 voice sessions per UTC day up to 10 minutes each. Boost adds a higher Sol allowance, a separate GPT 6 Astra allowance, unlimited research, 250 shared monthly image credits, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds Arc Work, App Builder, GitHub Pro, unlimited usage for Arc Think and Arc Flash across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.",
+    a: `Yes. ${BOOST_NEW_SUBSCRIBER_PRICE_COPY} Boost starts with a 7-day free trial (card required). Luna is unlimited on Free and Boost; Boost adds a higher GPT 6.1 Sol allowance, a separate GPT 6 Astra allowance, Arc Work, App Builder, GitHub Pro, unlimited Deep Search and Ultra Deep Search, 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.`,
   },
   {
     q: "How does Arc's memory work?",
@@ -61,7 +62,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "Arc Think uses GPT-6 Luna with adaptive reasoning: none for quick answers, then low, medium or high when the task needs more thought. Arc Flash uses Gemini Flash. App Builder Fast uses Luna; App Builder Pro and GitHub Pro use GPT-6.1 Sol with light reasoning. Images use GPT 2.5 Flare, GPT 2.5 Flare HQ, GPT 2.5 Sunburst, Nano Banana 2, and Nano Banana 2 Lite. Natural voice runs through Voxi; live research uses Deep Search.",
+    a: "Auto uses GPT 6 Luna for chat and GPT 6.1 Sol for writing, canvas, code and quick web search. You can also choose Luna or Sol directly; reasoning adapts to the task. Boost also includes GPT 6 Astra with a separate usage allowance. App Builder Fast uses Luna; App Builder Pro and GitHub Pro use GPT-6.1 Sol with light reasoning. Images use GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst. Natural voice runs through Voxi; live research uses Deep Search.",
   },
   {
     q: "Is ArcAI private?",
@@ -73,7 +74,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes. Free accounts include image generation with less usage. Boost accounts receive 250 shared image credits monthly across available image models.",
+    a: "Yes. Free accounts receive 30 GPT 2.5 Flare image outputs per UTC calendar month. Boost accounts receive 250 shared monthly image credits across GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst.",
   },
   {
     q: "Does ArcAI have voice mode?",
@@ -276,7 +277,7 @@ function MarketingLandingPage() {
           <Sparkles className="h-3.5 w-3.5" /> Ask, Reflect, Create
         </div>
         <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl lg:text-8xl animate-in fade-in slide-in-from-bottom-3 duration-700">
-          Powered by GPT 6 &amp; Gemini
+          Powered by GPT 6 &amp; 6.1
         </h1>
         <p
           className="mx-auto mt-6 max-w-xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
@@ -348,14 +349,14 @@ function MarketingLandingPage() {
         </p>
         <div className="mt-12 flex flex-wrap justify-center gap-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Choose Arc Think for adaptive Luna reasoning or Arc Flash for quick Gemini responses. Both include Arc’s tools and context. Less usage on Free; unlimited usage on Boost." },
+            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Choose Auto, GPT 6 Luna, or GPT 6.1 Sol. Luna is unlimited on Free and Boost. Sol uses your allowance, with more usage on Boost. Boost also includes GPT 6 Astra with a separate allowance." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Research the live web and check the answer against its sources. Less usage on Free; unlimited Deep Search and Ultra Deep Search on Boost." },
             { category: "Reflect", icon: Brain, title: "Living Cross-Session Memory", body: "Arc keeps one detailed, evolving summary of the preferences, goals, facts, and boundaries you want it to remember, then recalls it when relevant." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Talk naturally with the same Arc agent, with tools and memory close at hand. Keep ambient music in your workspace when you want to focus." },
             { category: "Create", icon: Code2, title: "Code Canvas", body: "Canvas and GitHub Normal are available on Free and Boost. Prepare repository changes as a branch and pull request; Boost unlocks GitHub Pro with GPT-6.1 Sol." },
             { category: "Ask", icon: Sparkles, title: "Arc Work · Boost", body: "Available with Boost. Hand Arc a longer task to run in the cloud, with progress in your chat and requests for input when needed." },
             { category: "Create", icon: Code2, title: "App Builder · Boost", body: "Available with Boost. Build, preview, refine, publish or export an app. Fast uses Luna by default; choose Pro for GPT-6.1 Sol with light reasoning." },
-            { category: "Create", icon: ImageIcon, title: "Images", body: "Create and edit images with GPT 2.5 or Nano Banana 2. 30 GPT 2.5 Flare images monthly on Free; 250 shared monthly image credits on Boost." },
+            { category: "Create", icon: ImageIcon, title: "Images", body: "Create and edit with GPT 2.5 Flare, Flare HQ, or Sunburst. Free includes 30 Flare image outputs per UTC calendar month; Boost includes 250 shared monthly image credits." },
           ].map((f, i) => (
             <div
               key={f.title}
@@ -396,14 +397,14 @@ function MarketingLandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan includes chat with less usage, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), for unlimited usage, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.
+              Free includes unlimited GPT 6 Luna, a GPT 6.1 Sol allowance, living memory, search, coding, and 3 voice sessions per UTC day up to 10 minutes each. Boost adds more Sol usage, a separate GPT 6 Astra allowance, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each. Start with a 7-day free trial (card required). {BOOST_NEW_SUBSCRIBER_PRICE_COPY}
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
                 { icon: ImageIcon, title: "Create images for free", body: "Create images with less usage on Free, or upgrade to Boost for 250 shared monthly image credits and more models." },
                 { icon: Mic, title: "Natural voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each, and Boost includes unlimited live voice sessions up to 2 hours each." },
-                { icon: Search, title: "Research with live sources", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. Less usage on Free, unlimited usage on Boost." },
+                { icon: Search, title: "Research with live sources", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. Less usage on Free; unlimited Deep Search and Ultra Deep Search on Boost." },
                 { icon: Code2, title: "GitHub Mode", body: "Normal is available on Free and Boost. Connect a repository for branch-and-pull-request changes; Boost adds Pro with GPT-6.1 Sol." },
               ].map((b) => (
                 <div
@@ -515,7 +516,7 @@ function MarketingLandingPage() {
           Give your next idea to Arc.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          Start with less usage for chat and images, and 3 voice sessions per UTC day up to 10 minutes each. Upgrade to Boost for unlimited chat and research, 250 shared monthly image credits, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.
+          Start free with unlimited GPT 6 Luna, a GPT 6.1 Sol allowance, images, and 3 voice sessions per UTC day up to 10 minutes each. Boost adds more Sol usage, a separate GPT 6 Astra allowance, unlimited research, 250 shared monthly image credits, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button

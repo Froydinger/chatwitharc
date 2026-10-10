@@ -1,3 +1,4 @@
+import { getRecordedModelDisplayName } from '@/store/useModelStore';
 import { imageModelName } from '@/lib/imageModelNames';
 /**
  * Smart request router for Arc Local.
@@ -15,15 +16,15 @@ import { isMobileLocalDevice } from '@/utils/mobileLocal';
  */
 export type RouteDestination =
   | 'local'                     // On-device model (label resolved at render)
-  | 'cloud-chat'                // GPT-5.6 Luna — default chat
-  | 'cloud-chat-pro'            // GPT-5.6 Luna — deeper reasoning
+  | 'cloud-chat'                // GPT text model — default chat
+  | 'cloud-chat-pro'            // GPT text model — deeper reasoning
   | 'cloud-search'              // Tavily Advanced retrieval + GPT synthesis
   | 'cloud-search-tavily'       // Legacy alias — same Tavily pipeline
-  | 'cloud-vision'              // GPT-5.6 Luna (image understanding)
-  | 'cloud-document'            // GPT-5.6 Luna (document analysis)
+  | 'cloud-vision'              // GPT text model (image understanding)
+  | 'cloud-document'            // GPT text model (document analysis)
   | 'cloud-voice'               // OpenAI Realtime
-  | 'cloud-code'                // GPT-5.6 Luna — /code, canvas code edits
-  | 'cloud-canvas'              // GPT-5.6 Luna — writing canvas
+  | 'cloud-code'                // GPT text model — /code, canvas code edits
+  | 'cloud-canvas'              // GPT text model — writing canvas
   | 'cloud-image'               // GPT-Image-2 — locked image model
   | 'cloud-image-pro'           // Deprecated alias — also maps to GPT-Image-2
   | 'cloud-image-edit'          // GPT-Image-2 — edit pass
@@ -150,9 +151,11 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string, effor
   }
 }
 
-/** Product mode follows recorded provider metadata, never the current picker. */
-function getModelInfo(effortUsed?: string, modelUsed?: string): { name: string; tier: string; providerName: string } {
-  if (modelUsed === 'gemini-3.8-flash') return { name: 'Arc Flash', tier: 'Flash', providerName: 'Powered by Gemini Flash' };
-  if (modelUsed?.startsWith('gpt-') || effortUsed) return { name: 'Arc Think', tier: 'Think', providerName: 'Powered by GPT 6 & 6.1' };
-  return { name: 'Arc Matrix', tier: 'Auto', providerName: 'Arc Matrix™ orchestration' };
+/** Recorded model ids win over effort hints and the current picker. */
+function getModelInfo(_effortUsed?: string, modelUsed?: string): { name: string; providerName: string } {
+  const name = getRecordedModelDisplayName(modelUsed);
+  const providerName = modelUsed?.startsWith('gpt-') ? `OpenAI · ${name}`
+    : modelUsed?.startsWith('gemini-') ? `Google · ${name}`
+    : modelUsed ? name : 'The model was not recorded for this reply';
+  return { name, providerName };
 }

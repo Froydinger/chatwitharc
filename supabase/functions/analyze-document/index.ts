@@ -1,3 +1,6 @@
+import { arcTextCompletion } from '../_shared/arcTextCompletion.ts';
+import { authorizedArcModelRoute } from '../_shared/arcModelAccess.ts';
+import { ArcModelAccessError } from '../_shared/arcModelRouting.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -39,10 +42,8 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, fileBase64, fileName, mimeType, reasoningEffort } = await req.json();
-    const selectedReasoningEffort = ['low', 'medium', 'high'].includes(reasoningEffort)
-      ? reasoningEffort
-      : 'medium';
+    const body = await req.json();
+    const { messages, fileBase64, fileName, mimeType } = body;
 
     if (!messages || !fileBase64) {
       return new Response(JSON.stringify({ error: 'messages and fileBase64 are required' }), {
@@ -52,7 +53,7 @@ serve(async (req) => {
 
     console.log('Analyzing document:', fileName, 'type:', mimeType);
 
-    // Build multimodal content for GPT-5.6 Luna
+    // Build multimodal content for GPT 6 Luna and supported premium routes
     const lastMessage = messages[messages.length - 1];
     const userPrompt = lastMessage?.content || `Analyze and summarize this document: ${fileName}`;
 
@@ -95,65 +96,30 @@ serve(async (req) => {
       ];
     }
 
-    const selectedModel = 'gpt-6-luna';
+    const route = await authorizedArcModelRoute(supabase, user, body, 'analysis');
+    const selectedModel = route.model;
+    const selectedReasoningEffort = route.effort;
     console.log('Using model:', selectedModel);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        reasoning_effort: selectedReasoningEffort,
-        messages: [
-          {
-            role: 'system',
-            content: `You are ArcAI. The user has attached a document file. Analyze it thoroughly: summarize key points, extract important data, and answer any specific questions. Be detailed and helpful. Format your response with clear sections using markdown.`
-          },
-          ...messages.slice(0, -1),
-          {
-            role: 'user',
-            content: contentArray
-          }
-        ]
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'Payment required. Please add credits.' }), {
-          status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      return new Response(JSON.stringify({ error: `Document analysis failed: ${response.status}` }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const data = await response.json();
+    const completed = await arcTextCompletion({ db: supabase, user, request: body,
+      requestId: typeof body.submissionId === 'string' ? body.submissionId : crypto.randomUUID(),
+      source: 'document-analysis', route, apiKey: openaiApiKey, messages: [
+        { role: 'system', content: 'You are ArcAI. The user has attached a document file. Analyze it thoroughly: summarize key points, extract important data, and answer any specific questions. Be detailed and helpful. Format your response with clear sections using markdown.' },
+        ...messages.slice(0, -1), { role: 'user', content: contentArray },
+      ], maxTokens: 16_384 });
+    const data = completed.data;
     const content = data.choices?.[0]?.message?.content || 'Sorry, I could not analyze the document.';
     
     console.log('Document analysis complete, response length:', content.length);
 
-    return new Response(JSON.stringify({ content, success: true }), {
+    return new Response(JSON.stringify({ content, success: true, model_used: completed.route.model, reasoning_effort_used: completed.route.effort, model_switch_notice: completed.notice }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
     console.error('Error in analyze-document:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: error instanceof ArcModelAccessError ? error.status : 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

@@ -1,3 +1,4 @@
+import { isGooglePlayStoreTwa } from '@/services/googlePlayBilling';
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Check, Sparkles, Zap } from "lucide-react";
@@ -7,7 +8,8 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
 import {
   BOOST_ANNUAL_PRICE_AMOUNT,
-  BOOST_ANNUAL_REGULAR_PRICE_AMOUNT,
+  BOOST_ANNUAL_MONTHLY_EQUIVALENT,
+  BOOST_GRANDFATHERING_COPY,
   BOOST_ANNUAL_REGULAR_PRICE_DISPLAY,
   BOOST_ANNUAL_RENEWAL_DISPLAY,
   BOOST_ANNUAL_SAVINGS_DISPLAY,
@@ -23,6 +25,7 @@ import { BOOST_PLAN_FEATURES, FREE_PLAN_FEATURES } from "@/lib/planCopy";
 export function PricingPage() {
   const { user } = useAuth();
   const { hasBoost, openCheckout, openCustomerPortal } = useSubscription();
+  const isPlayCheckout = isGooglePlayStoreTwa();
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("monthly");
 
   return (
@@ -39,7 +42,7 @@ export function PricingPage() {
           </div>
           <h1 className="text-5xl font-bold mb-4 text-foreground">Choose your plan.</h1>
           <p className="text-lg text-foreground/75 max-w-xl mx-auto">
-            Arc Think and Arc Flash, orchestrated by Arc Matrix™. Less usage on Free, unlimited usage with Boost.
+            Unlimited GPT 6 Luna for everyone. GPT 6.1 Sol with more usage on Boost, plus a separate GPT 6 Astra allowance.
           </p>
         </div>
 
@@ -49,7 +52,7 @@ export function PricingPage() {
             <div>
               <div className="text-sm font-semibold text-muted-foreground tracking-wider uppercase mb-2">Free Plan</div>
               <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-5xl font-bold">$0</span>
+                <span className={isPlayCheckout ? "text-2xl font-bold" : "text-5xl font-bold"}>$0</span>
                 <span className="text-muted-foreground">/ forever</span>
               </div>
               <ul className="space-y-3 mb-8">
@@ -79,6 +82,7 @@ export function PricingPage() {
                     Monthly
                   </span>
                   <button
+                    type="button" role="switch" aria-checked={billingInterval === "annual"} aria-label="Annual billing"
                     onClick={() => setBillingInterval(billingInterval === "monthly" ? "annual" : "monthly")}
                     className="relative w-8 h-4 rounded-full bg-zinc-800 transition-colors duration-200 p-0.5 border border-white/10 flex items-center"
                   >
@@ -87,33 +91,29 @@ export function PricingPage() {
                   <span className={`text-[11px] transition-colors duration-200 ${billingInterval === "annual" ? "text-foreground font-semibold" : "text-muted-foreground"} flex items-center gap-1`}>
                     Annual
                     <span className="text-[8px] bg-primary/20 text-primary font-bold px-1 py-0.2 rounded-full">
-                      {BOOST_ANNUAL_SAVINGS_DISPLAY}
+                      {!isPlayCheckout && BOOST_ANNUAL_SAVINGS_DISPLAY}
                     </span>
                   </span>
                 </div>
               </div>
               <div className="flex items-baseline gap-2 mb-1">
-                {billingInterval === "annual" && (
-                  <span className="text-lg text-muted-foreground/70 line-through" aria-label={`Regular price ${BOOST_ANNUAL_REGULAR_PRICE_DISPLAY}`}>
-                    {BOOST_ANNUAL_REGULAR_PRICE_AMOUNT}
-                  </span>
-                )}
-                <span className="text-5xl font-bold">
-                  {billingInterval === "monthly" ? BOOST_MONTHLY_PRICE_AMOUNT : BOOST_ANNUAL_PRICE_AMOUNT}
+                <span className={isPlayCheckout ? "text-2xl font-bold" : "text-5xl font-bold"}>
+                  {isPlayCheckout ? "See your Google Play price" : billingInterval === "monthly" ? BOOST_MONTHLY_PRICE_AMOUNT : BOOST_ANNUAL_PRICE_AMOUNT}
                 </span>
                 <span className="text-muted-foreground">
-                  / {billingInterval === "monthly" ? "month" : "year"}
+                  {!isPlayCheckout && <>/ {billingInterval === "monthly" ? "month" : "year"}</>}
                 </span>
               </div>
               <div className="mb-5 space-y-1">
-                <p className="text-xs text-primary font-semibold">{BOOST_TRIAL_DISPLAY} · {BOOST_TRIAL_NOTE}</p>
-                {billingInterval === "annual" && (
+                <p className="text-xs text-primary font-semibold">{isPlayCheckout ? "Review the current localized price in Google Play before subscribing." : <>{BOOST_TRIAL_DISPLAY} · {BOOST_TRIAL_NOTE}</>}</p>
+                {!isPlayCheckout && billingInterval === "annual" && (
                   <>
-                    <p className="text-xs text-primary font-semibold">{BOOST_ANNUAL_OFFER_BADGE} · Equal to just $7.92/month ({BOOST_ANNUAL_SAVINGS_DISPLAY} vs. {BOOST_ANNUAL_REGULAR_PRICE_DISPLAY})</p>
+                    <p className="text-xs text-primary font-semibold">{BOOST_ANNUAL_OFFER_BADGE} · Equal to {BOOST_ANNUAL_MONTHLY_EQUIVALENT}/month ({BOOST_ANNUAL_SAVINGS_DISPLAY} vs. {BOOST_ANNUAL_REGULAR_PRICE_DISPLAY})</p>
                     <p className="text-[11px] text-muted-foreground">{BOOST_ANNUAL_RENEWAL_DISPLAY}</p>
                   </>
                 )}
               </div>
+              {!isPlayCheckout && <p className="mb-4 text-xs text-muted-foreground">{BOOST_GRANDFATHERING_COPY}</p>}
               <ul className="space-y-3 mb-8">
                     {BOOST_PLAN_FEATURES.map((feature) => (
                   <li key={feature} className="flex items-start gap-3 text-sm">
@@ -133,9 +133,18 @@ export function PricingPage() {
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/95 font-semibold py-5 rounded-xl shadow-lg shadow-primary/15 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]" 
                 onClick={() => openCheckout(billingInterval === "monthly" ? BOOST_PRICE_ID : BOOST_ANNUAL_PRICE_ID)}
               >
-                Start 7-day trial
+                {isPlayCheckout ? "View Google Play price" : "Start 7-day trial"}
               </GlassButton>
             )}
+          </GlassCard>
+
+          <GlassCard className="relative aspect-[2/1] overflow-hidden p-8 md:col-span-2" data-testid="boost-pro-preview">
+            <h2 className="text-xl font-semibold text-foreground">Boost Pro</h2>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
+              <div className="w-[150%] shrink-0 -rotate-[26.565deg] border-y border-border/60 bg-muted/90 py-4 text-center text-lg font-semibold uppercase tracking-[0.18em] text-muted-foreground shadow-sm">
+                Coming soon
+              </div>
+            </div>
           </GlassCard>
         </div>
       </div>

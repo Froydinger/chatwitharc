@@ -6,6 +6,8 @@
 // PerplexityBot — actually read; the sr-only block in BlogPostPage is
 // client-rendered and is NOT visible to them.
 
+import { BOOST_NEW_SUBSCRIBER_PRICE_COPY } from "../../lib/boostPricing";
+
 export interface FAQItem {
   q: string;
   a: string;
@@ -25,7 +27,12 @@ export interface BlogPost {
   cta: string;
 }
 
-const UPDATED = "2026-07-03";
+const UPDATED = "2026-10-10";
+
+const BOOST_PRICING_FAQ: FAQItem = {
+  q: "How much does ArcAI Boost cost?",
+  a: BOOST_NEW_SUBSCRIBER_PRICE_COPY,
+};
 
 const RAW_BLOG_POSTS: BlogPost[] = [
   {
@@ -36,7 +43,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["ArcAI", "Ask Arc", "AI assistant", "AI with memory", "Boost tier"],
     updated: UPDATED,
     intro:
-      "ArcAI (sometimes called Ask Arc) is an AI workspace that combines Arc Think chat, real-time voice, image generation, and coding tools in a single browser app. You can get started with a free account, or unlock higher limits and unlimited research with Boost.",
+      "ArcAI (sometimes called Ask Arc) is an AI workspace that combines GPT chat, real-time voice, image generation, and coding tools in a single browser app. You can get started with a free account, or unlock higher limits and unlimited research with Boost.",
     faq: [
       {
         q: "What is ArcAI?",
@@ -44,7 +51,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. The free tier includes Arc Matrix™ chat with less usage on Free, image generation with GPT 2.5, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited usage, including unlimited research, plus 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.",
+        a: "Yes. Free includes unlimited GPT 6 Luna, a GPT 6.1 Sol allowance, 30 GPT 2.5 Flare image outputs per UTC calendar month, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost adds a higher Sol allowance, a separate GPT 6 Astra allowance, unlimited research, 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Can I use ArcAI for coding?",
@@ -64,7 +71,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI models does ArcAI use?",
-        a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis use Arc Think and Arc Flash; visual generation and precision editing are powered by GPT 2.5 and Nano Banana 2; natural voice conversations run on Voxi; and live web research is powered by Deep Search.",
+        a: "Arc Matrix™ orchestrates ArcAI's models and tools. Auto uses GPT 6 Luna for chat and GPT 6.1 Sol for writing, Canvas, code, and quick web search. Luna is unlimited on Free and Boost; Sol has a usage allowance, with more usage on Boost. Boost also includes GPT 6 Astra with a separate allowance. Images use GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst; natural voice runs on Voxi; and live web research uses Deep Search.",
       },
     ],
     cta: "Try ArcAI now",
@@ -93,11 +100,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
-        a: "Boost adds unlimited Deep Search and Ultra Deep Search, unlimited usage for Arc Think and Arc Flash, 250 shared monthly image credits, and unlimited voice sessions up to 2 hours each.",
+        a: "Boost includes unlimited GPT 6 Luna, a higher GPT 6.1 Sol allowance, a separate GPT 6 Astra allowance, unlimited Deep Search and Ultra Deep Search, 250 shared monthly image credits, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Does the free tier have message limits?",
-        a: "ArcAI offers less usage on Free and unlimited usage with Boost.",
+        a: "GPT 6 Luna is unlimited on Free and Boost. GPT 6.1 Sol has a finite allowance on both plans, with more usage on Boost. Auto uses that allowance when it selects Sol. Boost also includes GPT 6 Astra with a separate allowance.",
       },
       {
         q: "Can I use ArcAI without signing up?",
@@ -130,7 +137,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does ArcAI use Gemini?",
-        a: "ArcAI routes to the best model per task, which can include Google Gemini for select tasks like image editing, and OpenAI GPT-class models for chat and voice.",
+        a: "ArcAI's active chat lineup is GPT 6 Luna, GPT 6.1 Sol, and Boost's GPT 6 Astra. Images use GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst. Natural voice remains powered by Voxi, and Deep Search handles research. Gemini is not an active chat or image option.",
       },
       {
         q: "Is ArcAI private?",
@@ -147,11 +154,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["GPT-4 alternative", "GPT-4 free", "free GPT", "AI coding assistant"],
     updated: UPDATED,
     intro:
-      "Access to advanced reasoning is restricted on many services. ArcAI gives free accounts Arc Matrix™ intelligence with Arc Think and Arc Flash; Boost adds unlimited usage.",
+      "ArcAI gives free accounts unlimited GPT 6 Luna and a GPT 6.1 Sol allowance through Arc Matrix™. Boost adds more Sol usage and a separate GPT 6 Astra allowance.",
     faq: [
       {
         q: "Is there a free version of advanced AI reasoning?",
-        a: "ArcAI is a leading alternative that gives you Arc Think for Auto orchestration and Arc Flash for Gemini Flash replies.",
+        a: "Yes. ArcAI offers Auto orchestration, unlimited GPT 6 Luna, and a GPT 6.1 Sol allowance on Free. Boost adds more Sol usage and GPT 6 Astra with a separate allowance.",
       },
       {
         q: "Can ArcAI help me write and understand code?",
@@ -163,7 +170,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "What model does ArcAI use for chat?",
-        a: "ArcAI chat is powered by Arc Matrix™, letting you choose Arc Think or Arc Flash.",
+        a: "ArcAI chat is powered by Arc Matrix™, letting you choose Auto, GPT 6 Luna, or GPT 6.1 Sol. Boost also includes GPT 6 Astra with a separate usage allowance.",
       },
       {
         q: "Can ArcAI do everything GPT-4 can?",
@@ -209,7 +216,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is the best free AI assistant in 2026?",
-        a: "ArcAI offers free chat with less usage, image creation, cited web research, document analysis, and long-term memory. Boost adds unlimited usage.",
+        a: "ArcAI offers unlimited GPT 6 Luna, a GPT 6.1 Sol allowance, image creation, cited web research, document analysis, and long-term memory on Free. Boost adds more Sol usage, a separate GPT 6 Astra allowance, and higher image and research allowances.",
       },
       {
         q: "What makes ArcAI different from other AI assistants in 2026?",
@@ -221,7 +228,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which free AI generates images?",
-        a: "ArcAI includes GPT-Image-1 Mini (40/day), GPT-Image-1 (10/day), and GPT-Image-2 (3/day) on Free. Boost upgrades GPT-Image-2 to 20/day and adds full editing.",
+        a: "ArcAI Free includes 30 GPT 2.5 Flare image outputs per UTC calendar month. Boost includes 250 shared monthly image credits across GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst for generation and editing.",
       },
     ],
     cta: "Try the AI assistant",
@@ -255,15 +262,15 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     slug: "free-ai-image-generator",
     title: "AI image generator built into your workspace",
     description:
-      "Generate AI images directly in chat. ArcAI's image generator uses GPT-Image-2 and features both free and Boost tiers.",
+      "Generate images in ArcAI with GPT 2.5 Flare, Flare HQ, and Sunburst. Start free with 30 Flare outputs per month or get more usage with Boost.",
     keywords: ["AI image generator", "AI image free", "GPT image free", "image creator"],
     updated: UPDATED,
     intro:
-      "ArcAI includes image generation and editing with GPT 2.5 Flare, GPT 2.5 Flare HQ, GPT 2.5 Sunburst, Nano Banana 2, and Nano Banana 2 Lite for generation and editing. Free accounts get less usage; Boost accounts get 250 shared monthly image credits across image models.",
+      "ArcAI includes image generation and editing with GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst. Free accounts receive 30 Flare outputs per UTC calendar month; Boost includes 250 shared monthly image credits across all three modes.",
     faq: [
       {
         q: "What is the best AI image generator?",
-        a: "ArcAI is a strong option because it integrates GPT 2.5 for fast creative synthesis and GPT 2.5 for precision editing directly into your chat and workspace.",
+        a: "ArcAI brings GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst directly into your chat and workspace. Start with Flare on Free; Boost adds the higher-quality image modes with shared monthly credits.",
       },
       {
         q: "Can I use generated images in my chats and canvases?",
@@ -271,11 +278,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How many free images can I generate?",
-        a: "Free accounts get less usage for image generation. Upgrading to Boost gives you 250 shared monthly image credits for generation and editing.",
+        a: "Free accounts receive 30 GPT 2.5 Flare image outputs per UTC calendar month. Boost includes 250 shared monthly image credits for generation and editing across GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst.",
       },
       {
         q: "Can I edit generated images?",
-        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by GPT 2.5 and included in Boost’s shared monthly image credits.",
+        a: "Yes. Image editing uses the GPT 2.5 image models and counts toward your plan's image allowance. Boost shares 250 monthly image credits across Flare, Flare HQ, and Sunburst for generation and editing.",
       },
     ],
     cta: "Generate AI images",
@@ -354,7 +361,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "Is ArcAI better than ChatGPT's free plan?",
-        a: "For most users, yes. ArcAI's free plan includes voice, image generation and long-term memory — features ChatGPT gates behind Plus. Chat quality is comparable because ArcAI uses GPT-class models.",
+        a: "The right choice depends on your workflow. ArcAI's free plan includes unlimited GPT 6 Luna, a GPT 6.1 Sol allowance, voice, image generation, Canvas, and living memory. Boost adds more Sol usage and a separate GPT 6 Astra allowance.",
       },
       {
         q: "What coding tools does ArcAI have?",
@@ -366,7 +373,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does ArcAI have GPTs like ChatGPT?",
-        a: "No. ArcAI is one assistant rather than a library of separate bots. You tell Arc what matters, it carries that living summary forward, and you set how hard it thinks per chat with Quick, Balanced or Deep.",
+        a: "ArcAI is one assistant rather than a library of separate bots. You tell Arc what matters and it carries your living memory summary forward. Choose Auto or a GPT model; reasoning adapts to the task, within that model's allowance.",
       },
       {
         q: "Can I move from ChatGPT to ArcAI?",
@@ -470,7 +477,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How do I generate an image?",
-        a: "Just ask Arc to generate one (e.g. 'generate an image of a red panda barista'). Free plan includes 10 per day.",
+        a: "Ask Arc to generate an image, such as 'generate an image of a red panda barista'. Free includes 30 GPT 2.5 Flare image outputs per UTC calendar month. Boost includes 250 shared monthly image credits across Flare, Flare HQ, and Sunburst.",
       },
       {
         q: "How do I save what I want Arc to remember?",
@@ -485,7 +492,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "what-is-arcai": {
     angle: "ArcAI is built around a simple idea: one assistant should help with thinking, searching, speaking, writing, coding, creating images, and remembering the context that makes those tasks personal.",
     useCases: ["daily planning", "coding help", "research with sources", "image generation", "voice brainstorming", "long-term bot memory"],
-    freeAccess: "The free plan includes chat with less usage, plus 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited chat and research, plus 250 shared monthly image credits, and unlimited voice sessions up to 2 hours each.",
+    freeAccess: "Free includes unlimited GPT 6 Luna, a GPT 6.1 Sol allowance, and 3 voice sessions per UTC day, up to 10 minutes each. Boost adds more Sol usage, a separate GPT 6 Astra allowance, unlimited research, 250 shared monthly image credits, and unlimited voice sessions up to 2 hours each.",
     proof: "That combination makes ArcAI feel less like a single chatbot tab and more like a workspace for creative work and research.",
   },
   "free-chatgpt-alternative": {
@@ -503,19 +510,19 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-gpt-4-alternative": {
     angle: "People looking for a GPT-4 alternative often want strong reasoning alongside practical tools and persistent memory.",
     useCases: ["reasoning through hard questions", "coding help", "writing drafts", "debugging code", "generating images", "persistent bot memory"],
-    freeAccess: "Free accounts get Arc Matrix™ with less usage on Free; Boost adds unlimited usage and premium tools.",
+    freeAccess: "Free accounts get Auto, unlimited GPT 6 Luna, and a GPT 6.1 Sol allowance. Boost adds more Sol usage, a separate GPT 6 Astra allowance, and premium tools.",
     proof: "ArcAI brings chat, voice, images, memory, and coding help together in one product.",
   },
   "free-claude-alternative": {
     angle: "Claude is known for thoughtful writing and analysis. ArcAI also brings voice, images, coding help, and persistent cross-session memory into one product.",
     useCases: ["long-form writing", "coding help", "structured thinking", "brainstorming", "voice notes", "saved personal context"],
-    freeAccess: "ArcAI offers a free tier for daily use and a Boost upgrade with unlimited usage for Arc Think and Arc Flash.",
+    freeAccess: "GPT 6 Luna is unlimited on Free and Boost. Free includes a GPT 6.1 Sol allowance; Boost adds more Sol usage and a separate GPT 6 Astra allowance.",
     proof: "ArcAI is useful when you want a writing-friendly assistant that can also search, speak, and remember your context.",
   },
   "best-free-ai-assistant-2026": {
     angle: "A good AI assistant in 2026 should help with questions, memory, voice, search, images, files, coding, and everyday work while staying affordable.",
     useCases: ["personal productivity", "coding help", "creative work", "student research", "voice-first brainstorming", "persistent memory"],
-    freeAccess: "ArcAI offers a free tier, with a Boost upgrade path for unlimited reasoning and research.",
+    freeAccess: "ArcAI Free includes unlimited GPT 6 Luna and a GPT 6.1 Sol allowance. Boost adds more Sol usage, a separate GPT 6 Astra allowance, and unlimited research.",
     proof: "That is why ArcAI is positioned as a daily assistant and workspace, not just another chatbot with a text box.",
   },
   "free-ai-with-voice": {
@@ -527,13 +534,13 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-image-generator": {
     angle: "A standalone image generator is useful, but an image generator inside your AI assistant is more useful because the same chat can plan, revise, describe, and edit the image workflow.",
     useCases: ["social graphics", "chat illustrations", "concept art", "product mockups", "moodboards", "iterative image edits"],
-    freeAccess: "Free accounts receive less usage for image generation, while Boost accounts unlock 250 shared monthly image credits for generation and editing.",
+    freeAccess: "Free accounts receive 30 GPT 2.5 Flare image outputs per UTC calendar month. Boost includes 250 shared monthly image credits for generation and editing across Flare, Flare HQ, and Sunburst.",
     proof: "ArcAI makes image generation feel like part of the conversation instead of a separate tool you have to manage.",
   },
   "ai-that-remembers-conversations": {
     angle: "Memory is what turns an AI assistant from a disposable answer machine into something personal. ArcAI can keep track of preferences, projects, facts, and context you choose to save.",
     useCases: ["personal preferences", "ongoing projects", "writing style", "coding preferences", "recurring goals", "saved instructions"],
-    freeAccess: "Memory and canvases are fully included on the free tier, along with 4 Deep Searches and 1 Ultra Deep Search a week; Boost makes research and reasoning unlimited.",
+    freeAccess: "Memory and canvases are included on Free, along with unlimited GPT 6 Luna, a GPT 6.1 Sol allowance, 4 Deep Searches and 1 Ultra Deep Search a week. Boost adds more Sol usage, a separate GPT 6 Astra allowance, and unlimited research.",
     proof: "The important detail is control: memory is useful only when users can inspect, edit, export, and delete it.",
   },
   "ask-arc-what-is-it": {
@@ -584,7 +591,7 @@ function enrichPost(post: BlogPost): BlogPost {
     context.freeAccess,
   ];
 
-  const faq = post.faq.map((item, index) => ({
+  const faq = [...post.faq, BOOST_PRICING_FAQ].map((item, index) => ({
     ...item,
     details:
       item.details ??
@@ -592,7 +599,7 @@ function enrichPost(post: BlogPost): BlogPost {
         `${item.a} In practical terms, this means you can start with a normal question and keep going into follow-ups, research, drafts, files, images, voice, or code without switching products. ArcAI is designed for the kind of messy, real workflow where a user asks one thing, changes direction, adds context, and expects the assistant to keep up.`,
         index === 0
           ? context.proof
-          : `ArcAI offers a generous free tier with Arc Think, image generation, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost unlocks unlimited research, unlimited chat and 250 shared monthly image credits, and unlimited voice sessions up to 2 hours each.`
+          : "Free includes unlimited GPT 6 Luna, a GPT 6.1 Sol allowance, 30 GPT 2.5 Flare image outputs per UTC calendar month, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost adds more Sol usage, a separate GPT 6 Astra allowance, unlimited research, 250 shared monthly image credits, and unlimited voice sessions up to 2 hours each."
       ],
     bullets:
       item.bullets ??

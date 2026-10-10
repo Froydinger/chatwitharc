@@ -29,6 +29,7 @@ interface ImageEditModalProps {
 }
 
 const MAX_CHARS = 500;
+const MAX_SOURCE_IMAGES = 10;
 
 const SUGGESTIONS = [
   "Make it more photorealistic",
@@ -53,7 +54,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { editAspectRatio: selectedAspect, count: selectedCount, setEditAspectRatio: setAspectRatio, setCount } = useImageGenStore();
   const selectedModel = useEditImageModel(isBoostTier);
   const mode = useImageGenStore(state => state.imageMode);
-  const selectedQuality = selectedModel.startsWith('gemini-') ? 'native' : selectedModel === 'gpt-image-2.5-sunburst' ? 'high' : !isBoostTier || mode === 'low' ? 'low' : 'medium';
+  const selectedQuality = selectedModel === 'gpt-image-2.5-sunburst' ? 'high' : !isBoostTier || mode === 'low' ? 'low' : 'medium';
   const [openMenu, setOpenMenu] = useState<null | "aspect" | "count">(null);
   const effectiveCount: ImageCount = selectedCount || 1;
 
@@ -80,11 +81,11 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const images = files.filter((f) => f.type.startsWith("image/"));
-    const max = 14;
+    const max = MAX_SOURCE_IMAGES;
     const currentTotal = imageUrls.length + additionalImages.length;
 
     setAdditionalImages((prev) => {
-      const merged = [...prev, ...images].slice(0, max - imageUrls.length);
+      const merged = [...prev, ...images].slice(0, Math.max(0, max - imageUrls.length));
       const newTotal = imageUrls.length + merged.length;
 
       if (newTotal >= max && images.length > 0 && merged.length > prev.length) {
@@ -114,6 +115,10 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   };
 
   const handleSubmit = async () => {
+    if (imageUrls.length + additionalImages.length > MAX_SOURCE_IMAGES) {
+      toast({ title: "Too many images", description: `Choose up to ${MAX_SOURCE_IMAGES} source images.`, variant: "destructive" });
+      return;
+    }
     const textWithChips = applyChipsToText(editInstruction);
     if (!textWithChips) {
       toast({
@@ -288,7 +293,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
             )}
 
             {/* Attach Images Button */}
-            {imageUrls.length + additionalImages.length < 14 && (
+            {imageUrls.length + additionalImages.length < MAX_SOURCE_IMAGES && (
               <Button
                 type="button"
                 variant="outline"

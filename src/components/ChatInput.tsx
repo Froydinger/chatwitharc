@@ -55,7 +55,7 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useModelStore, getModelForTask, LUNA_MODEL } from "@/store/useModelStore";
+import { useModelStore, getModelForTask, normalizeModelSelection, LUNA_MODEL } from "@/store/useModelStore";
 import { AIService, getQueryComplexity } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { isLocalChatPreview } from "@/lib/localPreview";
@@ -173,6 +173,7 @@ type Props = {
 };
 
 export interface CloudTextSubmitIntent {
+  modelSelection?: import('@/store/useModelStore').ArcModelSelection;
   reasoningSelection?: import('@/store/useModelStore').LunaReasoningSelection;
   sessionId: string;
   userMessageId: string;
@@ -669,7 +670,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       let didSearchChats = false;
 
       try {
-        const ai = new AIService();
+        const ai = new AIService(useModelStore.getState().modelSelection);
         // Get all messages up to the edited one, replace its content, and send to AI
         const messageIndex = messages.findIndex((m) => m.id === editedMessageId);
         if (messageIndex === -1) {
@@ -811,7 +812,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           role: "assistant",
           type: "text",
           sourceModel: "cloud-chat",
-          modelUsed: useModelStore.getState().chatModel,
         });
       }
     },
@@ -1187,7 +1187,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           content: live.trim() ? live : canvas.content, codeLanguage: canvas.codeLanguage };
       })(),
       ...getExecutionModelChoices(user.id, hasBoost || isAdmin),
-      reasoningSelection: useModelStore.getState().reasoningEffort,
+      modelSelection: useModelStore.getState().modelSelection,
       imageOptions: { aspect: imageGenAspect, editAspect: imageEditAspect, count: imageGenCount, generationModel: imageGenModel, editModel: imageEditModel, quality: useImageGenStore.getState().imageMode === "low" ? "low" : "medium" },
     });
   }
@@ -1202,6 +1202,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   const executeRequest = async (messageOverride?: string, captured?: ComposerRequestSnapshot): Promise<false | void> => {
     const messageToSend = captured?.content ?? messageOverride ?? inputValue;
+    const requestModelSelection = normalizeModelSelection(captured?.modelSelection ?? captured?.reasoningSelection ?? useModelStore.getState().modelSelection);
     const requestImages = captured?.images ?? selectedImages;
     const requestDocuments = captured?.documents ?? selectedDocuments;
     const requestModes = captured?.modes;
@@ -1435,16 +1436,12 @@ Feel free to send another message or test a prompt to see the animation again!`,
       // Add user message to UI
       await addMessage({ content: userMessage, role: "user", type: "text" });
       
-      // Get the current model in use to display as the tag on the helper message
-      const currentModel = useModelStore.getState().chatModel;
-
       // Add assistant prompt instructing model picker usage
       await addMessage({
-        content: "Choose Arc Think or Arc Flash using the chat picker. Arc Think adjusts its reasoning to your request automatically.",
+        content: "Choose Auto, GPT 6 Luna, or GPT 6.1 Sol using the chat picker. Auto chooses the right GPT for your task. GPT 6 Astra is available with Boost and has a separate allowance.",
         role: "assistant",
         type: "text",
         sourceModel: "cloud-chat",
-        modelUsed: currentModel,
       });
 
       setLoading(false);
@@ -1614,7 +1611,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
     }
 
     try {
-      const ai = new AIService(acceptedRequest?.reasoningSelection);
+      const ai = new AIService(requestModelSelection);
 
       // Guest mode restrictions: only basic text chat
       if (
@@ -1661,11 +1658,12 @@ Feel free to send another message or test a prompt to see the animation again!`,
               doc.type || "application/octet-stream",
             );
             await addMessage({
-              content: response,
+              content: response.content,
               role: "assistant",
               type: "text",
               sourceModel: "cloud-document",
-              modelUsed: LUNA_MODEL,
+              modelUsed: response.modelUsed,
+              reasoningEffortUsed: response.reasoningEffortUsed,
             });
           }
         } catch (err: any) {
@@ -1676,7 +1674,6 @@ Feel free to send another message or test a prompt to see the animation again!`,
             role: "assistant",
             type: "text",
             sourceModel: "cloud-document",
-            modelUsed: LUNA_MODEL,
           });
         }
         return;
@@ -1806,11 +1803,12 @@ Feel free to send another message or test a prompt to see the animation again!`,
             : finalMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
           const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
           await addMessage({
-            content: response,
+            content: response.content,
             role: "assistant",
             type: "text",
             sourceModel: "cloud-vision",
-            modelUsed: LUNA_MODEL,
+            modelUsed: response.modelUsed,
+            reasoningEffortUsed: response.reasoningEffortUsed,
           });
         } catch {
           retainFailedRequest('Failed to analyze images');
@@ -1820,7 +1818,6 @@ Feel free to send another message or test a prompt to see the animation again!`,
             role: "assistant",
             type: "text",
             sourceModel: "cloud-vision",
-            modelUsed: LUNA_MODEL,
           });
         }
         return;
@@ -2169,7 +2166,7 @@ ${safeCode}
         const shouldSearchForVideo = shouldForceVideoSearch(finalMessage);
         const codeContextModelOverride =
           shouldUseCodeContext && !shouldForceCode
-            ? getModelForTask('code', getQueryComplexity(finalMessage))
+            ? getModelForTask('code', getQueryComplexity(finalMessage), requestModelSelection)
             : undefined;
 
         console.log("🎯 Canvas/Code mode detection:", {
@@ -2212,7 +2209,7 @@ ${safeCode}
             }) : undefined;
             wasCloudHandoff = true;
             await onCloudTextSubmit({
-              reasoningSelection: acceptedRequest?.reasoningSelection ?? useModelStore.getState().reasoningEffort,
+              modelSelection: requestModelSelection,
               sessionId: requestSessionId,
               userMessageId,
               userContent: finalMessage,
@@ -2258,7 +2255,7 @@ ${safeCode}
           await streamWithContinuation({
             messages: aiMessages,
             profile,
-            reasoningSelection: acceptedRequest?.reasoningSelection,
+            modelSelection: requestModelSelection,
             forceCanvas: shouldForceCanvas,
             forceCode: shouldForceCode,
             sessionId: requestSessionId || undefined,
@@ -2570,7 +2567,7 @@ ${safeCode}
                 console.warn("Local model failed, falling back to cloud:", localErr);
                 toast({ title: "Local model error", description: "Falling back to cloud.", variant: "default" });
                 // Fall through to cloud path below
-                const ai = new AIService(acceptedRequest?.reasoningSelection);
+                const ai = new AIService(requestModelSelection);
                 const result = await ai.sendMessage(
                   aiMessages,
                   profile,
@@ -2594,7 +2591,7 @@ ${safeCode}
               }
             } else {
               // === CLOUD PATH ===
-              const ai = new AIService(acceptedRequest?.reasoningSelection);
+              const ai = new AIService(requestModelSelection);
               currentAbortController = new AbortController();
 
               const applyActivity = (activity: string) => {

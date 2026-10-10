@@ -215,26 +215,44 @@ spreads this map and overrides only the typography keys.
   deeper work. Free accounts receive 3 voice sessions per UTC day, up to 10 minutes each;
   Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. The microphone stays
   active for natural interruptions; the assistant is always Arc.
-- **Arc Think and Arc Flash are the only chat choices.** Arc Think uses Auto
-  orchestration through Arc Matrix™ (Powered by GPT 6 & 6.1); free accounts use
-  Luna for GPT requests and Boost can use GPT-6.1 Sol. Arc Flash uses
-  `gemini-3.8-flash` through Google's OpenAI-compatible endpoint and the server-only
-  `GEMINI_API_KEY`. Free accounts get 20 user messages sent to Flash per UTC day;
-  assistant replies and tool rounds do not count. Auto-routed Flash consumes the
-  same allowance and falls back to Luna when exhausted. Explicit Flash stops with
-  a quota message. Boost has unlimited usage. Durable Work is GPT-only for text, tools and images, including stale Flash
-  selections at submission and worker resume. Work still requires Boost. Preserve signed
-  assistant tool messages privately in execution history. Old GPT picker
-  preferences migrate to Auto Think; saved Flynn choices migrate to Arc Flash.
+- **GPT-only model lineup:** Auto, GPT 6 Luna (`gpt-6-luna`), GPT 6.1 Sol
+  (`gpt-6.1-sol`), and GPT 6 Astra (`gpt-6-astra`). Auto uses Luna for chat
+  and Sol for writing, Canvas, code and quick web search. Luna is unlimited
+  for every account, subject only to safety/rate/run guards. Sol is available
+  to Free and Boost with a shared account allowance based on actual provider
+  usage; Auto warns about this. When Sol runs out, explicit Sol and Auto use
+  Luna with a clear actual-model notice. Astra requires current server-verified
+  Boost or existing `admin_users` membership and has a separate Boost allowance.
+  Admin usage is recorded without an account allowance cap. UI meters show
+  percentages, never a customer dollar balance. API Light means `low`;
+  Luna varies by task, Sol uses low for chat and task-appropriate effort,
+  Astra uses low for chat and at most medium elsewhere.
+  Preserve saved actual model/effort and signed tool history. Retired Think,
+  Flash, Flynn and old effort preferences normalize to Auto. Durable Work and
+  App Builder remain GPT-only and keep their existing Boost/tool/approval gates.
+  The Gemini adapters are dormant historical compatibility, not active routing.
+  Deep and Ultra retain the existing Perplexity APIs as the explicit research
+  exception. Never change voice functionality, models, tuning, limits or audio.
+- `docs/GPT_MODEL_LINEUP.md` — approved routing, accounting coverage, verification gaps and deployment order.
+- `docs/BOOST_BILLING_CATALOG.md` — current website offers, grandfathered billing identities, Play isolation and rollback contracts.
+- `docs/GEMINI_HANDOFF.md` — dormant Gemini architecture, API contracts,
+  historical compatibility, and GPT-only migration safeguards; not an active integration.
+- `docs/qa/arc-usage-ledger.md` — cost-accounting policy, SQL verification,
+  observation-first deployment and separate activation gate.
 - **Chat vs Work is recorded on the session.** `chat_sessions.is_work` (mirroring
   `is_git`) marks a conversation that was handed to Arc Work, and dashboard
   history badges each chat accordingly. It used to live only in localStorage, so
   it was device-local and invisible to the dashboard.
 - **Images: monthly policy.** Free receives 30 Flare Low outputs per UTC calendar month.
-  Boost receives 250 shared credits per month across Flare Low/Medium, Sunburst High,
-  Nano Banana 2 and Nano Banana 2 Lite. Admins are unlimited. Square output costs:
-  Flare 1, Lite 3, Sunburst High 4, Nano Banana 2 5; larger Flare Medium costs 2
-  and larger/source Sunburst High costs 6. Google output stays 1K. No silent fallback.
+  Boost receives 250 shared credits per month across Flare Low/Medium and Sunburst High.
+  Admins are unlimited. Square output costs: Flare 1 and Sunburst High 4;
+  larger Flare Medium costs 2 and larger/source Sunburst High costs 6.
+  New UI choices are GPT-only. The two shipped legacy Nano/Lite IDs alias to
+  Flare HQ only for verified Boost/admin, with normal lower Flare credit costs,
+  actual-model metadata and the existing fallback notice. Preserve original
+  identity hashes for retries; never rerun/recharge existing jobs. Other Gemini
+  IDs and unverified/Free aliases remain blocked. Saved images, historical cost
+  metadata and in-flight settlements remain. No silent higher-cost fallback.
   Optional once-monthly refill replaces base balance, forfeits unused base credits,
   and is independently switchable for Free/Boost. Bonuses have separate expiries.
   Atomic reservations and generation-fenced refunds protect concurrent usage.
@@ -242,7 +260,7 @@ spreads this map and overrides only the typography keys.
   Builder images use a separate server-verified owned app-run allowance with
   configurable attempt caps: Flare Low by default, Sunburst only on explicit better
   image request. Do not advertise this exception. Preserve legacy in-flight settlement.
-- **Limits advertising:** say “Less usage” on Free and “Unlimited usage” on Boost.
+- **Limits advertising:** say “Less usage” on Free and “More usage” on Boost.
   Image rollout defaults to staged: Boost retains unlimited quantity until approved
   one-time transition capture. Grandfathering stores each existing eligible Boost
   account's fixed current-period expiry; webhook updates never extend it. Missing
@@ -251,10 +269,10 @@ spreads this map and overrides only the typography keys.
   neither missing dates nor year-9999 lifetime sentinels create permanent image
   grandfathering. Classification never modifies billing or tier grant records.
   Immediate transition is a
-  separate explicit release option. Lite stays hidden and server-blocked until
-  account-specific verification or explicit owner-reported access is recorded. Keep picker balance/cost
+  separate explicit release option. Retired Google image choices stay hidden;
+  their narrow installed-client aliases never invoke Google. Keep picker balance/cost
   concise; detailed refill and transition explanations belong in the dashboard.
-  Show Flash percentages. Images show monthly balances, costs and refill availability; never call finite Boost images unlimited.
+  Show separate Sol and Astra allowance percentages. Images show monthly balances, costs and refill availability; never call finite Boost images unlimited.
   Exact enforcement values stay in backend/internal technical docs. Voice names,
   providers, session limits and behavior stay unchanged. Dashboard navigation
   and the notification bell are outside the animation/layout change scope.

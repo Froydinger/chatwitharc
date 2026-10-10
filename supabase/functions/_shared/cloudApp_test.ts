@@ -340,6 +340,28 @@ Deno.test("App Builder composition is default off, with zero database/provider c
   );
 });
 
+Deno.test('expired App run releases a confirmed pre-provider reservation', async () => {
+  const f = runtimeFixture(); let released = 0;
+  f.run.created_at = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  f.ports.modelUsage = async () => ({
+    route: { model: 'gpt-6-luna', selection: 'gpt-6-luna', effort: 'low', task: 'code' },
+    ticket: { releaseIfNotStarted: async () => { released++; } },
+  } as unknown as Awaited<ReturnType<NonNullable<CloudAppRuntimePorts['modelUsage']>>>);
+  await advanceCloudAppRun(f.run.id, f.ports);
+  equal(f.starts(), 0); equal(f.status(), 'failed'); equal(released, 1);
+});
+
+Deno.test('App preparation failure releases its untouched reservation before returning the error', async () => {
+  const f = runtimeFixture(); let released = 0;
+  f.ports.modelUsage = async () => ({
+    route: { model: 'gpt-6-luna', selection: 'gpt-6-luna', effort: 'low', task: 'code' },
+    ticket: { releaseIfNotStarted: async () => { released++; } },
+  } as unknown as Awaited<ReturnType<NonNullable<CloudAppRuntimePorts['modelUsage']>>>);
+  f.ports.provider = () => { throw new Error('Provider configuration unavailable'); };
+  await rejects(() => advanceCloudAppRun(f.run.id, f.ports), /configuration unavailable/);
+  equal(f.starts(), 0); equal(released, 1);
+});
+
 Deno.test("persistence owner filters are explicit; subscription errors never grant access", async () => {
   const filters: unknown[] = [];
   let boostError = false;

@@ -1,11 +1,10 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { Check, ChevronDown, Crown } from 'lucide-react';
+import { Check, ChevronDown, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSubscription } from '@/hooks/useSubscription';
-import { canSelectFlynn, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { ASTRA_MODEL, canSelectAstra, useModelStore } from '@/store/useModelStore';
 import { useAuth } from '@/hooks/useAuth';
-import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { VoiceMagneticPicker } from '@/components/VoiceMagneticPicker';
 import { PRESETS } from '@/components/ChatModelPicker';
 import type { VoiceName } from '@/store/useVoiceModeStore';
@@ -23,18 +22,17 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
   const mobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'model' | 'voice'>('model');
-  const reasoningEffort = useModelStore((state) => state.reasoningEffort);
+  const modelSelection = useModelStore((state) => state.modelSelection);
   const { user, loading: authLoading } = useAuth();
   const presets = PRESETS;
-  const requireAuth = useRequireAuth();
-  const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
-  const { hasBoost, isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
-  const flynnAvailable = canSelectFlynn(user, hasBoost || isAdmin);
-  const selectedPreset = presets.find((preset) => preset.effort === reasoningEffort) ?? presets[0];
+  const setModelSelection = useModelStore((state) => state.setModelSelection);
+  const { hasVerifiedBoost, isVerifiedModelAdmin: isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
+  const astraAvailable = canSelectAstra(hasVerifiedBoost, isAdmin, authLoading || subscriptionLoading) && Boolean(user?.id && !user.is_anonymous);
+  const selectedPreset = presets.find((preset) => preset.selection === modelSelection) ?? presets[0];
 
   useEffect(() => {
-    if (!authLoading && !subscriptionLoading && reasoningEffort === 'flynn' && !flynnAvailable) setReasoningEffort('auto');
-  }, [authLoading, subscriptionLoading, reasoningEffort, flynnAvailable, setReasoningEffort]);
+    if (!authLoading && !subscriptionLoading && modelSelection === ASTRA_MODEL && !astraAvailable) setModelSelection('auto');
+  }, [authLoading, subscriptionLoading, modelSelection, astraAvailable, setModelSelection]);
 
   return (
     <>
@@ -113,25 +111,25 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                   <div className="text-xs text-muted-foreground">Choose how Arc responds.</div>
                 </div>
                 {presets.map((preset) => {
-                  const badge = preset.effort !== 'flynn' || hasBoost || isAdmin ? 'Unlimited usage' : 'Less usage';
+                  const locked = preset.selection === ASTRA_MODEL && !astraAvailable;
+                  const disabled = locked && (authLoading || subscriptionLoading);
+                  const badge = locked ? 'Boost' : preset.selection === 'gpt-6-luna' ? 'Unlimited' : undefined;
                   const Icon = preset.icon;
-                  const active = reasoningEffort === preset.effort;
+                  const active = !locked && modelSelection === preset.selection;
                   return (
                     <button
                       type="button"
-                      key={preset.effort}
+                      key={preset.selection}
                       onClick={() => {
-                        if (preset.effort === 'flynn' && !flynnAvailable) {
-                          setOpen(false);
-                          requireAuth('generic', undefined, 'Arc Flash');
-                          return;
-                        }
-                        setReasoningEffort(preset.effort as LunaReasoningSelection);
+                        if (disabled) return;
+                        if (locked) { setOpen(false); openCheckout(undefined, 'astra_boost_required'); return; }
+                        setModelSelection(preset.selection);
                       }}
+                      disabled={disabled}
                       aria-pressed={active}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-colors',
-                        active ? 'border-primary/55 bg-primary/12 shadow-[0_0_20px_hsl(var(--primary)/0.16)]' : 'border-border/35 bg-card/30 hover:border-border/70 hover:bg-muted/45',
+                        disabled ? 'cursor-not-allowed border-border/25 bg-card/20 opacity-55' : active ? 'border-primary/55 bg-primary/12 shadow-[0_0_20px_hsl(var(--primary)/0.16)]' : 'border-border/35 bg-card/30 hover:border-border/70 hover:bg-muted/45',
                       )}
                     >
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/70"><Icon className="h-4.5 w-4.5 text-primary" /></span>
@@ -139,11 +137,13 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                         <span className="flex items-center gap-2"><span className="text-sm font-semibold text-foreground">{preset.title}</span>{badge && <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">{badge}</span>}</span>
                         <span className="mt-0.5 block truncate text-xs text-muted-foreground">{preset.subtitle}</span>
                       </span>
+                      {locked && <Lock className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
                       {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
                     </button>
                   );
                 })}
-                {!hasBoost && !isAdmin && <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><Crown className="h-4 w-4 shrink-0 text-primary" /><span>Think is unlimited for everyone. Boost adds unlimited Flash usage.</span></div>}
+                <p className="px-1 text-xs leading-relaxed text-muted-foreground">Auto can use your Sol allowance. When it runs out, Auto and Sol switch to Luna.</p>
+
                 <div className="pt-1 text-center text-xs text-muted-foreground">Current: {selectedPreset.title}</div>
               </div>
             ) : (

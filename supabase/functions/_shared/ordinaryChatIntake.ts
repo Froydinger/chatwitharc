@@ -24,7 +24,7 @@ export async function ordinaryChatIntake(options: {
  }
  const userMessage = {id:input.id,role:'user',type:'text',content:input.content,timestamp:new Date().toISOString()};
  const digest = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify({
-  messages:body.messages,model:body.model,reasoningEffort:body.reasoningEffort,reasoningSelection:body.reasoningSelection,
+  messages:body.messages,model:body.model,modelSelection:body.modelSelection,reasoningEffort:body.reasoningEffort,reasoningSelection:body.reasoningSelection,
   forceWebSearch:!!body.forceWebSearch,userMessageId:input.id,userContent:input.content,
  })));
  const hash = [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -77,7 +77,7 @@ export async function ordinaryChatIntake(options: {
     const executionBody={...body,persistentChat:false,profile:freshProfile};
     const internal=new Request(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(executionBody),signal});
     const result=await consumeOrdinaryChat(await handle(internal,user),emit);
-    return {...result,persistent_message_id:body.submissionId,persistent_timestamp:new Date().toISOString(),cloud_persisted:true,reasoning_effort_used:body.reasoningEffort};
+    return {...result,persistent_message_id:body.submissionId,persistent_timestamp:new Date().toISOString(),cloud_persisted:true,reasoning_effort_used:result.reasoning_effort_used};
    } finally {clearInterval(timer);}
   },
   save:async result => {

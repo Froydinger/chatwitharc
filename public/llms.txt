@@ -1,22 +1,26 @@
 # ArcAI
 
-> ArcAI (Ask, Reflect, Create) is a free multimodal AI assistant by Win The Night Productions. Natural voice conversations, image generation, code canvas, writing tools, music player and living memory in one app.
+> ArcAI (Ask, Reflect, Create) is a multimodal AI assistant by Win The Night™ Foundation. Natural voice conversations, image generation, code canvas, writing tools, music player and living memory in one app, with Free and Boost plans.
 
-Arc Matrix™ powers ArcAI chat, code, writing and analysis. The model picker offers Auto, Ava (fast & agile), Maya (everyday powerhouse) and River (deep reasoning); Auto starts with Ava and steps up for clearly harder requests. Natural, interruptible voice conversations are powered by Voxi. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each; Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. Living memory, Deep Search, web search, file uploads, document analysis, canvases, shared chats, code generation and one-tap publishing are also included.
+Arc Matrix™ powers ArcAI chat, code, writing and analysis. The model picker offers Auto, GPT 6 Luna, GPT 6.1 Sol, and GPT 6 Astra on Boost. Auto uses Luna for chat and Sol for writing, Canvas, code, and quick web search. Luna is unlimited on Free and Boost. Sol has a finite account allowance on both plans, with more usage on Boost; Auto uses that allowance when it selects Sol. Astra has a separate Boost allowance. When Sol runs out, Arc uses Luna and shows the actual model used.
 
-Free accounts receive 30 GPT 2.5 Flare image outputs per UTC calendar month. Boost includes 250 shared monthly image credits for generation and editing across available models, with an optional monthly refill when enabled. Existing Boost users may keep their current unlimited allowance until their fixed transition expiry. Admins have unlimited images. GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst, Nano Banana 2, and verified-available Nano Banana 2 Lite use their actual model names.
+Natural, interruptible voice conversations are powered by Voxi. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each; Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. Living memory, web search, file uploads, document analysis, canvases, shared chats, and coding help are included on Free. Research has Free allowances; Boost includes unlimited Deep Search and Ultra Deep Search. Arc Work, App Builder, and GitHub Pro require Boost.
 
-Published code creations use the `*.froydingermedia.online` domain and stay live until their owner unpublishes them.
+Free accounts receive 30 GPT 2.5 Flare image outputs per UTC calendar month. Boost includes 250 shared monthly image credits for generation and editing across GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst, with an optional monthly refill when enabled. Existing Boost users may keep their current unlimited image allowance until their fixed transition expiry. Admins have unlimited images.
+
+New Boost subscriptions are $15/month or $115/year. Existing subscribers keep their current price, including renewals. Google Play pricing is shown in the app. A 7-day free trial requires a payment method. Boost Pro: Coming Soon.
+
+App Builder projects can be published to `*.askarc.chat` or exported for the owner's own hosting.
 
 ## Pages
 
 - [Home](/): Chat with Arc — voice, images, code and writing in one place.
-- [Pricing](/pricing): Everything included free, with an optional support link.
+- [Pricing](/pricing): Free and Boost plans, new-subscriber pricing, and existing-subscriber price protection.
 - [Downloads](/downloads): Native apps for macOS, Windows (beta), iOS and Android.
 - [Dashboard](/dashboard): Central hub for chats, canvases, images, deploys, music and memory.
 - [Support](/support): Open a support ticket or get help.
 
 ## Optional
 
-- [Settings](/dashboard/settings): Account, accent color, voice and usage settings.
+- [Settings](/dashboard/settings): Account, appearance, voice and usage settings.
 - [Unsubscribe](/unsubscribe): Manage email preferences.

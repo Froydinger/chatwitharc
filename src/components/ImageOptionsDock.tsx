@@ -1,4 +1,3 @@
-import { useImageQuota } from '@/hooks/useImageQuota';
 import { useSubscription } from "@/hooks/useSubscription";
 import { useState } from "react";
 import { createPortal } from "react-dom";
@@ -53,7 +52,6 @@ export function ImageOptionsContent({
   } = useImageGenStore();
 
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
-  const { liteAvailable } = useImageQuota();
   const [openMenu, setOpenMenu] = useState<null | "aspect" | "count">(null);
 
   // Edits get their own shape list, including "Match original" — the default,
@@ -80,7 +78,7 @@ export function ImageOptionsContent({
       )}
 
       <div className="flex flex-wrap gap-1 mb-3" role="group" aria-label="Image mode">
-        {IMAGE_MODEL_OPTIONS.filter(option => option.mode !== 'lite' || liteAvailable).map(option => {
+        {IMAGE_MODEL_OPTIONS.map(option => {
           const mode = option.mode;
           return <button key={mode} type="button" aria-pressed={(hasBoost || isAdmin ? imageMode : 'low') === mode}
             title={option.blurb} onClick={() => {
@@ -132,7 +130,7 @@ export function ImageOptionsContent({
           )}
         </div>
 
-        {/* Both image modes share the account’s image credits. */}
+        {/* All image modes share the account’s image credits. */}
           <div className="relative flex flex-col gap-1">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Count</span>
             <button

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { checkSubdomainAvailability, PUBLISH_DOMAIN } from '@/lib/deploy';
 import { useSubscription } from '@/hooks/useSubscription';
+import { BOOST_NEW_SUBSCRIBER_PRICE_COPY } from '@/lib/boostPricing';
 
 const DEFAULT_FAVICON_SRC = '/arc-logo-cropped.png';
 const MAX_ICON_BYTES = 1024 * 1024;
@@ -217,11 +218,11 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
           </div>
           <h2 className="text-xl font-bold mb-2">Publishing requires Boost</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Upgrade to ArcAI Boost for $10/month to publish live web apps to custom Arc links, get higher Luna limits, and use GPT-Image-2.
+            Upgrade to ArcAI Boost to publish live web apps to custom Arc links, get a higher GPT 6.1 Sol allowance, a separate GPT 6 Astra allowance, and 250 shared monthly image credits. {BOOST_NEW_SUBSCRIBER_PRICE_COPY}
           </p>
           <div className="flex flex-col gap-2.5">
             <Button onClick={() => { onClose(); openCheckout(); }} className="w-full rounded-xl">
-              Upgrade to Boost ($10/mo)
+              Get Boost
             </Button>
             <Button variant="ghost" onClick={onClose} className="w-full rounded-xl">
               Maybe later

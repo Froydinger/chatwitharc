@@ -1,3 +1,6 @@
+import { arcTextCompletion } from '../_shared/arcTextCompletion.ts';
+import { authorizedArcModelRoute } from '../_shared/arcModelAccess.ts';
+import { ArcModelAccessError } from '../_shared/arcModelRouting.ts';
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -10,7 +13,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   console.log('Image analysis request received');
-  
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -49,21 +52,19 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, image, images, reasoningEffort } = await req.json();
-    const selectedReasoningEffort = ['low', 'medium', 'high'].includes(reasoningEffort)
-      ? reasoningEffort
-      : 'medium';
+    const body = await req.json();
+    const { messages, image, images } = body;
 
     // Support both single image and multiple images (up to 4)
     const imageArray = images || (image ? [image] : []);
-    
+
     if (!messages) {
       return new Response(JSON.stringify({ error: 'Messages are required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    
+
     if (imageArray.length === 0) {
       return new Response(JSON.stringify({ error: 'At least one image is required for analysis' }), {
         status: 400,
@@ -85,16 +86,22 @@ serve(async (req) => {
     const contentArray: any[] = [
       { type: 'text', text: lastMessage?.content || 'What do you see in these images?' }
     ];
-    
+
     // Add all images to the content array
     imageArray.forEach((img: string) => {
       contentArray.push({ type: 'image_url', image_url: { url: img } });
     });
 
+    // The voice camera and older clients do not send a model selection. Keep
+    // their existing Luna request/response contract and do not add metering.
+    // A raw model override is deliberately ignored on this compatibility path.
+    if (body.modelSelection === undefined) {
+      const selectedReasoningEffort = ['low', 'medium', 'high'].includes(body.reasoningEffort)
+        ? body.reasoningEffort : 'medium';
     // Luna is the only enabled text/vision reasoning model for now.
     const selectedModel = 'gpt-6-luna';
     console.log('Using model for image analysis:', selectedModel);
-    
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -121,7 +128,7 @@ serve(async (req) => {
     if (!response.ok) {
       const errorData = await response.text();
       console.error('OpenAI API error:', errorData);
-      
+
       if (response.status === 429) {
         return new Response(JSON.stringify({
           error: 'Rate limit exceeded. Please try again later.',
@@ -140,7 +147,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      
+
       return new Response(JSON.stringify({
         error: `Image analysis failed: ${response.status} ${response.statusText}`,
         success: false
@@ -153,9 +160,31 @@ serve(async (req) => {
     const data = await response.json();
     console.log('Image analysis successful');
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       content: data.choices[0]?.message?.content || 'Sorry, I could not analyze the image.',
-      success: true 
+      success: true
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+    }
+
+    const route = await authorizedArcModelRoute(supabase, user, body, 'analysis');
+    const selectedModel = route.model;
+    const selectedReasoningEffort = route.effort;
+    console.log('Using model for image analysis:', selectedModel);
+
+    const completed = await arcTextCompletion({ db: supabase, user, request: body,
+      requestId: typeof body.submissionId === 'string' ? body.submissionId : crypto.randomUUID(),
+      source: 'image-analysis', route, apiKey: openaiApiKey, messages: [
+        { role: 'system', content: 'You are ArcAI. Analyze images quickly and concisely. Be helpful but brief. When multiple images are provided, analyze each one and describe relationships between them if relevant.' },
+        ...messages.slice(0, -1), { role: 'user', content: contentArray },
+      ], maxTokens: 16_384 });
+    const data = completed.data;
+    console.log('Image analysis successful');
+
+    return new Response(JSON.stringify({
+      content: data.choices[0]?.message?.content || 'Sorry, I could not analyze the image.',
+      success: true, model_used: completed.route.model, reasoning_effort_used: completed.route.effort, model_switch_notice: completed.notice
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -163,7 +192,7 @@ serve(async (req) => {
     console.error('Error in analyze-image function:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ error: message }), {
-      status: 500,
+      status: error instanceof ArcModelAccessError ? error.status : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

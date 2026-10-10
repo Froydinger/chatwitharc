@@ -1,4 +1,4 @@
-import type { LunaReasoningSelection } from '@/store/useModelStore';
+import type { ArcModelSelection, LunaReasoningSelection } from '@/store/useModelStore';
 
 /** In-memory request data. Files stay File objects, never expiring preview URLs. */
 export interface ComposerRequestSnapshot {
@@ -19,7 +19,9 @@ export interface ComposerRequestSnapshot {
   workspace: Readonly<{ isOpen: boolean; canvasType: 'writing' | 'code'; content: string; codeLanguage: string }>;
   gitModelMode?: 'normal' | 'pro';
   appModelMode?: 'fast' | 'pro';
-  reasoningSelection: LunaReasoningSelection;
+  modelSelection?: ArcModelSelection;
+  /** Retained for older queued requests. */
+  reasoningSelection?: LunaReasoningSelection;
   imageOptions: Readonly<{ aspect: string; editAspect: string; count: number; generationModel?: string; editModel?: string; quality?: string }>;
 }
 

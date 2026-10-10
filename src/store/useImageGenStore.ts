@@ -7,18 +7,18 @@ import { persist } from 'zustand/middleware';
  * - gpt-image-2.5-sunburst: Flagship "Pro" model (maximum fidelity, rich lighting, creative precision)
  * - gpt-image-2: Legacy fallback
  */
-export type ImageModelId = 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2' | 'gemini-3.1-flash-image' | 'gemini-3.1-flash-lite-image';
+export type ImageModelId = 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2';
 export const DEFAULT_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-flare';
 export const PRO_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-sunburst';
 export const EDIT_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-flare';
-export const LITE_IMAGE_MODEL: ImageModelId = 'gemini-3.1-flash-lite-image';
-export const FLASH_IMAGE_MODEL: ImageModelId = 'gemini-3.1-flash-image';
+// Historical model IDs remain recognizable for stored usage and image metadata.
+// They are never offered or resolved for a new generation/edit request.
+export const LITE_IMAGE_MODEL = 'gemini-3.1-flash-lite-image';
+export const FLASH_IMAGE_MODEL = 'gemini-3.1-flash-image';
 export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
   'gpt-image-2.5-flare',
   'gpt-image-2.5-sunburst',
   'gpt-image-2',
-  FLASH_IMAGE_MODEL,
-  LITE_IMAGE_MODEL,
 ];
 
 export type ImageAspectRatio = '1:1' | '3:2' | '2:3' | '16:9';
@@ -46,8 +46,6 @@ export const IMAGE_MODEL_OPTIONS = [
  { id: DEFAULT_IMAGE_MODEL, mode: 'low', label: 'GPT 2.5 Flare', blurb: 'Fast GPT images', boostOnly: false },
  { id: DEFAULT_IMAGE_MODEL, mode: 'image', label: 'GPT 2.5 Flare HQ', blurb: 'GPT images with more detail', boostOnly: true },
  { id: PRO_IMAGE_MODEL, mode: 'pro', label: 'GPT 2.5 Sunburst', blurb: 'High fidelity GPT images', boostOnly: true },
- { id: LITE_IMAGE_MODEL, mode: 'lite', label: 'Nano Banana 2 Lite', blurb: 'Fast native 1K images', boostOnly: true },
- { id: FLASH_IMAGE_MODEL, mode: 'flash', label: 'Nano Banana 2', blurb: 'Native 1K images', boostOnly: true },
 ] as const;
 export type ImageMode = typeof IMAGE_MODEL_OPTIONS[number]['mode'];
 const normalizeMode = (mode: unknown): ImageMode => IMAGE_MODEL_OPTIONS.some(x => x.mode === mode) ? mode as ImageMode : 'low';
@@ -126,7 +124,9 @@ export const useImageGenStore = create<ImageGenState>()(
     }),
     {
       name: 'arc-image-gen-prefs',
-      version: 6,
+      // Retired flash/lite preferences become the visible default Flare Low;
+      // shape/count preferences and all saved images remain untouched.
+      version: 7,
       migrate: (persisted: unknown) => {
         const state = (persisted ?? {}) as {
           imageMode?: unknown;

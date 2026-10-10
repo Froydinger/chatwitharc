@@ -1,11 +1,10 @@
-import { assertImageModelReady, imageConfiguration, imageRequestIdentity, isGoogleImage } from "../_shared/imagePolicy.ts";
+import { imageConfiguration, imageIdentityConfiguration, imageRequestIdentity, isGoogleImage, ImageModelUnavailableError } from "../_shared/imagePolicy.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { uploadPrivateImage, downloadPrivateImage } from "../_shared/privateImageStorage.ts";
 import { fetchPublicMedia } from "../_shared/safeRemoteMedia.ts";
-import { ARC_IMAGE_FLASH_MODEL, callImageFlash, imageFlashAspect, imageFlashInputs } from "../_shared/arcImageFlash.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
@@ -15,7 +14,6 @@ const corsHeaders = {
 };
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const OPENAI_TIMEOUT_MS = 180_000;
@@ -63,13 +61,37 @@ function aspectToSize(aspectRatio: string): string {
 const SOURCE_ASPECT = 'source';
 
 function sizeFromDimensions(width: number, height: number): string {
-  if (!width || !height) return '1024x1024';
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
+    throw new Error('Source image dimensions are unavailable. Choose an output shape.');
+  }
   const ratio = width / height;
+  if (ratio < 1 / 3 || ratio > 3) {
+    throw new Error('Source image aspect ratio is unsupported. Choose an output shape between 1:3 and 3:1.');
+  }
+  // Preserve existing canonical GPT output sizes.
   // ~7% tolerance around square keeps near-square crops from tipping over.
   if (Math.abs(ratio - 16 / 9) < 0.04) return '1536x864';
-  if (ratio > 1.07) return '1536x1024';
-  if (ratio < 0.93) return '1024x1536';
-  return '1024x1024';
+  if (ratio >= 0.93 && ratio <= 1.07) return '1024x1024';
+  if (Math.abs(ratio - 3 / 2) < 0.04) return '1536x1024';
+  if (Math.abs(ratio - 2 / 3) < 0.02) return '1024x1536';
+
+  // GPT Image accepts dimensions divisible by 16 at ratios from 1:3 to 3:1.
+  // Match other source shapes without enlarging the existing output envelope:
+  // <=1536 on either edge and <=1536x1024 pixels. Source/auto credit cost stays
+  // unchanged. Prefer the closest aspect, then the largest valid exact match.
+  let best: { width: number; height: number; error: number; pixels: number } | null = null;
+  for (let candidateWidth = 16; candidateWidth <= 1536; candidateWidth += 16) {
+    const candidateHeight = Math.round(candidateWidth / ratio / 16) * 16;
+    const pixels = candidateWidth * candidateHeight;
+    const candidateRatio = candidateWidth / candidateHeight;
+    if (candidateHeight < 16 || candidateHeight > 1536 || pixels < 655360 || pixels > 1536 * 1024 || candidateRatio < 1 / 3 || candidateRatio > 3) continue;
+    const error = Math.abs(Math.log(candidateRatio / ratio));
+    if (!best || error < best.error - 1e-12 || (Math.abs(error - best.error) < 1e-12 && pixels > best.pixels)) {
+      best = { width: candidateWidth, height: candidateHeight, error, pixels };
+    }
+  }
+  if (!best) throw new Error('Source image shape is unsupported. Choose an output shape.');
+  return `${best.width}x${best.height}`;
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -244,7 +266,8 @@ async function fetchImageAsBlob(url: string, idx: number, supabaseAdmin: any, ow
     };
   }
 
-  // OpenAI /v1/images/edits ONLY accepts PNG format. Convert JPEG/WebP or resize oversized PNG to <=1024x1024 PNG.
+  // Keep the existing input normalization: convert to PNG and resize oversized
+  // inputs to <=1024x1024. GPT also accepts JPEG/WebP; PNG preserves alpha.
   try {
     const decoded = (await decode(bytes)) as Image;
     width = decoded.width;
@@ -263,8 +286,9 @@ async function fetchImageAsBlob(url: string, idx: number, supabaseAdmin: any, ow
       filename: `input-${idx}.png`,
       b64: bytesToB64(pngBytes),
       mime: 'image/png',
-      width: target.width,
-      height: target.height,
+      // Shape follows the original source, not rounding from input resizing.
+      width,
+      height,
     };
   } catch (e) {
     throw new Error(
@@ -291,7 +315,9 @@ async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filena
       form.append('background', 'transparent');
       form.append('output_format', 'png');
     }
-    form.append('image', blobs[0].blob, 'image.png');
+    // The GPT multipart contract accepts repeated image[] parts. Keep source
+    // ordering for merge/reference edits; never silently discard later inputs.
+    for (const source of blobs) form.append('image[]', source.blob, source.filename);
 
     const response = await fetch(endpoint, { method: 'POST', headers, body: form, signal: controller.signal });
     const rawText = await response.text();
@@ -351,7 +377,7 @@ function extractOpenAIImageUrls(parsed: any): string[] {
   return out;
 }
 
-async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], aspect: string, count: number, selectedModel: string, quality: string) {
+async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], aspect: string, count: number, selectedModel: string, quality: string, fallbackModel: string | null) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   let successfulCount = 0;
   try {
@@ -367,11 +393,9 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
     }
 
     console.log(`[job ${jobId}] Image edit attempt (${size}, n=${count})`);
-    const primary = isGoogleImage(selectedModel)
-      ? await callImageFlash({ apiKey: GEMINI_API_KEY, model: selectedModel, prompt, count,
-        aspect: imageFlashAspect(aspect, sources[0]?.width, sources[0]?.height),
-        images: await imageFlashInputs(sources) })
-      : await callOpenAIEdits(prompt, sources, selectedModel, size, count, quality);
+    // New edits are GPT-only; the retired Google adapter remains reusable in
+    // _shared/arcImageFlash.ts without changing historical jobs or settlement.
+    const primary = await callOpenAIEdits(prompt, sources, selectedModel, size, count, quality);
 
     let urls: string[] = [];
     let primaryErr: ReturnType<typeof classifyError> | null = null;
@@ -411,7 +435,7 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
       status: 'completed',
       result_image_url: finalUrls[0],
       result_image_urls: finalUrls,
-      fallback_model: null,
+      fallback_model: fallbackModel,
       error_message: null,
       error_type: null,
     });
@@ -465,12 +489,9 @@ serve(async (req) => {
     if (policyError || !policy) throw new Error("Image policy unavailable");
     const config = imageConfiguration(imageModel, quality, policy.tier, aspectRatio === '1:1' ? '1024x1024' : 'auto');
     const selectedModel = config.model;
-    assertImageModelReady(selectedModel, policy);
-    if (!(isGoogleImage(selectedModel) ? GEMINI_API_KEY : OPENAI_API_KEY)) {
+    const fallbackModel = typeof imageModel === 'string' && isGoogleImage(imageModel) ? selectedModel : null;
+    if (!OPENAI_API_KEY) {
       return jsonResponse({ success: false, error: "The selected image mode is unavailable.", errorType: "configuration_error" });
-    }
-    if (isGoogleImage(selectedModel) && typeof prompt === "string" && wantsTransparentBackground(prompt)) {
-      return jsonResponse({ success: false, error: "For a transparent background, choose Flare or Sunburst.", errorType: "invalid_request" });
     }
     // Edits default to keeping the source image's shape. Only an explicit,
     // recognized aspect ratio overrides that.
@@ -484,7 +505,7 @@ serve(async (req) => {
     if (imageArray.length === 0) return jsonResponse({ error: 'At least one image is required', errorType: 'invalid_request', success: false });
     if (imageArray.length > 10) return jsonResponse({ error: 'Maximum 10 source images allowed', errorType: 'invalid_request', success: false });
 
-    const identity = await imageRequestIdentity(requestKey, { prompt, imageArray, aspect, config, requestedCount });
+    const identity = await imageRequestIdentity(requestKey, { prompt, imageArray, aspect, config: imageIdentityConfiguration(imageModel, config), requestedCount });
     const { data: jobData, error: jobError } = await supabase
       .from('image_generation_jobs')
       .upsert({
@@ -498,6 +519,7 @@ serve(async (req) => {
         base_image_urls: null,
         aspect_ratio: aspect,
         preferred_model: selectedModel,
+        fallback_model: fallbackModel,
         image_quality: config.quality,
         image_size: config.size,
         status: 'processing',
@@ -508,9 +530,9 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!jobError && !jobData) {
-      const { data: existing, error } = await supabase.from('image_generation_jobs').select('id,image_request_hash').eq('user_id',user.id).eq('image_request_key',identity.key).single();
+      const { data: existing, error } = await supabase.from('image_generation_jobs').select('id,image_request_hash,preferred_model,fallback_model').eq('user_id',user.id).eq('image_request_key',identity.key).single();
       if (error || existing?.image_request_hash !== identity.hash) throw new Error('Image request conflict');
-      return jsonResponse({ success: true, jobId: existing.id, status: 'pending' });
+      return jsonResponse({ success: true, jobId: existing.id, status: 'pending', preferredModel: existing.preferred_model, fallbackModel: existing.fallback_model ?? null });
     }
     if (jobError || !jobData) {
       console.error('Failed to create edit job:', jobError);
@@ -540,7 +562,7 @@ serve(async (req) => {
 
     // Kick off processing in background; respond immediately so we never get killed
     // by the platform's per-request wall timeout.
-    const task = processEditJob(jobId, user.id, editPrompt, imageArray, aspect, requestedCount, selectedModel, config.quality);
+    const task = processEditJob(jobId, user.id, editPrompt, imageArray, aspect, requestedCount, selectedModel, config.quality, fallbackModel);
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);
     } else {
@@ -548,9 +570,12 @@ serve(async (req) => {
       task.catch(e => console.error('Background task error:', e));
     }
 
-    return jsonResponse({ jobId, status: 'pending', success: true, quota });
+    return jsonResponse({ jobId, status: 'pending', success: true, quota, preferredModel: selectedModel, fallbackModel });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    if (error instanceof ImageModelUnavailableError) {
+      return jsonResponse({ success: false, error: message, errorType: 'model_unavailable' });
+    }
     console.error('Error in edit-image:', error);
     return jsonResponse({ success: false, error: message, errorType: 'processing_error' });
   }

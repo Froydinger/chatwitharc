@@ -1,25 +1,29 @@
+import { TextUsageMeters } from '@/components/TextUsageMeters';
+import { useTextUsage } from '@/hooks/useTextUsage';
 import { useState } from 'react';
 import { ImageCreditSummary } from '@/components/ImageCreditSummary';
-import { Brain, Zap, Image, Mic, RefreshCw } from 'lucide-react';
+import { CHAT_MODEL_ICONS } from '@/lib/chatModelIcons';
+import { Image, Mic, RefreshCw } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useImageQuota } from '@/hooks/useImageQuota';
 
 export function PlanUsageBreakdown() {
-  const { hasBoost, isAdmin, loading, flashUsagePercent, dailyVoiceSessionsUsed,
+  const { hasBoost, hasVerifiedBoost, isVerifiedModelAdmin, isAdmin, loading, dailyVoiceSessionsUsed,
     FREE_DAILY_VOICE_LIMIT, checkSubscription } = useSubscription();
   const images = useImageQuota();
+  const sol = useTextUsage('sol');
+  const astra = useTextUsage('astra', hasVerifiedBoost || isVerifiedModelAdmin);
   const [refreshing, setRefreshing] = useState(false);
   const unlimited = hasBoost || isAdmin;
   const rows = [
-    { name: 'Arc Think', icon: Brain, detail: 'Everyday chat and reasoning', percent: null, unlimited: true },
-    { name: 'Arc Flash', icon: Zap, detail: 'Your sent messages using Arc Flash', percent: flashUsagePercent, unlimited },
+    { name: 'GPT 6 Luna', icon: CHAT_MODEL_ICONS['gpt-6-luna'], detail: 'Free and unlimited for everyone.', percent: null, unlimited: true },
     { name: 'Images', icon: Image, detail: 'Monthly image allowance shared across available models.', percent: images.loading || !images.resetAt ? null : images.usagePercent, unlimited: images.remainingCredits === Infinity },
     { name: 'Voice', icon: Mic, detail: 'Voice sessions started today', percent: Math.min(100, dailyVoiceSessionsUsed / FREE_DAILY_VOICE_LIMIT * 100), unlimited },
   ];
   const refresh = async () => {
     if (refreshing) return;
     setRefreshing(true);
-    try { await Promise.all([checkSubscription(), images.refreshQuota()]); }
+    try { await Promise.all([checkSubscription(), images.refreshQuota(), sol.refresh(), astra.refresh()]); }
     finally { setRefreshing(false); }
   };
   return (
@@ -46,6 +50,11 @@ export function PlanUsageBreakdown() {
               <div className="h-full rounded-full bg-foreground" style={{ width: `${amount}%` }} />
             </div>}
             {name === 'Images' ? <div className="mt-2"><ImageCreditSummary /></div> : <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{detail}</p>}
+            {name === 'GPT 6 Luna' && <div className="mt-4 space-y-3">
+              <TextUsageMeters name="GPT 6.1 Sol" snapshot={sol.snapshot} loading={sol.loading} />
+              <TextUsageMeters name="GPT 6 Astra" snapshot={astra.snapshot} loading={astra.loading} />
+              <p className="text-xs leading-relaxed text-muted-foreground">Auto can use your shared Sol allowance. When it runs out, Auto and Sol switch to Luna. Astra has a separate Boost allowance.</p>
+            </div>}
           </div>;
         })}
       </div>

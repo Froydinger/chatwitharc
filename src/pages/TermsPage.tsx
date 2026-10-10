@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, ScrollText } from "lucide-react";
+import { BOOST_NEW_SUBSCRIBER_PRICE_COPY } from "@/lib/boostPricing";
 
 export default function TermsPage() {
   return (
@@ -20,7 +21,7 @@ export default function TermsPage() {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight m-0">Terms of Service</h1>
           </div>
-          <p className="text-sm text-muted-foreground mb-10">Last updated: October 2, 2026</p>
+          <p className="text-sm text-muted-foreground mb-10">Last updated: October 10, 2026</p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-foreground/90">
             <section>
@@ -38,17 +39,21 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">2. Free tier and Boost</h2>
               <p className="text-muted-foreground">
-                ArcAI is <strong>free to use</strong>. A free account includes chat, voice, memory, canvases, file
-                uploads, shared chats, 3 voice sessions per UTC day with each session up to 10 minutes, and a daily
-                allowance of image generation, Arc Flash and research with less usage. Arc Think remains available.
+                ArcAI is <strong>free to use</strong>. A free account includes unlimited GPT 6 Luna, Auto,
+                a GPT 6.1 Sol usage allowance, memory, canvases, file uploads, shared chats, 30 GPT 2.5 Flare image
+                outputs per UTC calendar month, separate research allowances, and 3 voice sessions per UTC day
+                with each session up to 10 minutes. Auto uses the Sol allowance when it selects Sol.
               </p>
               <p className="text-muted-foreground mt-3">
-                <strong>Boost</strong> is an optional paid subscription that raises those allowances — unlimited Deep
-                Search and Ultra Deep Search, unlimited voice sessions up to 2 hours each, 250 shared monthly image credits and unlimited chat usage. Boost and administrators have unlimited voice sessions up to 2
-                hours each. It is available with a 7-day free trial when a payment method is provided, then billed
+                <strong>Boost</strong> is an optional paid subscription with unlimited GPT 6 Luna, a higher
+                GPT 6.1 Sol allowance, a separate GPT 6 Astra allowance, unlimited Deep Search and Ultra Deep
+                Search, 250 shared monthly image credits across GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5
+                Sunburst, and unlimited voice sessions up to 2 hours each. It is available with a 7-day free
+                trial when a payment method is provided, then billed
                 through Stripe on a monthly or annual term. It renews automatically until cancelled and can be
                 cancelled at any time from your account settings; access continues to the end of the paid period.
               </p>
+              <p className="text-muted-foreground mt-3">{BOOST_NEW_SUBSCRIBER_PRICE_COPY}</p>
             </section>
 
             <section>

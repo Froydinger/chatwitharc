@@ -13,6 +13,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { BOOST_NEW_SUBSCRIBER_PRICE_COPY } from "@/lib/boostPricing";
 
 interface DocArticle {
   id: string;
@@ -60,17 +61,18 @@ export function DocsPage() {
       id: "switch-model",
       category: "models",
       title: "Choosing how Arc responds",
-      question: "How do I choose between Arc Think and Arc Flash?",
+      question: "How do I choose an Arc model?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>Open the compact model picker in chat to choose how Arc responds.</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Arc Think</strong>: Powered by GPT 6 &amp; 6.1. Arc Matrix™ automatically routes the request to an available model suited to the task.</li>
-            <li><strong className="text-foreground">Arc Flash</strong>: Powered by Gemini Flash.</li>
-            <li><strong className="text-foreground">Arc Work</strong>: Uses GPT only for work and tools, with OpenAI image models. Choosing Flash for chat does not change the Work provider.</li>
+            <li><strong className="text-foreground">Auto</strong>: Arc Matrix™ uses GPT 6 Luna for chat and GPT 6.1 Sol for writing, canvas, code, and quick web search.</li>
+            <li><strong className="text-foreground">GPT 6 Luna or GPT 6.1 Sol</strong>: Choose a model directly. Luna is free and unlimited; Sol uses your account allowance. Auto also uses that allowance when it selects Sol.</li>
+            <li><strong className="text-foreground">GPT 6 Astra</strong>: Available on Boost with a separate usage allowance.</li>
+            <li><strong className="text-foreground">Arc Work</strong>: Uses GPT for work and tools, with OpenAI image models. Your selected GPT model stays with the request.</li>
           </ul>
           <p>Arc Matrix™ is the orchestrator behind Auto routing. The small Arc button beside a response opens its model and tool details.</p>
-          <p>For images, choose GPT 2.5 Flare, GPT 2.5 Flare HQ, GPT 2.5 Sunburst, Nano Banana 2, or Nano Banana 2 Lite. All image modes share your plan’s usage.</p>
+          <p>Free includes GPT 2.5 Flare. Boost also includes GPT 2.5 Flare HQ and GPT 2.5 Sunburst, sharing one monthly image allowance across all three modes.</p>
         </div>
       ),
       keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "arc matrix", "auto", "think", "flash", "images"]
@@ -83,10 +85,11 @@ export function DocsPage() {
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Free</strong>: Less usage for Flash, images and research. Arc Think stays available. Includes 3 voice sessions per UTC day, up to 10 minutes each.</li>
-            <li><strong className="text-foreground">Boost ($10/mo or limited-time $95/yr, normally $120/yr)</strong>: Unlimited usage for both chat modes and research, plus 250 shared monthly image credits, plus local AI and unlimited voice sessions up to 2 hours each. Start with a 7-day free trial (card required). The annual rate renews at $95/yr while subscribed.</li>
+            <li><strong className="text-foreground">Free · Less usage</strong>: Unlimited GPT 6 Luna, Auto, and a GPT 6.1 Sol usage allowance. Includes 30 GPT 2.5 Flare image outputs per UTC calendar month, separate research allowances, and 3 voice sessions per UTC day, up to 10 minutes each.</li>
+            <li><strong className="text-foreground">Boost · More usage</strong>: Unlimited GPT 6 Luna, a higher GPT 6.1 Sol allowance, a separate GPT 6 Astra allowance, unlimited research, 250 shared monthly image credits, local AI, and unlimited voice sessions up to 2 hours each. Start with a 7-day free trial (card required).</li>
           </ul>
-          <p>Your dashboard shows the percentage of usage consumed. Flash counts messages you send, including those routed through Flash by Auto; assistant replies and tool rounds do not consume another message. Failed image outputs are refunded.</p>
+          <p>{BOOST_NEW_SUBSCRIBER_PRICE_COPY}</p>
+          <p>Your dashboard shows account usage. Text usage follows the model and work actually performed, including Auto routing. Image, voice and research allowances are separate. Failed image outputs are refunded.</p>
           <p>Check your plan in <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>
       ),

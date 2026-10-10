@@ -483,7 +483,7 @@ serve(async (req) => {
       snippet: r.content || '',
     }));
 
-    // 2. Synthesize a cited answer with OpenAI — use Gemini 2.5 Pro for research-grade reasoning
+    // 2. Synthesize a cited answer with GPT 6 Luna; preserve dedicated research behavior.
     let content = '';
     if (OPENAI_API_KEY) {
       const sourceBlock = picked.map((r, i) => {

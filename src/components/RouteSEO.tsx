@@ -1,5 +1,6 @@
 import { useLocation, useParams } from "react-router-dom";
 import { SEO } from "./SEO";
+import { BOOST_PRICE_DISPLAY, BOOST_ANNUAL_PRICE_DISPLAY } from "@/lib/boostPricing";
 
 interface RouteMeta {
   title: string;
@@ -15,7 +16,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/pricing": {
     title: "ArcAI • Pricing",
     description:
-      "ArcAI includes Arc Matrix™ intelligence with Ava, Maya, and River reasoning, plus 3 voice sessions per UTC day up to 10 minutes each, Deep Search, and shared chats.",
+      `Unlimited GPT 6 Luna on Free and Boost. New Boost subscriptions on the website: ${BOOST_PRICE_DISPLAY} or ${BOOST_ANNUAL_PRICE_DISPLAY}. Existing subscribers keep their price.`,
   },
   "/downloads": {
     title: "ArcAI • Downloads",
@@ -70,7 +71,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/upgrade": {
     title: "ArcAI • Upgrade to Boost",
     description:
-      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited Ava, Maya, and River reasoning, 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.",
+      "Boost adds a higher GPT 6.1 Sol allowance, a separate GPT 6 Astra allowance, 250 shared monthly image credits, unlimited research, and unlimited voice sessions up to 2 hours each.",
   },
   "/share": {
     title: "ArcAI • Shared Conversation",

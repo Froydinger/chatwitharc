@@ -15,12 +15,12 @@ export function InfoPanel() {
     {
       icon: MessageSquare,
       title: "Smart Text Chat",
-      description: "Arc Think, powered by GPT 6 & 6.1, and Arc Flash, powered by Gemini Flash"
+      description: "Unlimited GPT 6 Luna and a GPT 6.1 Sol allowance on Free and Boost. Boost adds more Sol usage and a separate GPT 6 Astra allowance."
     },
     {
       icon: ImagePlus,
       title: "AI Image Generation",
-      description: "Create and edit with GPT 2.5, or choose Nano Banana 2 for faster images"
+      description: "Create and edit with GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst"
     },
     // Voice feature temporarily hidden
     // {
@@ -68,7 +68,7 @@ export function InfoPanel() {
           and magical interactions.
         </p>
         <p className="text-sm text-muted-foreground/70">
-          Built by <a href="https://winthenight.org" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night™ Foundation</a> • Powered by GPT & Gemini
+          Built by <a href="https://winthenight.org" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night™ Foundation</a> • Powered by GPT
         </p>
       </div></Transition>
 
@@ -146,7 +146,7 @@ export function InfoPanel() {
             </h3>
             
             <div className="flex flex-wrap justify-center gap-3">
-              {["React", "TypeScript", "CSS transitions", "Tailwind CSS", "Supabase", "OpenAI", "Gemini", "Zustand"].map((tech) => (
+              {["React", "TypeScript", "CSS transitions", "Tailwind CSS", "Supabase", "OpenAI", "Zustand"].map((tech) => (
                 <div
                   key={tech}
                   className="arc-info-tech glass rounded-full px-4 py-2 text-sm text-foreground"

@@ -91,6 +91,9 @@ function incrementDailySmarterChatCount(): number {
 interface SubscriptionState {
   // Boost entitlement
   hasBoost: boolean;
+  /** Current-owner server result, never a cached local tier hint. */
+  hasVerifiedBoost: boolean;
+  isVerifiedModelAdmin: boolean;
   isAdmin: boolean;
   loading: boolean;
 
@@ -162,6 +165,9 @@ const SubscriptionContext = createContext<SubscriptionState | null>(null);
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [modelEntitlements, setModelEntitlements] = useState<{ ownerId: string; isAdmin: boolean; hasBoost: boolean } | null>(null);
+  const isVerifiedModelAdmin = modelEntitlements?.ownerId === user?.id && modelEntitlements?.isAdmin === true;
+  const hasVerifiedBoost = modelEntitlements?.ownerId === user?.id && modelEntitlements?.hasBoost === true;
   const [hasBoostSub, setHasBoostSub] = useState(() => isUserBoostedOrAdmin());
   const [loading, setLoading] = useState(true);
   const [imageSnapshot, setImageSnapshot] = useState<{ ownerId: string; used: number; remaining: number | null; limit: number | null; unlimited: boolean } | null>(null);
@@ -239,6 +245,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (!user || !supabase) {
       setImageSnapshot(null);
       setIsAdmin(false);
+      setModelEntitlements(null);
       setHasBoostSub(false);
       setCancelAtPeriodEnd(false);
       setCurrentPeriodEnd(null);
@@ -249,6 +256,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
     try {
       await syncGooglePlaySubscriptions(user.id).catch(() => {});
+      const adminOwnerAtStart = (await supabase.auth.getSession()).data.session?.user.id;
       const [{ data: adminData }, { data: boostData }, { data: flashData }, { data: imageData }] = await Promise.all([
         supabase.rpc('is_admin_user'),
         supabase.rpc('user_has_boost', { check_user_id: user.id }),
@@ -258,6 +266,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setImageSnapshot(imageData ? { ...(imageData as unknown as { used: number; remaining: number | null; limit: number | null; unlimited: boolean }), ownerId: user.id } : null);
       setIsAdmin(!!adminData);
       setHasBoostSub(!!boostData);
+      const adminOwnerAtEnd = (await supabase.auth.getSession()).data.session?.user.id;
+      setModelEntitlements({ ownerId: user.id, isAdmin: adminData === true
+        && adminOwnerAtStart === user.id && adminOwnerAtEnd === user.id,
+        hasBoost: boostData === true && adminOwnerAtStart === user.id && adminOwnerAtEnd === user.id });
       const flash = flashData as { usage_percent?: number } | null;
       setFlashUsage(flash && typeof flash.usage_percent === 'number' ? { ownerId: user.id, percent: Math.min(100, Math.max(0, flash.usage_percent)) } : null);
 
@@ -401,6 +413,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   return (
     <SubscriptionContext.Provider value={{
       hasBoost,
+      hasVerifiedBoost,
+      isVerifiedModelAdmin,
       isAdmin,
       loading,
       dailyImagesUsed,

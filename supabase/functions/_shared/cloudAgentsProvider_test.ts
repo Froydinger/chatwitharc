@@ -4,6 +4,67 @@ function assert(value: unknown, message = 'Assertion failed'): asserts value {
   if (!value) throw new Error(message);
 }
 
+Deno.test('provider admission precedes creation and uses the reserved whole-cent ceiling', async () => {
+  const order: string[] = [];
+  const provider = cloudAgentsProvider({ apiKey: 'test', instructions: '', reasoningEffort: 'low',
+    model: 'gpt-6.1-sol', tools: [], spendLimitCents: 5,
+    expandInput: async transcript => { order.push('input'); return transcript; },
+    beforeStart: () => { order.push('admission'); },
+    fetcher: (async (_url, init) => {
+      order.push('post');
+      const body = JSON.parse(String(init?.body));
+      assert(body.spend_control.limit === 5 && body.agent.max_output_tokens === undefined);
+      return Response.json({ id: 'sess_capped' });
+    }) as typeof fetch });
+  await provider.startAgentSession!([{ role: 'user', content: 'hi' }], 'request', 4000);
+  assert(order.join(',') === 'input,admission,post');
+});
+
+Deno.test('legacy resumed session receives its absolute reserved ceiling before tool continuation', async () => {
+  const paths: string[] = [];
+  const provider = cloudAgentsProvider({ apiKey: 'test', instructions: '', reasoningEffort: 'low',
+    tools: [], spendLimitCents: 5,
+    fetcher: (async (url, init) => {
+      paths.push(`${init?.method ?? 'GET'} ${String(url)}`);
+      if (init?.method === 'POST') {
+        const body = JSON.parse(String(init.body));
+        assert(body.spend_control.limit === 5 && Object.keys(body).length === 1);
+        return Response.json({ status: 'in_progress', usage: { total_tokens: 10 }, spend_control: { limit: 5, consumed: 1 } });
+      }
+      return Response.json({ status: 'in_progress', usage: { total_tokens: 10 } });
+    }) as typeof fetch });
+  const turn = await provider.pollAgentSession!('sess_legacy');
+  assert(turn?.progressOnly === true);
+  assert(paths.length === 2 && paths[1] === 'POST https://api.openai.com/v1/agents/sessions/sess_legacy');
+});
+
+Deno.test('input preparation failure never claims a provider POST happened', async () => {
+  let admitted = false, fetched = false;
+  const provider = cloudAgentsProvider({ apiKey: 'test', instructions: '', reasoningEffort: 'low', tools: [],
+    expandInput: async () => { throw new Error('media temporarily unavailable'); },
+    beforeStart: () => { admitted = true; },
+    fetcher: (async () => { fetched = true; return Response.json({}); }) as typeof fetch });
+  let failed = false;
+  try { await provider.startAgentSession!([], 'request', 4000); } catch { failed = true; }
+  assert(failed && !admitted && !fetched);
+});
+
+Deno.test('metered cancellation settles only after a confirmed terminal turn', async () => {
+  for (const active of [false, true]) {
+    const observed: Array<{ final: boolean; usage: unknown }> = [];
+    const provider = cloudAgentsProvider({ apiKey: 'test', instructions: '', reasoningEffort: 'low', tools: [],
+      onUsage: async (usage, final) => { observed.push({ usage, final }); },
+      fetcher: (async (url, init) => {
+        if (init?.method === 'POST') return Response.json({});
+        if (String(url).includes('/turns?')) return Response.json({ data: [{ status: 'cancelled' }] });
+        return Response.json({ status: active ? 'in_progress' : 'idle', usage: { total_tokens: 25 } });
+      }) as typeof fetch });
+    await provider.cancelAgentSession!('sess_cancel', 'cancel-key');
+    assert(observed.length === 1 && observed[0].final === !active);
+    assert((observed[0].usage as { total_tokens: number }).total_tokens === 25);
+  }
+});
+
 Deno.test('Agents API provider opens a Luna session without an execution sandbox', async () => {
   let requestBody: Record<string, unknown> | undefined;
   let requestHeaders: HeadersInit | undefined;
@@ -221,6 +282,21 @@ Deno.test('Luna accepts no reasoning without requesting a reasoning summary; Sol
     await provider.startAgentSession!([{ role: 'user', content: 'hi' }], 'test-none', 100);
     const reasoning = (captured.agent as Record<string, unknown>).reasoning as Record<string, unknown>;
     assert(reasoning.effort === (model === 'gpt-6-luna' ? 'none' : 'low'));
-    assert(!('summary' in reasoning));
+    assert(model === 'gpt-6-luna' ? !('summary' in reasoning) : reasoning.summary === 'concise');
+  }
+});
+
+Deno.test('provider preserves Sol effort and enforces Astra effort ceiling', async () => {
+  for (const [model, effort, expected] of [
+    ['gpt-6.1-sol', 'medium', 'medium'], ['gpt-6.1-sol', 'high', 'high'],
+    ['gpt-6-astra', 'none', 'low'], ['gpt-6-astra', 'high', 'medium'],
+  ] as const) {
+    const provider = cloudAgentsProvider({ apiKey: 'fixture', instructions: 'Fixture', model,
+      reasoningEffort: effort, tools: [], fetcher: (async (_url, init) => {
+        const body = JSON.parse(String(init?.body));
+        assert(body.agent.model === model); assert(body.agent.reasoning.effort === expected);
+        return Response.json({ id: 'sess_fixture' });
+      }) as typeof fetch });
+    await provider.startAgentSession!([], 'run:model:0', 4000);
   }
 });

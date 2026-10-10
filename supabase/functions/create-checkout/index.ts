@@ -1,10 +1,14 @@
-// Create a Stripe Embedded Checkout session for ArcAi Boost.
+// Create a Stripe Hosted Checkout session for ArcAI Boost.
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "../_shared/stripe.ts";
 import { sendBoostAdminEmail } from "../_shared/boost-admin-email.ts";
 
-const BOOST_PRICE_IDS = new Set(["arcai_boost_monthly", "arcai_boost_annual"]);
-const BOOST_TRIAL_PERIOD_DAYS = 7;
+import {
+  BOOST_STRIPE_PRODUCT_ID, BOOST_TRIAL_PERIOD_DAYS,
+  getBoostCheckoutPlan, isBoostPriceId, resolveBoostPriceId,
+  assertBoostCheckoutPrice, boostSubscriptionBlocksNewCheckout,
+} from "../_shared/boostCatalog.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -181,148 +185,138 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      let subscriptionStatus = "active";
-      if (targetUserId) {
-        const supabase = supabaseAdmin;
-
-        let priceIdResolved = "arcai_boost_monthly"; // default
-        let productIdResolved = "prod_boost";
-
-        const subObject = session.subscription as any;
-        if (subObject) {
-          const item = subObject.items?.data?.[0];
-          productIdResolved = typeof item?.price?.product === "string" ? item.price.product : (item?.price?.product?.id || productIdResolved);
-          priceIdResolved = item?.price?.lookup_key || item?.price?.id || priceIdResolved;
-        }
-
-        subscriptionStatus = subObject?.status === "trialing" ? "trialing" : "active";
-        const currentPeriodStart = subObject?.current_period_start
-          ? new Date(subObject.current_period_start * 1000).toISOString()
-          : null;
-        const currentPeriodEnd = subObject?.current_period_end
-          ? new Date(subObject.current_period_end * 1000).toISOString()
-          : null;
-
-        const subscriptionIdResolved = typeof session.subscription === "string" ? session.subscription : (session.subscription?.id || `sub_chk_${session.id}`);
-
-        const { error: subscriptionError } = await supabase.from("subscriptions").upsert({
-          user_id: targetUserId,
-          stripe_subscription_id: subscriptionIdResolved,
-          stripe_customer_id: typeof session.customer === "string" ? session.customer : (session.customer?.id || null),
-          product_id: productIdResolved,
-          price_id: priceIdResolved,
-          status: subscriptionStatus,
-          current_period_start: currentPeriodStart,
-          current_period_end: currentPeriodEnd,
-          environment: environment,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: "user_id" });
-
-        if (subscriptionError) {
-          throw new Error(`Failed to activate Boost: ${subscriptionError.message}`);
-        }
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("user_id", targetUserId)
-          .maybeSingle();
-
-        await sendBoostUpgradeEmail({
-          userId: targetUserId,
-          subscriptionId: subscriptionIdResolved,
-          displayName: profile?.display_name,
+      const subObject = session.subscription as any;
+      const item = subObject && typeof subObject === "object" ? subObject.items?.data?.[0] : null;
+      const priceIdResolved = resolveBoostPriceId(item?.price);
+      const productIdResolved = typeof item?.price?.product === "string"
+        ? item.price.product : item?.price?.product?.id;
+      if (!subObject?.id || !priceIdResolved || !productIdResolved || typeof subObject.status !== "string") {
+        return new Response(JSON.stringify({ success: false, status: session.status, error: "A verified Boost subscription was not found for this checkout." }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
-
-        await sendBoostAdminEmail({
-          userId: targetUserId,
-          subscriptionId: subscriptionIdResolved,
-          priceId: priceIdResolved,
-          environment,
-          subscriberEmail: caller.email,
-          displayName: profile?.display_name,
-        });
-
-        console.log(`[create-checkout] Synchronously verified and upserted subscription for user: ${targetUserId}`);
       }
+      if (subObject.metadata?.userId && subObject.metadata.userId !== caller.id) {
+        return new Response(JSON.stringify({ error: "Subscription does not belong to this account" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const subscriptionStatus = subObject.status;
+      const periodStart = item?.current_period_start ?? subObject.current_period_start;
+      const periodEnd = item?.current_period_end ?? subObject.current_period_end;
+      const entitled = ["active", "trialing", "past_due"].includes(subscriptionStatus) ||
+        (subscriptionStatus === "canceled" && typeof periodEnd === "number" && periodEnd * 1000 > Date.now());
+      // A saved old checkout URL must not replace a newer current subscription.
+      const { data: currentSubscription, error: currentSubscriptionError } = await supabaseAdmin.from("subscriptions")
+        .select("stripe_subscription_id,price_id,product_id,status,current_period_end")
+        .eq("user_id", caller.id).maybeSingle();
+      if (currentSubscriptionError) throw new Error("Could not verify your current subscription. Please try again later.");
+      if (currentSubscription?.stripe_subscription_id && currentSubscription.stripe_subscription_id !== subObject.id &&
+        (isBoostPriceId(currentSubscription.price_id) || currentSubscription.product_id === BOOST_STRIPE_PRODUCT_ID) &&
+        boostSubscriptionBlocksNewCheckout(currentSubscription.status, currentSubscription.current_period_end)) {
+        return new Response(JSON.stringify({ success: false, error: "This is an older checkout. Your current subscription is unchanged; open Manage Subscription to view it." }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error: subscriptionError } = await supabaseAdmin.from("subscriptions").upsert({
+        user_id: caller.id,
+        stripe_subscription_id: subObject.id,
+        stripe_customer_id: typeof session.customer === "string" ? session.customer : (session.customer?.id || null),
+        product_id: productIdResolved,
+        price_id: priceIdResolved,
+        status: subscriptionStatus,
+        current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+        current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+        cancel_at_period_end: subObject.cancel_at_period_end === true,
+        environment,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+      if (subscriptionError) throw new Error(`Failed to verify Boost: ${subscriptionError.message}`);
 
-      return new Response(JSON.stringify({
-        success: true,
-        status: session.status,
-        subscriptionStatus,
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (entitled) {
+        const { data: profile } = await supabaseAdmin.from("profiles")
+          .select("display_name").eq("user_id", caller.id).maybeSingle();
+        await sendBoostUpgradeEmail({ userId: caller.id, subscriptionId: subObject.id, displayName: profile?.display_name });
+        await sendBoostAdminEmail({
+          userId: caller.id, subscriptionId: subObject.id, priceId: priceIdResolved,
+          environment, subscriberEmail: caller.email, displayName: profile?.display_name,
+        });
+      }
+      return new Response(JSON.stringify({ success: entitled, status: session.status, subscriptionStatus }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Action 2: Create a checkout session (default flow)
-    if (!priceId || !BOOST_PRICE_IDS.has(priceId)) throw new Error("Invalid priceId");
+    // Action 2: New offers only. Old open clients must review the changed
+    // displayed price; never silently translate their $10/$95 request.
+    const checkoutPlan = getBoostCheckoutPlan(priceId);
+    if (!checkoutPlan) {
+      // Old clients mask non-2xx payloads with a generic invoke error. A logical
+      // error without a checkout URL lets them display this refresh guidance.
+      const retiredOffer = isBoostPriceId(priceId);
+      return new Response(JSON.stringify({
+        error: retiredOffer ? "Boost pricing has changed. Refresh this page to review the current price before subscribing." : "Invalid priceId",
+        code: retiredOffer ? "boost_pricing_changed" : "invalid_price",
+      }), { status: retiredOffer ? 200 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     if (!returnUrl) throw new Error("Missing returnUrl");
 
     // Identity always comes from the verified JWT, never client-selected fields.
     const resolvedUserId = caller.id;
     const resolvedEmail = caller.email;
+    const existingSubscriptionResponse = () => new Response(JSON.stringify({
+      error: "You already have Boost. Manage your existing subscription to keep its current price.",
+      code: "boost_subscription_exists",
+    }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const { data: previousSubscriptions, error: previousSubscriptionError } = await supabaseAdmin
+      .from("subscriptions")
+      .select("id,price_id,product_id,status,current_period_end,stripe_subscription_id")
+      .eq("user_id", resolvedUserId).eq("environment", environment);
+    if (previousSubscriptionError) throw new Error("Could not verify your current subscription. Please try again later.");
+    for (const previous of previousSubscriptions ?? []) {
+      if ((isBoostPriceId(previous.price_id) || previous.product_id === BOOST_STRIPE_PRODUCT_ID) &&
+        boostSubscriptionBlocksNewCheckout(previous.status, previous.current_period_end)) return existingSubscriptionResponse();
+    }
+    if (environment === "live") {
+      const { data: playSubscriptions, error: playError } = await supabaseAdmin
+        .from("google_play_subscriptions").select("subscription_state,expiry_time").eq("user_id", resolvedUserId);
+      if (playError) throw new Error("Could not verify your current subscription. Please try again later.");
+      if ((playSubscriptions ?? []).some(receipt =>
+        ["SUBSCRIPTION_STATE_ACTIVE", "SUBSCRIPTION_STATE_IN_GRACE_PERIOD", "SUBSCRIPTION_STATE_CANCELED"].includes(receipt.subscription_state) &&
+        Date.parse(receipt.expiry_time ?? "") > Date.now())) return existingSubscriptionResponse();
+    }
 
     const stripe = createStripeClient(environment);
-    let stripePrice;
-    try {
-      const prices = await stripe.prices.list({ lookup_keys: [priceId] });
-      if (prices.data.length) {
-        stripePrice = prices.data[0];
-      } else {
-        // Fallback to retrieving directly by ID if lookup_keys matches nothing
-        stripePrice = await stripe.prices.retrieve(priceId);
-      }
-    } catch (e) {
-      throw new Error(`Price '${priceId}' not found. Stripe error: ${getStripeErrorMessage(e)}`);
-    }
-    const isRecurring = stripePrice.type === "recurring";
+    const prices = await stripe.prices.list({ lookup_keys: [checkoutPlan.lookupKey], active: true, limit: 2 });
+    if (prices.data.length !== 1) throw new Error("Boost checkout pricing is not ready. Please try again later.");
+    const stripePrice = prices.data[0];
+    assertBoostCheckoutPrice(stripePrice, checkoutPlan, environment);
+    const isRecurring = true;
+    const customerId = await resolveOrCreateCustomer(stripe, { email: resolvedEmail, userId: resolvedUserId });
 
-    const customerId = (resolvedEmail || resolvedUserId)
-      ? await resolveOrCreateCustomer(stripe, { email: resolvedEmail, userId: resolvedUserId })
-      : undefined;
-
-    // Give each account one Boost trial. The database check covers already
-    // recorded subscriptions; the Stripe check also covers a just-created
-    // subscription whose webhook or return-page verification has not landed.
-    let shouldApplyTrial = false;
-    if (isRecurring && BOOST_PRICE_IDS.has(priceId)) {
-      const { data: previousSubscription, error: previousSubscriptionError } = await supabaseAdmin
-        .from("subscriptions")
-        .select("id")
-        .eq("user_id", resolvedUserId)
-        .not("stripe_subscription_id", "is", null)
-        .maybeSingle();
-
-      if (previousSubscriptionError) {
-        throw new Error(`Failed to check Boost trial eligibility: ${previousSubscriptionError.message}`);
-      }
-
-      let hasPreviousStripeSubscription = Boolean(previousSubscription);
-      if (!hasPreviousStripeSubscription && customerId) {
-        try {
-          const previousStripeSubscriptions = await stripe.subscriptions.list({
-            customer: customerId,
-            status: "all",
-            limit: 100,
-          });
-          hasPreviousStripeSubscription = previousStripeSubscriptions.data.some((subscription) =>
-            subscription.metadata?.userId === resolvedUserId
-          );
-        } catch (error) {
-          // Keep checkout available if the historical lookup has a transient
-          // Stripe issue, but fail closed for the trial itself.
-          console.warn("[create-checkout] Could not verify prior Boost subscriptions; creating checkout without a trial", {
-            userId: resolvedUserId,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          hasPreviousStripeSubscription = true;
+    // Check every page, even if the database already contains old history. A
+    // delayed webhook must not create a duplicate or replace a grandfathered rate.
+    let hasPreviousStripeSubscription = (previousSubscriptions ?? []).some(previous => !!previous.stripe_subscription_id);
+    let startingAfter: string | undefined;
+    for (;;) {
+      const history = await stripe.subscriptions.list({
+        customer: customerId, status: "all", limit: 100,
+        ...(startingAfter ? { starting_after: startingAfter } : {}),
+      });
+      hasPreviousStripeSubscription ||= history.data.length > 0;
+      for (const previous of history.data) {
+        for (const item of previous.items?.data ?? []) {
+          if (resolveBoostPriceId(item.price) && boostSubscriptionBlocksNewCheckout(
+            previous.status, (item as any).current_period_end ?? (previous as any).current_period_end,
+          )) return existingSubscriptionResponse();
         }
       }
-
-      shouldApplyTrial = !hasPreviousStripeSubscription;
+      if (!history.has_more) break;
+      const nextCursor = history.data.at(-1)?.id;
+      if (!nextCursor || nextCursor === startingAfter) throw new Error("Could not verify your subscription history. Please try again later.");
+      startingAfter = nextCursor;
     }
+    const shouldApplyTrial = !hasPreviousStripeSubscription;
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: 1 }],

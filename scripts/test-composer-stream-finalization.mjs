@@ -9,7 +9,7 @@ const code = ts.transpileModule(`${declaration.getText(ast).replace('export ', '
 const selections = [];
 class Provider {
   constructor(selection) { selections.push(selection); }
-  sendMessageStreaming(_messages, _profile, _canvas, _code, start, delta, done) {
+  async sendMessageStreaming(_messages, _profile, _canvas, _code, start, delta, done) {
     start('code'); delta('const answer = 42;');
     void done({ mode: 'code', content: 'const answer = 42;', language: 'js', modelUsed: 'gpt-6-luna', reasoningEffortUsed: 'medium' });
   }
@@ -18,13 +18,13 @@ const hook = new Function('useRef','useCallback','AIService','isCodeComplete','m
   value=>({current:value}), fn=>fn, Provider, ()=>true, (a,b)=>a+b, ()=>'', {log(){},warn(){}},
 )();
 let release, completed = false, result;
-const pending = hook.streamWithContinuation({messages:[{role:'user',content:'code fixture'}],forceCanvas:false,forceCode:true,reasoningSelection:'medium',
+const pending = hook.streamWithContinuation({messages:[{role:'user',content:'code fixture'}],forceCanvas:false,forceCode:true,modelSelection:'gpt-6.1-sol',
   onDone: value=>{result=value;return new Promise(resolve=>{release=resolve})},
 }).then(()=>{completed=true});
 await new Promise(resolve=>setTimeout(resolve,0));
 assert.equal(completed,false,'Queue admission waits for async result/persistence completion');
 assert.equal(result.reasoningEffortUsed,'medium');
-assert.equal(selections[0],'medium');
+assert.equal(selections[0],'gpt-6.1-sol');
 release(); await pending; assert.equal(completed,true);
 const errors=[];
 await hook.streamWithContinuation({messages:[{role:'user',content:'code fixture'}],forceCanvas:false,forceCode:true,
@@ -32,3 +32,15 @@ await hook.streamWithContinuation({messages:[{role:'user',content:'code fixture'
 });
 assert.deepEqual(errors,['Synthetic persistence failure']);
 console.log('Streaming finalization checks passed: wait for asynchronous result persistence, captured reasoning metadata and terminal error recovery.');
+
+const savedSend = Provider.prototype.sendMessageStreaming;
+Provider.prototype.sendMessageStreaming = async () => { throw new Error('Synthetic transport rejection'); };
+const transportErrors = [];
+await hook.streamWithContinuation({ messages: [{role:'user',content:'fixture'}], forceCanvas:false, forceCode:true,
+  onError: value => transportErrors.push(value) });
+assert.deepEqual(transportErrors, ['Synthetic transport rejection']);
+const aborted = new AbortController(); aborted.abort();
+await hook.streamWithContinuation({ messages:[{role:'user',content:'fixture'}],forceCanvas:false,forceCode:true,
+  abortSignal:aborted.signal,onError:()=>{throw Error('Cancelled requests must stay quiet');} });
+Provider.prototype.sendMessageStreaming = savedSend;
+console.log('Streaming transport rejection and cancellation settle without stranding the composer.');

@@ -1,3 +1,5 @@
+import { useTextUsage } from "@/hooks/useTextUsage";
+import { TextUsageMeters } from "@/components/TextUsageMeters";
 import { CircleGauge, ChevronRight } from "lucide-react";
 import { useImageQuota } from "@/hooks/useImageQuota";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -34,12 +36,15 @@ export function UsageSnapshotWidget({ onOpenPlan }: { onOpenPlan: () => void }) 
   const {
     hasBoost,
     isAdmin,
-    flashUsagePercent,
+    hasVerifiedBoost,
+    isVerifiedModelAdmin,
     dailyVoiceSessionsUsed,
     FREE_DAILY_VOICE_LIMIT,
   } = useSubscription();
   const { dailyImagesUsed, limit: imageLimit } = useImageQuota();
   const unlimited = hasBoost || isAdmin;
+  const sol = useTextUsage('sol');
+  const astra = useTextUsage('astra', hasVerifiedBoost || isVerifiedModelAdmin);
 
   return (
     <section className="rounded-[24px] border border-border/50 bg-background/55 p-4 shadow-sm backdrop-blur-xl sm:p-5" aria-label="Usage snapshot">
@@ -59,9 +64,14 @@ export function UsageSnapshotWidget({ onOpenPlan }: { onOpenPlan: () => void }) 
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-3">
-        <UsageLine label="Arc Flash" used={flashUsagePercent ?? 0} limit={unlimited ? Infinity : 100} showPercent />
+        <UsageLine label="GPT 6 Luna" used={0} limit={Infinity} />
         <UsageLine label="Voice" used={dailyVoiceSessionsUsed} limit={unlimited ? Infinity : FREE_DAILY_VOICE_LIMIT} />
         <UsageLine label="Images" used={dailyImagesUsed} limit={imageLimit} showPercent />
+      </div>
+
+      <div className="mt-3 space-y-3">
+        <TextUsageMeters name="GPT 6.1 Sol" snapshot={sol.snapshot} loading={sol.loading} compact />
+        <TextUsageMeters name="GPT 6 Astra" snapshot={astra.snapshot} loading={astra.loading} compact />
       </div>
 
       <button

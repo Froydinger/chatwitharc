@@ -7,6 +7,7 @@ function load(path) {
   new Function('exports', transpile(readFileSync(new URL(path, import.meta.url), 'utf8').replace(/^import .*;\n/gm, '')))(exports);
   return exports;
 }
+const routing = load('../supabase/functions/_shared/arcModelRouting.ts');
 const intent = load('../src/lib/chat-input/intent.ts');
 const { createComposerActivity } = load('../src/lib/chat-input/activity.ts');
 const types = load('../src/lib/chat-input/types.ts');
@@ -24,7 +25,7 @@ const scope = { ownerId: 'owner', sessionId: 'chat-a', executionMode: 'ask' };
 const request = (overrides = {}) => types.snapshotComposerRequest({
   ...scope, content: 'hey', images: [], documents: [], corporateMode: false, hasExistingApp: false,
   modes: { image: false, code: false, canvas: false, search: true, git: false, regularChat: false, editImages: false },
-  workspace, reasoningSelection: 'medium', imageOptions: { aspect: 'auto', editAspect: 'auto', count: 1 }, ...overrides,
+  workspace, modelSelection: 'gpt-6.1-sol', imageOptions: { quality: 'low', aspect: 'auto', editAspect: 'auto', count: 1 }, ...overrides,
 });
 function fixture(options = {}) {
   const calls = []; const failed = []; let resolveProvider, rejectProvider;
@@ -33,6 +34,7 @@ function fixture(options = {}) {
     setActiveTask: value => calls.push(['task', value]), setActiveStatusDetails: value => calls.push(['status', value]),
   };
   const deps = {
+    normalizeModelSelection: routing.normalizeArcModelSelection, useModelStore: { getState: () => ({ modelSelection: 'auto' }) },
     ...intent, ...types, LUNA_MODEL: "gpt-6-luna",
     inputValue: 'newer draft', selectedImages: [new File(['new'], 'new.png', { type: 'image/png' })], selectedDocuments: [],
     shouldShowBanana: true, shouldShowCodeMode: true, shouldShowCanvasMode: true, shouldShowSearchMode: true, shouldShowGitMode: true,
@@ -91,7 +93,7 @@ const pending = f.send(undefined, first);
 await tick();
 assert.equal(f.calls.filter(c => c[0] === 'provider').length, 1, 'Captured text is sent as text despite newer selected image/modes');
 assert.equal(f.calls.find(c => c[0] === 'provider')[1][4], true, 'Captured search flag is passed');
-assert.equal(f.calls.find(c => c[0] === 'reasoning')[1], 'medium');
+assert.equal(f.calls.find(c => c[0] === 'reasoning')[1], 'gpt-6.1-sol');
 assert.ok(f.calls.findIndex(c => c[0] === 'loading' && c[1]) < f.calls.findIndex(c => c[0] === 'message'), 'Accepted indicator precedes preparation await');
 await f.send(undefined, first);
 assert.equal(f.calls.filter(c => c[0] === 'provider').length, 1, 'Foreground lock prevents concurrent duplicate');

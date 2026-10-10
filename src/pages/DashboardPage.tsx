@@ -1,3 +1,5 @@
+import { useTextUsage } from "@/hooks/useTextUsage";
+import { TextUsageMeters } from "@/components/TextUsageMeters";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -126,10 +128,14 @@ export function DashboardPageInner({ embedded = false, activeTabOverride }: { em
   const {
     hasBoost,
     openCheckout,
-    flashUsagePercent,
+    hasVerifiedBoost,
+    isVerifiedModelAdmin,
     dailyVoiceSessionsUsed,
     FREE_DAILY_VOICE_LIMIT,
   } = useSubscription();
+
+  const solUsage = useTextUsage('sol');
+  const astraUsage = useTextUsage('astra', hasVerifiedBoost || isVerifiedModelAdmin);
 
   // Anonymous users are not allowed to view the dashboard at all.
   // Bounce them back to the chat and open the sign-in modal immediately.
@@ -1373,8 +1379,8 @@ useEffect(() => {
                         <div>
                           <p className="text-sm font-semibold">Usage</p>
                           <p className="text-[10px] sm:text-xs text-muted-foreground">
-                            <span className="sm:hidden">{usageExpandedMobile ? "Tap to collapse" : "Tap to view daily limits"}</span>
-                            <span className="hidden sm:inline">Resets daily at 00:00 UTC</span>
+                            <span className="sm:hidden">{usageExpandedMobile ? "Tap to collapse" : "Tap to view allowances"}</span>
+                            <span className="hidden sm:inline">Allowances by model and feature</span>
                           </p>
                         </div>
                       </div>
@@ -1403,12 +1409,12 @@ useEffect(() => {
                     >
                       <div className="mt-3 sm:mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-col sm:space-y-2.5 sm:gap-0">
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs col-span-2 sm:col-span-1">
-                          <span className="text-muted-foreground">Arc Think</span>
+                          <span className="text-muted-foreground">GPT 6 Luna</span>
                           <span className="font-medium text-primary">Unlimited</span>
                         </div>
-                        <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
-                          <span className="text-muted-foreground">Arc Flash</span>
-                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : flashUsagePercent === null ? "—" : `${flashUsagePercent}% used`}</span>
+                        <div className="space-y-2 rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs empty:hidden">
+                          <TextUsageMeters name="GPT 6.1 Sol" snapshot={solUsage.snapshot} loading={solUsage.loading} compact />
+                          <TextUsageMeters name="GPT 6 Astra" snapshot={astraUsage.snapshot} loading={astraUsage.loading} compact />
                         </div>
 
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
@@ -1421,7 +1427,7 @@ useEffect(() => {
                         </div>
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Search</span>
-                          <span className="font-medium text-primary truncate max-w-[70px] sm:max-w-none">{isAdmin || hasBoost ? "Unlimited usage" : "Less usage"}</span>
+                          <span className="font-medium text-primary truncate max-w-[70px] sm:max-w-none">{isAdmin || hasBoost ? "Unlimited" : "Less usage"}</span>
                         </div>
                       </div>
                       {!isAdmin && !hasBoost && (

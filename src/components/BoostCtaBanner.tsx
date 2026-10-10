@@ -9,7 +9,7 @@ const DISMISS_KEY = "arcai-anon-boost-dismissed";
 
 /**
  * Pinned, dismissible banner above the chat input for anonymous (guest) users.
- * Sells both free sign-in and Boost ($10/mo) in one breath.
+ * Offers free sign-in and the optional Boost upgrade in one breath.
  */
 export function BoostCtaBanner({ className }: { className?: string }) {
   const { user, isAnonymous, loading } = useAuth();
@@ -55,7 +55,7 @@ export function BoostCtaBanner({ className }: { className?: string }) {
           </div>
           <p className="flex-1 min-w-0 text-[12px] leading-snug text-foreground/85">
             <span className="font-semibold text-foreground">Chatting as a guest.</span>{" "}
-            <span className="text-muted-foreground">Sign in free, or Boost for everything.</span>
+            <span className="text-muted-foreground">Sign in free, or get more usage with Boost.</span>
           </p>
           <button
             onClick={() => openAuth("generic")}

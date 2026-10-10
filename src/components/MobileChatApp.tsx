@@ -32,7 +32,9 @@ import { useCloudRuns, type CloudRunsApi, type TextCloudRunSubmission } from "@/
 import { reconcileCloudAppRun } from '@/services/cloudAppProjectClient';
 import { captureCloudWorkspaceContext, type CloudRunMode, type CloudRunSubmission, type CloudTextRequest } from "@/services/cloudRuns";
 import { prepareCloudMediaCapture, cloudMediaDigest, type CloudMediaReference } from "@/services/cloudMediaCapture";
-import { resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
+import { notifyTextUsageChanged } from '@/services/arcTextUsage';
+import { showModelSwitchNotice } from '@/services/modelSwitchNotice';
+import { normalizeModelSelection, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ChatResponseStatus } from "@/components/ChatResponseStatus";
@@ -469,6 +471,9 @@ export function MobileChatApp() {
         if (saved.status !== 'complete') throw new Error('Pending edits need syncing before the cloud reply can be loaded.');
         const result = await store.reloadCloudSession(context.sessionId, 0, context.signal);
         if (result.status !== 'reloaded') throw new Error('Chat changed during reload. Reconnect to load the finished reply.');
+        const response = entry.run?.result as { model_switch_notice?: unknown } | undefined;
+        if (entry.run?.status === 'completed') showModelSwitchNotice(response?.model_switch_notice, entry.id);
+        notifyTextUsageChanged();
       } finally {
         // A terminal run must release the shared composer lock even if reload
         // needs user attention. A restored run from another session must not
@@ -493,7 +498,7 @@ export function MobileChatApp() {
     // not change the workspace or history of this accepted text intent.
     const captured = {
       ...structuredClone(intent),
-      reasoningSelection: intent.reasoningSelection ?? useModelStore.getState().reasoningEffort,
+      modelSelection: normalizeModelSelection(intent.modelSelection ?? intent.reasoningSelection ?? useModelStore.getState().modelSelection),
       attachments: intent.attachments ? [...intent.attachments] : undefined,
     };
     const workspaceContext = captured.workspaceContext === undefined ? undefined
@@ -545,7 +550,8 @@ export function MobileChatApp() {
         ...(captured.forceGit ? { browserbaseDevice, ...(browserbaseSessionHandle ? { browserbaseSessionHandle } : {}) } : {}),
         ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
         ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
-        reasoningEffort: resolveReasoningEffort(captured.reasoningSelection, getQueryComplexity(message.content)),
+        modelSelection: captured.modelSelection,
+        reasoningSelection: captured.modelSelection,
         clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         ...(locationContext ? { locationContext } : {}),
       };

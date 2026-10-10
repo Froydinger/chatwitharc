@@ -1,11 +1,15 @@
 import { registerOrdinaryChat, unregisterOrdinaryChat, ordinaryChatEnabled } from '@/services/ordinaryChatPersistence';
 import { useArcStore } from '@/store/useArcStore';
+import { useVoiceModeStore } from '@/store/useVoiceModeStore';
 import { useLiveAnswerStore } from '@/store/useLiveAnswerStore';
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { FLYNN_MODEL, getModelForTask, resolveReasoningEffort, useModelStore, type LunaReasoningEffort, type LunaReasoningSelection } from "@/store/useModelStore";
-import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
+import { LUNA_MODEL, getModelRoute, normalizeModelSelection, useModelStore, type ArcModelSelection, type LunaReasoningEffort, type LunaReasoningSelection } from "@/store/useModelStore";
+import { arcRequestTask } from "../../supabase/functions/_shared/arcModelRouting";
+import { incrementDailyBalancedCount } from "@/hooks/useSubscription";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
 import { useBrowserbaseSessionStore, type BrowserbaseChatSession } from "@/store/useBrowserbaseSessionStore";
+import { notifyTextUsageChanged } from '@/services/arcTextUsage';
+import { showModelSwitchNotice } from '@/services/modelSwitchNotice';
 import { resolvePrivateImageReference } from "@/lib/privateImages";
 
 // Detect if a user message warrants upgrading to a more powerful model
@@ -108,10 +112,10 @@ WHO MADE ARC
 - ArcAI was founded and created by Win The Night™ Foundation (https://winthenight.org), in collaboration with Froydinger™ Design Systems. If someone asks who made you, who built ArcAI, or who is behind Arc, say Win The Night™ Foundation are the founders and creators.
 
 WHAT ARC CAN DO
-- Choose Arc Think (Powered by GPT 6 & 6.1) for Auto orchestration or Arc Flash (Powered by Gemini Flash) in the compact chat picker. Arc Matrix™ is the orchestrator. Free offers less usage; Boost offers unlimited usage. Voice limits are unchanged.
+- The compact chat picker offers Auto, GPT 6 Luna, GPT 6.1 Sol, and GPT 6 Astra. Auto uses Luna for everyday chats and Sol for writing, code, and quick web search. Luna is free and unlimited for everyone. Sol uses a shared premium allowance for free and Boost accounts; Auto can draw from that allowance when it selects Sol. When the allowance is exhausted, Auto and explicit Sol requests use Luna with a visible switch notice. Do not invent numeric Sol limits. Astra is available with Boost and has its own separate premium allowance. Administrators have uncapped metered usage. Boost Pro is a future plan marked Coming soon; do not invent its price, features, or checkout. Arc Matrix™ orchestrates requests. Voice limits are unchanged.
 - Search the live web, check weather, search the signed-in user's past chats, and use saved memories when the relevant tool is available.
-- Deep Search and Ultra Deep Search are the dedicated research modes, both powered by Perplexity, opened from the Deep Search button. Deep Search retrieves ranked live results and writes a cited answer; Ultra Deep Search runs agentic Pro Search that browses and cross-checks sources first — slower, and worth it when the answer has to be assembled rather than found. Free accounts get 4 Deep and 1 Ultra per week; Boost makes both unlimited. Follow-ups inside a research session stay in the mode it started in and do not count again. This is separate from the quick in-chat web search, which is instant and uncapped.
-- Generate and edit images with GPT 2.5 Flare, GPT 2.5 Flare HQ, GPT 2.5 Sunburst, Nano Banana 2, or Nano Banana 2 Lite. Free gets 30 GPT 2.5 Flare outputs monthly; Boost gets 250 shared monthly image credits across eligible available models. Admins are unlimited. Understand attached images and camera frames; work with uploaded files.
+- Deep Search and Ultra Deep Search are the dedicated research modes, both powered by Perplexity, opened from the Deep Search button. Deep Search retrieves ranked live results and writes a cited answer; Ultra Deep Search runs agentic Pro Search that browses and cross-checks sources first — slower, and worth it when the answer has to be assembled rather than found. Free accounts get 4 Deep and 1 Ultra per week; Boost makes both unlimited. Follow-ups inside a research session stay in the mode it started in and do not count again. This is separate from quick in-chat web search, whose answer uses the selected model and its applicable allowance.
+- Generate and edit images with GPT 2.5 Flare, GPT 2.5 Flare HQ, GPT 2.5 Sunburst. Free gets 30 GPT 2.5 Flare outputs monthly; Boost gets 250 shared monthly image credits across eligible available models. Admins are unlimited. Understand attached images and camera frames; work with uploaded files.
 - Draft long-form writing in Canvas, create code in Code Canvas, and generate downloadable files when requested.
 - Create reminders and scheduled or recurring tasks, which are managed at https://askarc.chat/tasks.
 - Share chats and use shared rooms.
@@ -183,9 +187,16 @@ export interface SendMessageResult {
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
   modelUsed?: string;
+  modelSwitchNotice?: string;
   toolsUsed?: string[];
   /** Reasoning effort that actually ran, so a stored message can name the model that answered it. */
   reasoningEffortUsed?: LunaReasoningEffort;
+}
+
+export type AnalysisMessageResult = Pick<SendMessageResult, 'content' | 'modelUsed' | 'reasoningEffortUsed' | 'modelSwitchNotice'>;
+
+function readRecordedReasoningEffort(value: unknown): LunaReasoningEffort | undefined {
+  return value === 'none' || value === 'low' || value === 'medium' || value === 'high' ? value : undefined;
 }
 
 export interface ImageTaskResult {
@@ -199,7 +210,14 @@ export class AIService {
   private defaultTimeoutMs = 120000; // 120 second timeout for regular requests
   private canvasTimeoutMs = 180000; // 180 second timeout for canvas/code generation
 
-  constructor(private readonly capturedReasoningSelection?: LunaReasoningSelection) {
+  private readonly capturedModelSelection: ArcModelSelection;
+  private readonly hasExplicitModelSelection: boolean;
+
+  constructor(selection?: LunaReasoningSelection) {
+    // The legacy voice reminder client constructs one unparameterized service.
+    this.hasExplicitModelSelection = selection !== undefined;
+    // Capture once, before profile/auth/file reads or continuation delays.
+    this.capturedModelSelection = normalizeModelSelection(selection ?? useModelStore.getState().modelSelection);
     // API keys stay server-side in the configured Supabase Edge Functions.
   }
 
@@ -238,6 +256,7 @@ export class AIService {
     forceGit: boolean = false,
   ): Promise<SendMessageResult> {
     const submissionId = crypto.randomUUID();
+    const voiceCompatibility = !this.hasExplicitModelSelection && useVoiceModeStore.getState().isActive;
     const currentUserMessage = sessionId ? useArcStore.getState().chatSessions.find(s => s.id === sessionId)?.messages.filter(m => m.role === 'user').at(-1) : undefined;
     const persistentInput = ordinaryChatEnabled(useArcStore.getState().syncedUserId) && !guestMode && arcMode === 'chat' && !forceGit && !forceCanvas && !forceCode
       && currentUserMessage?.type === 'text' && !currentUserMessage.imageUrls?.length
@@ -331,16 +350,11 @@ export class AIService {
       const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
       
       const complexity = getQueryComplexity(lastUserMsg);
-      const selectedModel = (this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort) === 'flynn' ? FLYNN_MODEL : forceCode
-        ? getModelForTask('code', complexity)
-        : forceCanvas
-          ? getModelForTask('file-gen', complexity)
-          : forceWebSearch
-            ? getModelForTask('chat', complexity)
-            : isComplex
-              ? getModelForTask('deep-chat', complexity)
-              : getModelForTask('chat', complexity);
-      const reasoningEffort = resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), complexity);
+      const modelSelection = voiceCompatibility ? LUNA_MODEL : this.capturedModelSelection;
+      const route = voiceCompatibility ? { model: LUNA_MODEL, effort: 'low' as const }
+        : getModelRoute(modelSelection, arcRequestTask({ messages, forceCode, forceCanvas, forceWebSearch, forceGit }), complexity);
+      const selectedModel = route.model;
+      const reasoningEffort = route.effort;
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -387,11 +401,13 @@ export class AIService {
                 body: JSON.stringify({
                   messages: [UI_CONTEXT_PROMPT, ARC_MODE_CONTEXT[arcMode], ...messages],
                   submissionId, arcMode,
+                  ...(voiceCompatibility ? { compatibilityMode: 'voice' } : {}),
                   ...(persistentInput ? {persistentChat:true,userMessage:persistentInput,locationContextPrompt,locationIsUnavailable,currentLocationRequested} : {}),
                   profile: effectiveProfile,
                   model: selectedModel,
                   reasoningEffort,
-                  reasoningSelection: (this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort),
+                  modelSelection,
+                  reasoningSelection: modelSelection,
                   sessionId: sessionId,
                   forceWebSearch: forceWebSearch || false,
                   forceCanvas: forceCanvas || false,
@@ -564,8 +580,9 @@ export class AIService {
               longitude: usedLocation.longitude,
             } : undefined,
             modelUsed: data.model_used,
+            modelSwitchNotice: voiceCompatibility ? undefined : showModelSwitchNotice(data.model_switch_notice, submissionId),
             toolsUsed: Array.isArray(data.tool_calls_used) ? data.tool_calls_used.filter((tool: unknown): tool is string => typeof tool === "string") : undefined,
-            reasoningEffortUsed: reasoningEffort,
+            reasoningEffortUsed: readRecordedReasoningEffort(data.reasoning_effort_used),
           };
         } catch (err: any) {
           if (abortSignal?.aborted || err?.name === 'AbortError') {
@@ -607,16 +624,20 @@ export class AIService {
       throw error;
     } finally {
       window.dispatchEvent(new Event('arc-reasoning-quota-changed'));
+      if (!voiceCompatibility) notifyTextUsageChanged();
     }
   }
 
   // Guest mode: simplified request without auth
   private async sendGuestMessage(messages: AIMessage[]): Promise<SendMessageResult> {
+    const submissionId = crypto.randomUUID();
     const { data, error } = await this.fetchWithTimeout(() =>
       supabase!.functions.invoke('chat', {
         body: {
           messages,
           guest_mode: true,
+          submissionId,
+          modelSelection: this.capturedModelSelection,
         }
       }),
       this.defaultTimeoutMs
@@ -632,6 +653,9 @@ export class AIService {
     return {
       content: data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.',
       webSources: [],
+      modelUsed: data.model_used,
+      modelSwitchNotice: showModelSwitchNotice(data.model_switch_notice, submissionId),
+      reasoningEffortUsed: readRecordedReasoningEffort(data.reasoning_effort_used),
     };
   }
 
@@ -644,15 +668,22 @@ export class AIService {
     forceCode: boolean = false,
     onStart?: (mode: 'canvas' | 'code' | 'text') => void,
     onDelta?: (content: string) => void,
-    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[]; modelUsed?: string; reasoningEffortUsed?: LunaReasoningEffort }) => void,
+    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[]; modelUsed?: string; modelSwitchNotice?: string; reasoningEffortUsed?: LunaReasoningEffort }) => void,
     onError?: (error: string) => void,
     sessionId?: string,
     forceWebSearch?: boolean,
     abortSignal?: AbortSignal
   ): Promise<void> {
-    if (['flynn', 'high'].includes(this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort)) {
-      // Flynn and River use the event-based chat/tool pipeline. Deliver their complete
-      // owned canvas/code artifact through the established continuation contract.
+    const submissionId = crypto.randomUUID();
+    const modelSelection = this.capturedModelSelection;
+    const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
+    const complexity = getQueryComplexity(lastUserMsg);
+    const route = getModelRoute(modelSelection, arcRequestTask({ messages, forceCode, forceCanvas, forceWebSearch }), complexity);
+    const selectedModel = route.model;
+    const reasoningEffort = route.effort;
+    if (selectedModel !== LUNA_MODEL || reasoningEffort === 'high') {
+      // Sol/Astra use the event-based Responses/tool pipeline, including Auto.
+      // Deliver the owned artifact through the existing continuation contract.
       onStart?.(forceCode ? 'code' : forceCanvas ? 'canvas' : 'text');
       try {
         const result = await this.sendMessage(messages, profile, undefined, sessionId, forceWebSearch,
@@ -663,7 +694,7 @@ export class AIService {
           : result.canvasUpdate ? { mode: 'canvas' as const, content: result.canvasUpdate.content, label: result.canvasUpdate.label }
           : { mode: 'text' as const, content: result.content };
         onDelta?.(artifact.content);
-        onDone?.({ ...artifact, webSources: result.webSources, modelUsed: result.modelUsed, reasoningEffortUsed: result.reasoningEffortUsed });
+        onDone?.({ ...artifact, webSources: result.webSources, modelUsed: result.modelUsed, modelSwitchNotice: result.modelSwitchNotice, reasoningEffortUsed: result.reasoningEffortUsed });
       } catch (error) {
         if (abortSignal?.aborted) throw error;
         onError?.(error instanceof Error ? error.message : 'Chat request failed.');
@@ -674,21 +705,7 @@ export class AIService {
       throw new Error('Chat service is not available. Please configure Supabase.');
     }
 
-    // Model routing based on user's model family preference
-    const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
     const isComplex = !(forceCanvas || forceCode) && detectComplexQuery(lastUserMsg);
-    
-    const complexity = getQueryComplexity(lastUserMsg);
-    const selectedModel = (this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort) === 'flynn' ? FLYNN_MODEL : forceCode
-      ? getModelForTask('code', complexity)
-      : forceCanvas
-        ? getModelForTask('file-gen', complexity)
-        : forceWebSearch
-          ? getModelForTask('chat', complexity)
-          : isComplex
-            ? getModelForTask('deep-chat', complexity)
-            : getModelForTask('chat', complexity);
-    const reasoningEffort = resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), complexity);
 
     // Enrich profile with the canonical living memory (same as sendMessage).
     let enrichedProfile = profile || {};
@@ -727,10 +744,12 @@ export class AIService {
       },
       body: JSON.stringify({
         messages: [UI_CONTEXT_PROMPT, ...messages],
+        submissionId,
         profile: enrichedProfile,
         model: selectedModel,
         reasoningEffort,
-        reasoningSelection: (this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort),
+        modelSelection,
+        reasoningSelection: modelSelection,
         forceCanvas,
         forceCode,
         forceWebSearch,
@@ -825,8 +844,6 @@ export class AIService {
                 reasoningRecorded = true;
                 if (reasoningEffort === 'medium') {
                   incrementDailyBalancedCount();
-                } else if (reasoningEffort === 'high') {
-                  incrementDailyDeepCount();
                 }
               }
               onStart?.(event.mode || 'text');
@@ -835,8 +852,6 @@ export class AIService {
                 reasoningRecorded = true;
                 if (reasoningEffort === 'medium') {
                   incrementDailyBalancedCount();
-                } else if (reasoningEffort === 'high') {
-                  incrementDailyDeepCount();
                 }
               }
               onDelta?.(event.content);
@@ -848,11 +863,9 @@ export class AIService {
                 language: event.language,
                 webSources: event.webSources,
                 modelUsed: event.model_used,
-                // The server takes this value verbatim from the request, so the
-                // effort resolved here is the one that ran. Recording it lets a
-                // stored message report the model that answered it rather than
-                // whatever the picker happens to say later.
-                reasoningEffortUsed: reasoningEffort,
+                modelSwitchNotice: showModelSwitchNotice(event.model_switch_notice, submissionId),
+                // Report the server's authenticated choice, never a client estimate.
+                reasoningEffortUsed: readRecordedReasoningEffort(event.reasoning_effort_used),
               });
             } else if (event.type === 'error') {
               onError?.(event.message);
@@ -870,6 +883,8 @@ export class AIService {
       }
       console.error('Stream reading error:', error);
       onError?.(error instanceof Error ? error.message : 'Stream error');
+    } finally {
+      notifyTextUsageChanged();
     }
   }
 
@@ -878,14 +893,16 @@ export class AIService {
     fileBase64: string,
     fileName: string,
     mimeType: string
-  ): Promise<string> {
+  ): Promise<AnalysisMessageResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Document analysis service is not available.');
     }
 
+    const submissionId = crypto.randomUUID();
     try {
+      const route = getModelRoute(this.capturedModelSelection, 'image-analysis', 2);
       const { data, error } = await supabase.functions.invoke('analyze-document', {
-        body: { messages, fileBase64, fileName, mimeType, reasoningEffort: resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), 2) }
+        body: { submissionId, messages, fileBase64, fileName, mimeType, modelSelection: this.capturedModelSelection, model: route.model, reasoningEffort: route.effort }
       });
 
       if (error) {
@@ -897,18 +914,22 @@ export class AIService {
         throw new Error(data.error);
       }
 
-      return data.content || 'Sorry, I could not analyze the document.';
+      return { content: data.content || 'Sorry, I could not analyze the document.',
+        modelUsed: data.model_used, modelSwitchNotice: showModelSwitchNotice(data.model_switch_notice, submissionId), reasoningEffortUsed: readRecordedReasoningEffort(data.reasoning_effort_used) };
     } catch (error) {
       console.error('Document analysis error:', error);
       throw error;
+    } finally {
+      notifyTextUsageChanged();
     }
   }
 
-  async sendMessageWithImage(messages: AIMessage[], base64Images: string | string[]): Promise<string> {
+  async sendMessageWithImage(messages: AIMessage[], base64Images: string | string[]): Promise<AnalysisMessageResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image analysis service is not available. Please configure Supabase.');
     }
 
+    const submissionId = crypto.randomUUID();
     try {
       // Support both single image and array of images
       const images = Array.isArray(base64Images) ? base64Images : [base64Images];
@@ -917,14 +938,15 @@ export class AIService {
         throw new Error('Maximum 16 images allowed for analysis');
       }
 
-      // Use model family's image analysis model
-      const selectedModel = getModelForTask('image-analysis');
+      const route = getModelRoute(this.capturedModelSelection, 'image-analysis', 2);
       const { data, error } = await supabase.functions.invoke('analyze-image', {
         body: { 
           messages,
           images: images,
-          model: selectedModel,
-          reasoningEffort: resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), 2),
+          submissionId,
+          modelSelection: this.capturedModelSelection,
+          model: route.model,
+          reasoningEffort: route.effort,
         }
       });
 
@@ -937,10 +959,13 @@ export class AIService {
         throw new Error(data.error);
       }
 
-      return data.content || 'Sorry, I could not analyze the image.';
+      return { content: data.content || 'Sorry, I could not analyze the image.',
+        modelUsed: data.model_used, modelSwitchNotice: showModelSwitchNotice(data.model_switch_notice, submissionId), reasoningEffortUsed: readRecordedReasoningEffort(data.reasoning_effort_used) };
     } catch (error) {
       console.error('Image analysis error:', error);
       throw error;
+    } finally {
+      notifyTextUsageChanged();
     }
   }
 
@@ -1117,21 +1142,21 @@ export class AIService {
     }
   }
 
-  async generateFile(fileType: string, prompt: string): Promise<{ fileUrl: string; fileName: string; mimeType: string; fileSize?: number }> {
+  async generateFile(fileType: string, prompt: string): Promise<{ fileUrl: string; fileName: string; mimeType: string; fileSize?: number; modelUsed?: string; modelSwitchNotice?: string; reasoningEffortUsed?: LunaReasoningEffort }> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('File generation service is not available. Please configure Supabase.');
     }
 
+    const submissionId = crypto.randomUUID();
     try {
       console.log('Generating file:', { fileType, prompt });
 
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Use file-gen model for document generation (best per family)
-      const selectedModel = getModelForTask('file-gen');
+      const route = getModelRoute(this.capturedModelSelection, 'file-gen', 2);
       
       const { data, error } = await supabase.functions.invoke('generate-file', {
-        body: { fileType, prompt, model: selectedModel, reasoningEffort: resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), 2) },
+        body: { submissionId, fileType, prompt, modelSelection: this.capturedModelSelection, model: route.model, reasoningEffort: route.effort },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
         } : undefined
@@ -1150,11 +1175,16 @@ export class AIService {
         fileUrl: data.fileUrl,
         fileName: data.fileName,
         mimeType: data.mimeType,
-        fileSize: data.fileSize
+        fileSize: data.fileSize,
+        modelUsed: data.model_used,
+        modelSwitchNotice: showModelSwitchNotice(data.model_switch_notice, submissionId),
+        reasoningEffortUsed: readRecordedReasoningEffort(data.reasoning_effort_used),
       };
     } catch (error) {
       console.error('File generation error:', error);
       throw error;
+    } finally {
+      notifyTextUsageChanged();
     }
   }
 

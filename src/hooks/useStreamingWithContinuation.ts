@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react';
-import type { LunaReasoningSelection, LunaReasoningEffort } from '@/store/useModelStore';
+import type { ArcModelSelection, LunaReasoningSelection, LunaReasoningEffort } from '@/store/useModelStore';
 import { AIService } from '@/services/ai';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useArcStore } from '@/store/useArcStore';
@@ -16,6 +16,7 @@ interface StreamingOptions {
   forceCanvas: boolean;
   forceCode: boolean;
   sessionId?: string;
+  modelSelection?: ArcModelSelection;
   reasoningSelection?: LunaReasoningSelection;
   forceWebSearch?: boolean;
   onStart?: (mode: 'canvas' | 'code' | 'text') => void;
@@ -28,6 +29,7 @@ interface StreamingOptions {
     webSources?: any[];
     wasContinued?: boolean;
     modelUsed?: string;
+    modelSwitchNotice?: string;
     reasoningEffortUsed?: LunaReasoningEffort;
   }) => void | Promise<void>;
   onError?: (error: string) => void;
@@ -61,7 +63,7 @@ export function useStreamingWithContinuation() {
       maxContinuations = 3
     } = options;
     
-    const aiService = new AIService(options.reasoningSelection);
+    const aiService = new AIService(options.modelSelection ?? options.reasoningSelection);
     let accumulatedContent = '';
     let finalMode: 'canvas' | 'code' | 'text' = 'text';
     let finalLabel = '';
@@ -69,6 +71,7 @@ export function useStreamingWithContinuation() {
     let finalReasoningEffort: LunaReasoningEffort | undefined;
     let finalWebSources: any[] = [];
     let finalModelUsed: string | undefined;
+    let finalModelSwitchNotice: string | undefined;
     let isFirstChunk = true;
     let continuationCount = 0;
     let currentMessages = [...messages];
@@ -114,6 +117,7 @@ export function useStreamingWithContinuation() {
             finalLabel = result.label || finalLabel;
             finalLanguage = result.language || finalLanguage;
             finalModelUsed = result.modelUsed || finalModelUsed;
+            finalModelSwitchNotice = result.modelSwitchNotice || finalModelSwitchNotice;
             if (result.webSources?.length) {
               finalWebSources = [...finalWebSources, ...result.webSources];
             }
@@ -171,6 +175,7 @@ export function useStreamingWithContinuation() {
                 webSources: finalWebSources,
                 wasContinued: continuationCount > 0,
                 modelUsed: finalModelUsed,
+                modelSwitchNotice: finalModelSwitchNotice,
                 reasoningEffortUsed: finalReasoningEffort
               });
               resolve(true);
@@ -194,6 +199,7 @@ export function useStreamingWithContinuation() {
                 webSources: finalWebSources,
                 wasContinued: continuationCount > 0,
                 modelUsed: finalModelUsed,
+                modelSwitchNotice: finalModelSwitchNotice,
                 reasoningEffortUsed: finalReasoningEffort
               });
               resolve(true);
@@ -212,7 +218,10 @@ export function useStreamingWithContinuation() {
           sessionId,
           forceWebSearch,
           abortSignal
-        );
+        ).catch((error) => {
+          if (!abortSignal?.aborted) onError?.(error instanceof Error ? error.message : 'Chat request failed.');
+          resolve(false);
+        });
       });
     };
     

@@ -102,6 +102,7 @@ import { cn } from "@/lib/utils";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 import { useStarfieldStore } from "@/store/useStarfieldStore";
 import { BOOST_PLAN_SUMMARY, FREE_PLAN_SUMMARY } from "@/lib/planCopy";
+import { BOOST_NEW_SUBSCRIBER_PRICE_COPY } from "@/lib/boostPricing";
 
 type SectionId = "account" | "appearance" | "ai" | "connectors" | "privacy" | "plan";
 
@@ -226,7 +227,7 @@ function Tile({
 
 function ImageDefaultsCard() {
   const { aspectRatio, setAspectRatio } = useImageGenStore();
-  const { remainingCredits, liteAvailable } = useImageQuota();
+  const { remainingCredits } = useImageQuota();
 
   return (
     <SectionCard icon={ImageIcon} title="Images" subtitle="Defaults and model specifications">
@@ -258,11 +259,6 @@ function ImageDefaultsCard() {
               <span className="text-muted-foreground">GPT 2.5</span>
               <span className="font-medium text-foreground text-right">GPT 2.5 Flare · GPT 2.5 Flare HQ · GPT 2.5 Sunburst</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Nano Banana 2</span>
-              <span className="font-medium text-foreground">Native 1K</span>
-            </div>
-            {liteAvailable && <div className="flex justify-between items-center"><span className="text-muted-foreground">Nano Banana 2 Lite</span><span className="font-medium text-foreground">Native 1K</span></div>}
             <div className="flex justify-between items-center pt-1 border-t border-border/30">
               <span className="text-muted-foreground">Allowance</span>
               <span className="font-medium text-primary">
@@ -876,6 +872,11 @@ export function SettingsPanel() {
                 : FREE_PLAN_SUMMARY
               }
             </p>
+            {!quotaAdmin && (
+              <p className="text-[11px] text-muted-foreground mt-1.5 max-w-xs">
+                {BOOST_NEW_SUBSCRIBER_PRICE_COPY}
+              </p>
+            )}
             {hasBoost && currentPeriodEnd && (
               <p className="text-[11px] text-muted-foreground mt-1.5 font-medium flex items-center gap-1">
                 <Calendar className="h-3 w-3 text-primary/80" />
@@ -901,7 +902,7 @@ export function SettingsPanel() {
                 className="text-xs bg-primary text-primary-foreground hover:bg-primary/95"
                 onClick={() => openCheckout()}
               >
-                Upgrade to Boost ($10)
+                Get Boost
               </GlassButton>
             )}
           </div>

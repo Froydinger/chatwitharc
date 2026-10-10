@@ -1,3 +1,4 @@
+import { getRecordedChatModelIcon } from "@/lib/chatModelIcons";
 import { Transition } from "@/components/transitions/Transition";
 import { Cpu, Cloud } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -13,7 +14,8 @@ interface ModelSourceBadgeProps {
 
 export function ModelSourceBadge({ source, modelUsed, effortUsed }: ModelSourceBadgeProps) {
   const { label, icon, tooltip } = getRouteLabel(source, modelUsed, effortUsed);
-  const Icon = icon === 'local' ? Cpu : Cloud;
+  const ModelIcon = source !== 'cloud-voice' && !source.startsWith('cloud-image') ? getRecordedChatModelIcon(modelUsed) : undefined;
+  const Icon = icon === 'local' ? Cpu : ModelIcon ?? Cloud;
   const isLocal = icon === 'local';
 
   return (

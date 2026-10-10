@@ -227,7 +227,9 @@ test('real text submission and durable completion across detached frontend lifet
       // opening a saved chat therefore needs the same explicit hydration that
       // selecting it in the real chat history triggers.
       if (hydrateSessionId) await store.getState().hydrateSession(hydrateSessionId);
-      const dependencies = { useArcStore: store, useModelStore: { getState: () => ({ reasoningEffort: 'low' }) },
+      const dependencies = { useArcStore: store, useModelStore: { getState: () => ({ modelSelection: 'auto' }) },
+        normalizeModelSelection: value => ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6-astra'].includes(value) ? value : 'auto',
+        showModelSwitchNotice() {}, notifyTextUsageChanged() {},
         useBrowserbaseSessionStore: { getState: () => ({ getSession: () => undefined }) },
         APP_BUILDER_ENABLED: false,
         captureCloudWorkspaceContext:transport.captureCloudWorkspaceContext,
@@ -254,7 +256,7 @@ test('real text submission and durable completion across detached frontend lifet
         const composer = evaluate(`exports.send = async () => { const ${composerSession}; const ${composerUser};
           await afterUser(requestSessionId, userMessageId); ${composerRoute}
           throw new Error('Unexpected legacy fallthrough'); };`, {
-          ...dependencies, createNewSession: state().createNewSession, addMessage: state().addMessage, finalMessage: content,
+          ...dependencies, requestModelSelection: 'auto', createNewSession: state().createNewSession, addMessage: state().addMessage, finalMessage: content,
           afterUser: async (sid, mid) => {
             if (waitForLegacySave) await until(() => jsonSQL(`select messages from public.chat_sessions where id=${quote(sid)}`)?.some(m => m.id === mid));
             if (forceLegacyPreparation) store.setState(current => ({

@@ -28,6 +28,7 @@ export type CloudWorkerContext = {
   /** Actual provider selected by trusted preparation, never request metadata. */
   modelUsed?: string;
   reasoningEffortUsed?: 'none' | 'low' | 'medium' | 'high';
+  modelSwitchNotice?: string;
   tools: Record<string, RegisteredCloudTool>;
 };
 export type CloudWorkerOptions = {
@@ -134,7 +135,9 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
         ? { ...message, type: 'text' }
         : message;
       return options.store.complete(run,
-        { choices: [{ message: { role: 'assistant', content: text } }], model_used: context.modelUsed ?? 'gpt-6-luna', cloud_run_id: id,
+        { choices: [{ message: { role: 'assistant', content: text } }], model_used: context.modelUsed ?? 'gpt-6-luna',
+          ...(context.reasoningEffortUsed ? { reasoning_effort_used: context.reasoningEffortUsed } : {}),
+          ...(context.modelSwitchNotice ? { model_switch_notice: context.modelSwitchNotice } : {}), cloud_run_id: id,
           ...presentation },
         { id: `cloud-${id}`, role: 'assistant', content: text, timestamp: run.created_at,
           ...summary, modelUsed: context.modelUsed ?? 'gpt-6-luna',

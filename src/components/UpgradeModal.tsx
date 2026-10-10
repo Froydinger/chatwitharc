@@ -1,3 +1,4 @@
+import { GOOGLE_PLAY_BOOST_PRODUCT_IDS, currentBoostCheckoutPriceId, boostBillingInterval } from '../../supabase/functions/_shared/boostCatalog';
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -5,20 +6,20 @@ import { Check, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { cn } from "@/lib/utils";
-import { 
-  BOOST_PRICE_ID, 
+import {
+  BOOST_PRICE_ID,
   BOOST_MONTHLY_PRICE_AMOUNT,
-  BOOST_PRICE_DISPLAY, 
+  BOOST_PRICE_DISPLAY,
   BOOST_TRIAL_DISPLAY,
   BOOST_TRIAL_NOTE,
-  BOOST_ANNUAL_PRICE_ID, 
+  BOOST_ANNUAL_PRICE_ID,
   BOOST_ANNUAL_PRICE_AMOUNT,
-  BOOST_ANNUAL_REGULAR_PRICE_AMOUNT,
   BOOST_ANNUAL_REGULAR_PRICE_DISPLAY,
   BOOST_ANNUAL_RENEWAL_DISPLAY,
   BOOST_ANNUAL_SAVINGS_DISPLAY,
   BOOST_ANNUAL_OFFER_BADGE,
-  BOOST_ANNUAL_PRICE_DISPLAY, 
+  BOOST_ANNUAL_PRICE_DISPLAY,
+  BOOST_GRANDFATHERING_COPY,
   paymentsAvailable,
   getStripeEnvironment
 } from "@/lib/stripe";
@@ -47,7 +48,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
   const { checkSubscription } = useSubscription();
   const requireAuth = useRequireAuth();
   const { toast } = useToast();
-  const [selectedPriceId, setSelectedPriceId] = useState(priceId || BOOST_PRICE_ID);
+  const [selectedPriceId, setSelectedPriceId] = useState(currentBoostCheckoutPriceId(priceId));
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [playDetails, setPlayDetails] = useState<GooglePlayItemDetails[]>([]);
   const [loadingPlayDetails, setLoadingPlayDetails] = useState(false);
@@ -55,10 +56,11 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
 
   const isRealUser = !!user && !isAnonymous;
   const isPlayCheckout = isGooglePlayStoreTwa();
-  const selectedPlayItem = playDetails.find(item => item.itemId === selectedPriceId);
+  const selectedPlayProductId = GOOGLE_PLAY_BOOST_PRODUCT_IDS[boostBillingInterval(selectedPriceId) ?? 'monthly'];
+  const selectedPlayItem = playDetails.find(item => item.itemId === selectedPlayProductId);
   const selectedPlayPrice = formatGooglePlayPrice(selectedPlayItem);
   const canCheckout = isPlayCheckout
-    ? isRealUser && !!selectedPlayItem && !loadingPlayDetails
+    ? isRealUser && !!selectedPlayItem && !!selectedPlayPrice && !loadingPlayDetails
     : paymentsAvailable() && isRealUser;
   const isVoiceLimit = reason === 'voice_daily_limit' || reason === 'voice_session_timeout';
   useEffect(() => {
@@ -70,7 +72,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedPriceId(priceId || BOOST_PRICE_ID);
+      setSelectedPriceId(currentBoostCheckoutPriceId(priceId));
     }
   }, [isOpen, priceId]);
 
@@ -95,7 +97,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
     setLoadingCheckout(true);
     if (isPlayCheckout) {
       try {
-        await buyGooglePlayBoost(selectedPriceId);
+        await buyGooglePlayBoost(selectedPlayProductId);
         await checkSubscription();
         toast({ title: 'ArcAI Boost is active', description: 'Your Google Play purchase is verified.' });
         handleClose();
@@ -180,30 +182,30 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
         <header className="shrink-0 px-5 pb-4 pt-5 pr-14 sm:px-6 sm:pr-14">
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Zap className="h-4 w-4" /> ARCAI BOOST</div>
           <DialogTitle className="text-2xl font-semibold tracking-tight">{isVoiceLimit ? 'Keep the conversation going' : 'Put your agent to work.'}</DialogTitle>
-          <DialogDescription className="mt-1.5 text-sm">Unlock Arc Work and App Builder, unlimited chat and research, and 250 shared monthly image credits.</DialogDescription>
+          <DialogDescription className="mt-1.5 text-sm">Unlock Arc Work and App Builder, more Sol usage, a separate Astra allowance, and 250 shared monthly image credits.</DialogDescription>
         </header>
         <div className="min-h-0 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6">
           <div role="group" aria-label="Billing period" className="grid grid-cols-2 gap-2">
             {[{id: BOOST_PRICE_ID, label: 'Monthly'}, {id: BOOST_ANNUAL_PRICE_ID, label: 'Yearly'}].map(option => <button key={option.id} type="button" aria-pressed={selectedPriceId === option.id}
               onClick={() => setSelectedPriceId(option.id)} disabled={loadingCheckout}
               className={cn('rounded-2xl border px-3 py-3 text-sm font-medium text-foreground transition-colors', selectedPriceId === option.id ? 'border-primary/50 bg-muted/60' : 'border-border/50 bg-transparent')}>
-              {option.label}{option.id === BOOST_ANNUAL_PRICE_ID && <span className="mt-0.5 block text-[10px] text-muted-foreground">{BOOST_ANNUAL_OFFER_BADGE}</span>}
+              {option.label}{!isPlayCheckout && option.id === BOOST_ANNUAL_PRICE_ID && <span className="mt-0.5 block text-[10px] text-muted-foreground">{BOOST_ANNUAL_OFFER_BADGE}</span>}
             </button>)}
           </div>
           <div className="py-4">
             {isPlayCheckout ? <p className="text-xl font-semibold">{priceDisplay}</p> : <div className="flex flex-wrap items-baseline gap-2">
-              {isAnnual && <span className="text-sm text-muted-foreground line-through" aria-label={`Regular price ${BOOST_ANNUAL_REGULAR_PRICE_DISPLAY}`}>{BOOST_ANNUAL_REGULAR_PRICE_AMOUNT}</span>}
               <span className="text-3xl font-semibold tracking-tight">{isAnnual ? BOOST_ANNUAL_PRICE_AMOUNT : BOOST_MONTHLY_PRICE_AMOUNT}</span>
               <span className="text-sm text-muted-foreground">/ {isAnnual ? 'year' : 'month'}</span>
             </div>}
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{isPlayCheckout ? 'Renews automatically until canceled in Google Play.' : `After a ${BOOST_TRIAL_DISPLAY.toLowerCase()}. ${BOOST_TRIAL_NOTE}`}</p>
             {!isPlayCheckout && isAnnual && <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{BOOST_ANNUAL_SAVINGS_DISPLAY} vs. {BOOST_ANNUAL_REGULAR_PRICE_DISPLAY}. {BOOST_ANNUAL_RENEWAL_DISPLAY}</p>}
           </div>
+          {!isPlayCheckout && <p className="mb-4 text-xs leading-relaxed text-muted-foreground">{BOOST_GRANDFATHERING_COPY}</p>}
           <ul className="space-y-3 border-t border-border/50 pt-4">
             {[
               ['Arc Work', 'Your agent carries out longer tasks in the cloud, with progress saved to your chat.'],
               ['App Builder', 'Build and refine working apps with Arc, then publish or export.'],
-              ['Arc Think + Arc Flash', 'Unlimited usage, with advanced reasoning.'],
+              ['GPT 6 Luna, GPT 6.1 Sol + GPT 6 Astra', 'Unlimited Luna, more Sol usage, and a separate Astra allowance.'],
               ['Image generation & editing', '250 shared monthly credits across available models.'],
               ['Deep Search + Ultra Deep Search', 'Unlimited research.'],
               ['Natural voice', 'Unlimited sessions, up to 2 hours each.'],

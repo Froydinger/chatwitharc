@@ -1,8 +1,9 @@
+import { getRecordedChatModelIcon } from '@/lib/chatModelIcons';
 import { imageModelName } from '@/lib/imageModelNames';
 import { useState } from "react";
 import { Bug } from "lucide-react";
 import { useBugReport } from "@/hooks/useBugReport";
-import { getModelDisplayName } from "@/store/useModelStore";
+import { getRecordedModelDisplayName } from "@/store/useModelStore";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SourcesAccordion } from "@/components/SourcesAccordion";
@@ -29,12 +30,11 @@ export function MessageMetadata({ message }: { message: Message }) {
   const source = message.sourceModel;
   const isLocal = source === "local";
   const isImage = source?.startsWith("cloud-image");
+  const ModelIcon = !isLocal && !isImage && source !== "cloud-voice" ? getRecordedChatModelIcon(message.modelUsed) : undefined;
   const name = isLocal ? "Local AI"
     : source === "cloud-voice" ? "Voxi"
     : isImage ? imageModelName(message.modelUsed)
-    : message.modelUsed === "gemini-3.8-flash" ? "Arc Flash"
-    : message.modelUsed === "gpt-6-sol" || message.modelUsed === "gpt-6.1-sol" ? "Arc Think"
-    : message.reasoningEffortUsed ? getModelDisplayName(message.reasoningEffortUsed) : "Arc Think";
+    : getRecordedModelDisplayName(message.modelUsed);
   const sources = message.webSources?.length ? message.webSources : message.memoryAction?.sources;
 
   const tools = Array.from(new Set([
@@ -63,10 +63,10 @@ export function MessageMetadata({ message }: { message: Message }) {
         </DialogHeader>
         <div className="rounded-2xl border border-border/40 bg-muted/20 p-4">
           <div className="flex items-center gap-3">
-            <ThemedLogo className="h-7 w-7 shrink-0" alt="Arc" />
+            {ModelIcon ? <ModelIcon className="h-7 w-7 shrink-0" aria-hidden="true" /> : <ThemedLogo className="h-7 w-7 shrink-0" alt="Arc" />}
             <div>
               <p className="font-medium">{name}</p>
-              <p className="text-xs text-muted-foreground">{isLocal ? "On your device" : isImage ? "Image generation and editing" : source === "cloud-voice" ? "ArcAI · Cloud" : name === "Arc Flash" ? "Powered by Gemini Flash" : "Powered by GPT 6 & 6.1"}</p>
+              <p className="text-xs text-muted-foreground">{isLocal ? "On your device" : isImage ? "Image generation and editing" : source === "cloud-voice" ? "ArcAI · Cloud" : message.modelUsed?.startsWith("gemini-") ? "Google · Cloud" : message.modelUsed?.startsWith("gpt-") ? "OpenAI · Cloud" : "ArcAI · Cloud"}</p>
             </div>
           </div>
           {tools.length > 0 && (

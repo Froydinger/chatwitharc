@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
+import type { ArcModelSelection } from '@/store/useModelStore';
 import type { CloudMediaReference } from './cloudMediaCapture';
 
 export type CloudRunKind = 'chat' | 'app';
@@ -14,7 +15,10 @@ export type CloudLocationContext =
   | { source: 'ip'; available: false };
 export type CloudTextRequest = {
   locationContext?: CloudLocationContext;
+  modelSelection?: ArcModelSelection;
+  /** Compatibility hints only; the server resolves the final route. */
   model?: string;
+  reasoningSelection?: ArcModelSelection;
   messages: Array<{role: 'user' | 'assistant'; content: string}>;
   attachments?: CloudMediaReference[];
   workspace_context?: CloudWorkspaceContext;

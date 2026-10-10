@@ -1,3 +1,6 @@
+import { arcTextCompletion } from '../_shared/arcTextCompletion.ts';
+import { authorizedArcModelRoute } from '../_shared/arcModelAccess.ts';
+import { ArcModelAccessError } from '../_shared/arcModelRouting.ts';
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -12,10 +15,8 @@ serve(async (req) => {
   }
 
   try {
-    const { fileType, content, prompt, reasoningEffort } = await req.json();
-    const selectedReasoningEffort = ['low', 'medium', 'high'].includes(reasoningEffort)
-      ? reasoningEffort
-      : 'medium';
+    const body = await req.json();
+    const { fileType, content, prompt } = body;
     const authHeader = req.headers.get('Authorization');
 
     // Input validation
@@ -152,31 +153,29 @@ For ZIP files:
 
 CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No explanations, no markdown code fences wrapping the output.`;
 
-    // Luna is the only enabled text/reasoning model for now.
-    const selectedModel = 'gpt-6-luna';
+    // Existing clients and the shared legacy voice tool omit modelSelection.
+    // Keep their original Luna-only request and never trust a raw premium model.
+    const legacy = body.modelSelection === undefined;
+    const route = legacy ? { model: 'gpt-6-luna' as const, selection: 'gpt-6-luna' as const, task: 'file' as const,
+      effort: (['low', 'medium', 'high'].includes(body.reasoningEffort) ? body.reasoningEffort : 'medium') as 'low' | 'medium' | 'high' }
+      : await authorizedArcModelRoute(createClient(supabaseUrl, supabaseKey), user, body, 'file');
+    const selectedModel = route.model;
+    const selectedReasoningEffort = route.effort;
     console.log('Using model for file generation:', selectedModel);
 
-    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        reasoning_effort: selectedReasoningEffort,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt }
-        ],
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      throw new Error(`AI API error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
+    const completed = legacy ? await (async () => {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST', headers: { Authorization: `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'gpt-6-luna', reasoning_effort: route.effort,
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }] }),
+      });
+      if (!response.ok) throw new Error(`AI API error: ${response.status}`);
+      return { data: await response.json(), route, notice: undefined };
+    })() : await arcTextCompletion({ db: createClient(supabaseUrl, supabaseKey), user, request: body,
+      requestId: typeof body.submissionId === 'string' ? body.submissionId : crypto.randomUUID(),
+      source: 'generate-file', route, apiKey: openaiApiKey,
+      messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }], maxTokens: 32_768 });
+    const aiData = completed.data;
     const generatedContent = aiData.choices[0]?.message?.content;
 
     if (!generatedContent) {
@@ -304,7 +303,7 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
         fileUrl: publicUrl,
         fileName,
         mimeType,
-        fileSize
+        fileSize, model_used: completed.route.model, reasoning_effort_used: completed.route.effort, model_switch_notice: completed.notice
       }),
       { 
         headers: { 
@@ -323,7 +322,7 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
         error: message 
       }),
       { 
-        status: 500,
+        status: error instanceof ArcModelAccessError ? error.status : 500,
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json' 

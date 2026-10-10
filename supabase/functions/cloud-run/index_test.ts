@@ -111,15 +111,27 @@ Deno.test('regular Ask chat is durable for free users while Arc Cloud Auto is Bo
   assert(denied.status === 403);
 });
 
-Deno.test('Flynn submission uses authenticated owner email and refuses unavailable preview before persistence', async () => {
-  const flynn = { ...submit, mode: 'ask', request: { ...submit.request, model: 'gemini-3.8-flash' } };
-  for (const email of [undefined, 'another@example.com']) {
-    const response = await exercise(flynn, [{ ...auth(), data: { id: owner, email } }], 'true', 'false', 'fixture-key');
-    assert(response.status === 403);
+Deno.test('retired Gemini submissions migrate to captured Auto without preview keys or email grants', async () => {
+  const retired = { ...submit, mode: 'ask', request: { ...submit.request, model: 'gemini-3.8-flash' } };
+  const rpc = submitRpc();
+  rpc.inspect = (_url, body) => {
+    const request = body.p_request as Record<string, unknown>;
+    assert(request.modelSelection === 'auto'); assert(!('model' in request));
+  };
+  assert((await exercise(retired, [auth(), rpc, read(row())])).status === 202);
+});
+
+Deno.test('Astra submission checks current server Boost or admin before persistence', async () => {
+  const astra = { ...submit, mode: 'ask', request: { ...submit.request, modelSelection: 'gpt-6-astra' } };
+  const admin = (data: unknown): Step => ({ method:'GET', path:'/rest/v1/admin_users', data,
+    inspect: url => assert(url.searchParams.get('user_id') === `eq.${owner}`) });
+  assert((await exercise(astra, [auth(), admin(null), { ...boost(), data:false }])).status === 403);
+  for (const granted of [[admin(null), boost()], [admin({user_id:owner})]]) {
+    const rpc=submitRpc();
+    rpc.inspect=(_url,body)=>assert((body.p_request as Record<string,unknown>).modelSelection==='gpt-6-astra');
+    assert((await exercise(astra,[auth(),...granted,rpc,read(row())])).status===202);
   }
-  const ownerAuth = { ...auth(), data: { id: owner, email: 'jakefroydinger@gmail.com' } };
-  assert((await exercise(flynn, [ownerAuth])).status === 403);
-  assert((await exercise(flynn, [ownerAuth, submitRpc(), read(row())], 'true', 'false', 'fixture-key')).status === 202);
+  assert((await exercise(astra,[auth(),{...admin(null),status:500,data:{message:'blocked'}}])).status===503);
 });
 
 Deno.test('workspace reaches atomic submit RPC unchanged without augmenting visible user',async()=>{
@@ -559,7 +571,7 @@ Deno.test("submit queues only, derives owner, returns client shape", async () =>
             p_session_id: sessionId,
             p_mode: "auto",
             p_kind: "chat",
-            p_request: submit.request,
+            p_request: { ...submit.request, modelSelection: 'auto' },
             p_user_message: submit.userMessage,
             p_expected_revision: 4,
           }),

@@ -1,5 +1,6 @@
 import { cloudImageRuntime } from "./cloudImageRuntime.ts";
 import { appModelRoute } from "./durableModelRouting.ts";
+import { prepareDurableArcModelUsage } from "./arcModelUsage.ts";
 import {
   type AppDatabase,
   cloudAppPersistence,
@@ -24,6 +25,7 @@ import {
 
 class AppAccessDenied extends Error {}
 type Provider = ReturnType<typeof cloudAgentsProvider>;
+type ModelUsage = Awaited<ReturnType<typeof prepareDurableArcModelUsage>>;
 export type CloudAppRuntimePorts = {
   store: CloudWorkerStore;
   app: CloudAppPorts & {
@@ -34,7 +36,8 @@ export type CloudAppRuntimePorts = {
     ): Promise<AppStepResult>;
   };
   context(run: ClaimedCloudRun): Promise<{ instructions: string }>;
-  provider(instructions: string, run: ClaimedCloudRun): Provider;
+  modelUsage?(run: ClaimedCloudRun): Promise<ModelUsage>;
+  provider(instructions: string, run: ClaimedCloudRun, usage?: ModelUsage): Provider;
   imageTools?: ReturnType<typeof cloudImageRuntime>["tools"];
 };
 
@@ -47,6 +50,7 @@ export async function advanceCloudAppRun(
   ports: CloudAppRuntimePorts,
 ): Promise<boolean> {
   const current: { run: ClaimedCloudRun | null } = { run: null };
+  let modelUsage: ModelUsage | undefined;
   const guard = async (run: ClaimedCloudRun) => {
     if (!await ports.app.authorize(run)) {
       throw new AppAccessDenied(
@@ -97,14 +101,17 @@ export async function advanceCloudAppRun(
         await guard(run);
         const workspace = await ports.app.open(run);
         const context = await ports.context(run);
+        const usage = await ports.modelUsage?.(run);
+        modelUsage = usage;
         const provider = ports.provider(
           `${context.instructions}\n\n${CLOUD_APP_INSTRUCTIONS}\n\n` +
             `Durable app project: ${workspace.projectId}. Current draft version: ${workspace.version}. Use inspect_app and read_app_file for current source.`,
-          run,
+          run, usage,
         );
         return {
-          modelUsed: appModelRoute((run.request ?? {}) as Record<string, unknown>).model,
-          reasoningEffortUsed: "low",
+          modelUsed: usage?.route.model ?? appModelRoute((run.request ?? {}) as Record<string, unknown>).model,
+          reasoningEffortUsed: usage?.route.effort ?? "low",
+          modelSwitchNotice: usage?.notice,
           provider: {
             startModel: async (...args) => {
               await guard(run);
@@ -153,6 +160,8 @@ export async function advanceCloudAppRun(
       return true;
     }
     throw error; // Transport uncertainty stays in the engine's saved intent/receipt.
+  } finally {
+    await modelUsage?.ticket?.releaseIfNotStarted();
   }
 }
 
@@ -182,12 +191,22 @@ export function cloudAppAdvance(
       app,
       imageTools: images?.tools,
       context: (run) => loadCloudRunContext(db, run),
-      provider: (instructions, run) =>
+      modelUsage: run => {
+        const route = appModelRoute((run.request ?? {}) as Record<string, unknown>);
+        return prepareDurableArcModelUsage({ db, user: { id: run.user_id },
+          run: run as unknown as { id: string; request: Record<string, unknown>; checkpoint: Record<string, unknown> },
+          route: { ...route, selection: route.model, task: 'code' }, source: 'app', maxTotalTokens: CLOUD_APP_LIMITS.tokens });
+      },
+      provider: (instructions, run, usage) =>
         cloudAgentsProvider({
           apiKey,
           instructions: instructions + (images ? "\nBuilder images default to Flare Low, including transparent assets. Only use Sunburst when the current user explicitly requests better images. Use generate_image/edit_image and save returned asset URLs into project files. Image safety caps apply." : ""),
-          model: appModelRoute((run.request ?? {}) as Record<string, unknown>).model,
-          reasoningEffort: "low",
+          model: usage?.route.model ?? appModelRoute((run.request ?? {}) as Record<string, unknown>).model,
+          reasoningEffort: usage?.route.effort ?? "low",
+          spendLimitCents: usage?.ticket?.reservation.providerBudgetCents,
+          beforeStart: usage?.ticket?.assertNewProviderAttempt,
+          onUsage: usage?.ticket?.observeSession,
+          onRejected: usage?.ticket?.confirmZero,
           tools: [...CLOUD_APP_DEFINITIONS, ...(images?.definitions ?? [])],
           fetcher: options.fetcher,
         }),

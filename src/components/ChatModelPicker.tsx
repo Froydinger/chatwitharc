@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConditionalTransition } from '@/components/transitions/ConditionalTransition';
-import { Brain, Zap, Check, ChevronDown, Crown } from 'lucide-react';
-import { canSelectFlynn, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { Lock, Check, ChevronDown, Crown } from 'lucide-react';
+import { CHAT_MODEL_ICONS } from '@/lib/chatModelIcons';
+import { ASTRA_MODEL, canSelectAstra, useModelStore, type ArcModelSelection } from '@/store/useModelStore';
 import { useAuth } from '@/hooks/useAuth';
-import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
@@ -20,8 +20,10 @@ interface Props {
 }
 
 export const PRESETS = [
-  { effort: 'auto', title: 'Arc Think', subtitle: 'Powered by GPT 6 & 6.1', icon: Brain },
-  { effort: 'flynn', title: 'Arc Flash', subtitle: 'Powered by Gemini Flash', icon: Zap },
+  { selection: 'auto', title: 'Auto', subtitle: 'May use Sol and its shared allowance', icon: CHAT_MODEL_ICONS.auto },
+  { selection: 'gpt-6-luna', title: 'GPT 6 Luna', subtitle: 'Free and unlimited for everyone', icon: CHAT_MODEL_ICONS['gpt-6-luna'] },
+  { selection: 'gpt-6.1-sol', title: 'GPT 6.1 Sol', subtitle: 'Uses your shared Sol allowance', icon: CHAT_MODEL_ICONS['gpt-6.1-sol'] },
+  { selection: 'gpt-6-astra', title: 'GPT 6 Astra', subtitle: 'Boost · separate Astra allowance', icon: CHAT_MODEL_ICONS['gpt-6-astra'] },
 ] as const;
 
 export function ChatModelPicker({
@@ -33,26 +35,25 @@ export function ChatModelPicker({
   onArcModeChange,
 }: Props) {
   const {
-    hasBoost,
-    isAdmin,
+    hasVerifiedBoost,
+    isVerifiedModelAdmin: isAdmin,
     loading: subscriptionLoading,
     openCheckout,
   } = useSubscription();
-  const reasoningEffort = useModelStore((state) => state.reasoningEffort);
+  const modelSelection = useModelStore((state) => state.modelSelection);
   const { user, loading: authLoading } = useAuth();
   const presets = PRESETS;
-  const requireAuth = useRequireAuth();
-  const flynnAvailable = canSelectFlynn(user, hasBoost || isAdmin);
-  const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
+  const astraAvailable = canSelectAstra(hasVerifiedBoost, isAdmin, authLoading || subscriptionLoading) && Boolean(user?.id && !user.is_anonymous);
+  const setModelSelection = useModelStore((state) => state.setModelSelection);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-  const activePreset = presets.find((preset) => preset.effort === reasoningEffort) ?? presets[0];
+  const activePreset = presets.find((preset) => preset.selection === modelSelection) ?? presets[0];
   const CurrentIcon = activePreset.icon;
 
   useEffect(() => {
-    if (!authLoading && !subscriptionLoading && reasoningEffort === 'flynn' && !flynnAvailable) setReasoningEffort('auto');
-  }, [authLoading, subscriptionLoading, reasoningEffort, flynnAvailable, setReasoningEffort]);
+    if (!authLoading && !subscriptionLoading && modelSelection === ASTRA_MODEL && !astraAvailable) setModelSelection('auto');
+  }, [authLoading, subscriptionLoading, modelSelection, astraAvailable, setModelSelection]);
 
   useEffect(() => {
     if (!open) return;
@@ -67,26 +68,27 @@ export function ChatModelPicker({
       setCoords({ top: rect.bottom + 6, left });
     };
     compute();
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setOpen(false); btnRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', dismiss);
     window.addEventListener('resize', compute);
     window.addEventListener('scroll', compute, true);
     return () => {
+      window.removeEventListener('keydown', dismiss);
       window.removeEventListener('resize', compute);
       window.removeEventListener('scroll', compute, true);
     };
   }, [open]);
 
-  const pick = (effort: LunaReasoningSelection) => {
-    if (effort === 'flynn' && !flynnAvailable) {
+  const pick = (selection: ArcModelSelection) => {
+    if (selection === ASTRA_MODEL && !astraAvailable) {
+      if (authLoading || subscriptionLoading) return;
       setOpen(false);
-      requireAuth('generic', undefined, 'Arc Flash');
+      openCheckout(undefined, 'astra_boost_required');
       return;
     }
-    if (effort === 'high' && !hasBoost && !isAdmin) {
-      setOpen(false);
-      openCheckout(undefined, 'river_boost_required');
-      return;
-    }
-    setReasoningEffort(effort);
+    setModelSelection(selection);
     setOpen(false);
   };
 
@@ -101,6 +103,7 @@ export function ChatModelPicker({
           compact ? 'px-2.5' : 'px-3',
           className,
         )}
+        aria-expanded={open}
         aria-label={`Arc Matrix model: ${activePreset.title}`}
         title={`Arc · ${activePreset.title} — tap to change model`}
       >
@@ -167,41 +170,27 @@ export function ChatModelPicker({
                   <div className="text-[10px] text-muted-foreground">Choose how Arc responds.</div>
                 </div>
                 {presets.map((preset) => {
-                  const badge = preset.effort !== 'flynn' || hasBoost || isAdmin ? 'Unlimited usage' : 'Less usage';
+                  const locked = preset.selection === ASTRA_MODEL && !astraAvailable;
+                  const disabled = locked && (authLoading || subscriptionLoading);
+                  const badge = locked ? 'Boost' : preset.selection === 'gpt-6-luna' ? 'Unlimited' : undefined;
                   return (
                     <Row
-                      key={preset.effort}
+                      key={preset.selection}
                       icon={<preset.icon className="h-4 w-4 text-primary" />}
                       title={preset.title}
                       subtitle={preset.subtitle}
                       badge={badge}
-                      active={reasoningEffort === preset.effort}
-                      onClick={() => pick(preset.effort)}
+                      active={!locked && modelSelection === preset.selection}
+                      disabled={disabled}
+                      locked={locked}
+                      onClick={() => pick(preset.selection)}
                     />
                   );
                 })}
-                {!hasBoost && !isAdmin && (
-                  <div className="mt-1 pt-1.5 border-t border-border/40">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false);
-                        openCheckout();
-                      }}
-                      className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-primary/10 hover:bg-primary/15 border border-primary/20 text-left transition-colors group cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Crown className="h-3.5 w-3.5 text-primary shrink-0" />
-                        <div className="text-[11px] font-medium text-foreground">
-                          Upgrade to <span className="font-semibold text-primary">Boost</span>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-medium text-primary group-hover:translate-x-0.5 transition-transform">
-                        Higher limits →
-                      </span>
-                    </button>
-                  </div>
-                )}
+                <p className="px-2.5 pt-2 text-[10px] leading-relaxed text-muted-foreground">
+                  Auto can use your Sol allowance. When it runs out, Auto and Sol switch to Luna.
+                </p>
+
               </div>
             )}
           </ConditionalTransition>
@@ -212,21 +201,26 @@ export function ChatModelPicker({
   );
 }
 
-function Row({ icon, title, subtitle, badge, active, onClick }: {
+function Row({ icon, title, subtitle, badge, active, disabled, locked, onClick }: {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
   badge?: string;
   active?: boolean;
+  disabled?: boolean;
+  locked?: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      title={locked ? 'Available with Boost' : undefined}
       className={cn(
         'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-colors',
-        active ? 'bg-primary/15' : 'hover:bg-white/5',
+        disabled ? 'cursor-not-allowed opacity-55' : active ? 'bg-primary/15' : 'hover:bg-white/5',
       )}
     >
       <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">{icon}</div>
@@ -248,6 +242,7 @@ function Row({ icon, title, subtitle, badge, active, onClick }: {
         </div>
         <div className="text-[10px] text-muted-foreground truncate">{subtitle}</div>
       </div>
+      {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />}
       {active && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
     </button>
   );
