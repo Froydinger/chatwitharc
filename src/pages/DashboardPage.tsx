@@ -121,7 +121,7 @@ function extractCodeBlocks(content: string): Array<{ code: string; language: str
   return blocks;
 }
 
-export function DashboardPageInner({ embedded = false, activeTabOverride }: { embedded?: boolean; activeTabOverride?: DashboardTab } = {}) {
+export function DashboardPageInner({ embedded = false, workspacePresentation = false, activeTabOverride }: { embedded?: boolean; workspacePresentation?: boolean; activeTabOverride?: DashboardTab } = {}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = activeTabOverride || (searchParams.get("tab") as DashboardTab) || "overview";
@@ -150,7 +150,7 @@ export function DashboardPageInner({ embedded = false, activeTabOverride }: { em
   const { profile } = useProfile();
   const { isLoaded } = useChatSync();
   const {
-    chatSessions, createNewSession, loadSession, deleteSession,
+    chatSessions, createNewSession, loadSession, deleteSession, syncedUserId,
     syncFromSupabase, currentSessionId, messages,
     folders, createFolder, deleteFolder, pinFolder, moveChatToFolder
   } = useArcStore();
@@ -212,22 +212,29 @@ useEffect(() => {
   // Lazy DB-driven image state (replaces full-hydration approach)
   const [dbImages, setDbImages] = useState<GeneratedImage[]>([]);
   const [dbImagesLoading, setDbImagesLoading] = useState(false);
+  const [dbImagesError, setDbImagesError] = useState<string | null>(null);
   const [dbSessionOffset, setDbSessionOffset] = useState(0);
   const [dbHasMoreSessions, setDbHasMoreSessions] = useState(true);
   const DB_SESSION_BATCH = 30;
   const [dbCanvases, setDbCanvases] = useState<CanvasItem[]>([]);
   const [dbCanvasesLoading, setDbCanvasesLoading] = useState(false);
+  const [dbCanvasesError, setDbCanvasesError] = useState<string | null>(null);
   const [dbCanvasOffset, setDbCanvasOffset] = useState(0);
   const [dbHasMoreCanvasSessions, setDbHasMoreCanvasSessions] = useState(true);
   const [totalImageCount, setTotalImageCount] = useState<number | null>(() => {
-    // Read synchronously so the count shows on the very first render
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith('arc_image_count_')) {
-        const val = Number(localStorage.getItem(key));
-        if (!isNaN(val)) return val;
+    // Read synchronously so the legacy dashboard can reuse its local count.
+    if (!workspacePresentation) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('arc_image_count_')) {
+          const val = Number(localStorage.getItem(key));
+          if (!isNaN(val)) return val;
+        }
       }
     }
+    // Workspace surfaces only read this account's cache before the live query.
+    const cached = user?.id ? Number(localStorage.getItem(`arc_image_count_${user.id}`)) : Number.NaN;
+    if (Number.isFinite(cached)) return cached;
     return null;
   });
   const [quickCounts, setQuickCounts] = useState<{ chats: number | null; memories: number | null }>({
@@ -609,6 +616,7 @@ useEffect(() => {
   const fetchMoreImages = async (reset = false) => {
     if (dbImagesLoading) return;
     if (!reset && !dbHasMoreSessions) return;
+    setDbImagesError(null);
     setDbImagesLoading(true);
     const offset = reset ? 0 : dbSessionOffset;
     try {
@@ -649,6 +657,7 @@ useEffect(() => {
       setDbHasMoreSessions((data || []).length === DB_SESSION_BATCH);
     } catch (e) {
       console.error('Failed to load images from DB:', e);
+      setDbImagesError('Could not load image history.');
     } finally {
       setDbImagesLoading(false);
     }
@@ -700,6 +709,7 @@ useEffect(() => {
   const fetchMoreCanvases = async (reset = false) => {
     if (dbCanvasesLoading) return;
     if (!reset && !dbHasMoreCanvasSessions) return;
+    setDbCanvasesError(null);
     setDbCanvasesLoading(true);
     const offset = reset ? 0 : dbCanvasOffset;
     try {
@@ -743,6 +753,7 @@ useEffect(() => {
       );
     } catch (e) {
       console.error('Failed to load canvases from DB:', e);
+      setDbCanvasesError('Could not load canvas history.');
     } finally {
       setDbCanvasesLoading(false);
     }
@@ -1016,12 +1027,16 @@ useEffect(() => {
 
 
   const allChats = useMemo(() => {
-    return [...(chatSessions || [])].sort((a, b) => {
+    const ownedSessions = workspacePresentation
+      ? (chatSessions || []).filter(session => session.persistenceOwnerId === user?.id
+        || (!session.persistenceOwnerId && syncedUserId === user?.id))
+      : (chatSessions || []);
+    return [...ownedSessions].sort((a, b) => {
       const timeA = a.lastMessageAt ? toDate(a.lastMessageAt)?.getTime() || 0 : 0;
       const timeB = b.lastMessageAt ? toDate(b.lastMessageAt)?.getTime() || 0 : 0;
       return timeB - timeA;
     });
-  }, [chatSessions]);
+  }, [chatSessions, syncedUserId, user?.id, workspacePresentation]);
 
   const filteredChats = useMemo(() => {
     if (!chatSearch.trim()) return allChats;
@@ -1233,7 +1248,8 @@ useEffect(() => {
       transition={isExiting
         ? { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const }
         : { duration: isSwipeEntry ? 0.22 : 0.32, ease: [0.22, 1, 0.36, 1] as const }}
-      className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full bg-background text-foreground", embedded && "min-h-0 dashboard-preview-embedded")}
+      className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full bg-background text-foreground", embedded && "min-h-0 dashboard-preview-embedded", workspacePresentation && "workspace-dashboard-inner")}
+      data-workspace-dashboard-page={workspacePresentation ? activeTab : undefined}
       style={{
         paddingBottom: embedded ? 0 : 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
         willChange: 'transform, opacity, filter',
@@ -1243,7 +1259,7 @@ useEffect(() => {
         <title>ArcAI • Dashboard</title>
       </Helmet>
       <div
-        className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8", embedded && "dashboard-preview-embedded-content")}
+        className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8", embedded && "dashboard-preview-embedded-content", workspacePresentation && "workspace-dashboard-inner-content")}
         style={embedded ? undefined : {
           paddingTop: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 0.75rem)`,
         }}
@@ -1331,14 +1347,14 @@ useEffect(() => {
         <AnimatePresence mode="wait" initial={false} custom={tabDirection}>
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
-            <motion.div key="overview" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-6">
+            <motion.div key="overview" data-workspace-panel="overview" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-6">
               {/* Mobile Greeting above Recent chats */}
-              <div className="sm:hidden px-1 pt-0.5 pb-1">
+              {!workspacePresentation && <div className="sm:hidden px-1 pt-0.5 pb-1">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Your Arc</p>
                 <h1 className="text-xl font-light text-foreground tracking-tight mt-0.5">
                   {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
                 </h1>
-              </div>
+              </div>}
 
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.75fr)]">
                 <section className="relative overflow-hidden rounded-[2rem] border border-border/55 bg-black p-4 sm:border-border/35 sm:p-6">
@@ -1518,7 +1534,11 @@ useEffect(() => {
                 <div className="rounded-[2rem] border border-border/35 bg-background/40 p-5 sm:p-6">
                   <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><Brain className="h-5 w-5 text-primary" /><div><h2 className="text-sm font-semibold">Living memory</h2></div></div><button onClick={() => switchTab('memories')} className="text-xs text-primary">Open</button></div>
                   {blocksLoading ? <SkeletonList count={3} /> : contextBlocks.length === 0 ? <EmptyState icon={Brain} text="No memories yet" sub='Say “remember that…” in chat.' /> : (
-                    <div className="grid gap-2 sm:grid-cols-2">{contextBlocks.slice(0, 4).map((block) => <div key={block.id} className="rounded-2xl border border-border/30 bg-muted/15 p-3.5"><p className="line-clamp-2 text-sm leading-relaxed text-foreground/90">{block.content}</p><span className="mt-2 block text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo(block.created_at)}</span></div>)}</div>
+                    workspacePresentation ? (
+                      <div className="grid gap-2"><div key={contextBlocks[0].id} className="rounded-2xl border border-border/30 bg-muted/15 p-3.5"><p className="line-clamp-2 text-sm leading-relaxed text-foreground/90">{contextBlocks[0].content}</p><span className="mt-2 block text-[10px] uppercase tracking-wider text-muted-foreground">Living summary · updated {timeAgo(contextBlocks[0].updated_at)}</span></div></div>
+                    ) : (
+                      <div className="grid gap-2 sm:grid-cols-2">{contextBlocks.slice(0, 4).map((block) => <div key={block.id} className="rounded-2xl border border-border/30 bg-muted/15 p-3.5"><p className="line-clamp-2 text-sm leading-relaxed text-foreground/90">{block.content}</p><span className="mt-2 block text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo(block.created_at)}</span></div>)}</div>
+                    )
                   )}
                 </div>
                 <button onClick={() => navigate('/status')} className="group flex min-h-40 flex-col justify-between rounded-[2rem] border border-border/35 bg-gradient-to-br from-background/45 to-primary/[0.07] p-5 text-left transition-all hover:border-primary/35 sm:p-6">
@@ -1531,7 +1551,7 @@ useEffect(() => {
 
           {/* ====== FULL CHATS ====== */}
           {activeTab === "chats" && (
-            <motion.div key="chats" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-chats")}>
+            <motion.div key="chats" data-workspace-panel="chats" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-chats")}>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1690,7 +1710,7 @@ useEffect(() => {
 
           {/* ====== IMAGES ====== */}
           {activeTab === "images" && (
-            <motion.div key="images" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-images")}>
+            <motion.div key="images" data-workspace-panel="images" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-images")}>
               <AnimatePresence mode="wait">
                 {viewingImageIndex !== null && currentImage ? (
                   <motion.div key="viewer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
@@ -1761,12 +1781,16 @@ useEffect(() => {
                       )}
                     </div>
 
+                    {dbImagesError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground"><span>{dbImagesError}</span><Button variant="outline" size="sm" onClick={() => { void fetchMoreImages(dbImages.length === 0); }}>Try again</Button></div>}
+
                     {dbImagesLoading && dbImages.length === 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div data-workspace-gallery-grid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                         {[1,2,3,4,5,6,7,8].map(i => (
                           <div key={i} className="aspect-square rounded-2xl bg-muted/20 animate-pulse border border-border/10" />
                         ))}
                       </div>
+                    ) : dbImagesError && filteredImages.length === 0 ? (
+                      <div className="py-12 text-center text-sm text-muted-foreground">Image history is temporarily unavailable.</div>
                     ) : filteredImages.length === 0 ? (
                       <div className="py-20">
                         <EmptyState 
@@ -1777,10 +1801,10 @@ useEffect(() => {
                       </div>
                     ) : (
                       <div className="space-y-6">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div data-workspace-gallery-grid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                           {filteredImages.slice((imagePage - 1) * ITEMS_PER_PAGE, imagePage * ITEMS_PER_PAGE).map((img, i) => {
                             const globalIndex = (imagePage - 1) * ITEMS_PER_PAGE + i;
-                            return <ImageCard key={`${img.sessionId}-${globalIndex}`} img={img} onClick={() => setViewingImageIndex(globalIndex)} index={i} />;
+                            return <ImageCard key={`${img.sessionId}-${globalIndex}`} img={img} onClick={() => setViewingImageIndex(globalIndex)} index={i} workspacePresentation={workspacePresentation} />;
                           })}
                         </div>
 
@@ -1814,7 +1838,7 @@ useEffect(() => {
 
           {/* ====== FULL APPS ====== */}
           {APP_BUILDER_ENABLED && activeTab === "apps" && (
-            <motion.div key="apps" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-apps")}>
+            <motion.div key="apps" data-workspace-panel="apps" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-apps")}>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1825,14 +1849,14 @@ useEffect(() => {
                     className="pl-9 bg-muted/30 border-border/40 rounded-xl"
                   />
                 </div>
-                <Button
+                {!workspacePresentation && <Button
                   onClick={() => handleLaunchAppBuilder()}
                   className="rounded-full h-9 px-3.5 bg-neon-500/10 hover:bg-neon-500/15 dark:bg-gradient-to-r dark:from-neon-500/20 dark:via-primary/20 dark:to-neon-500/20 dark:hover:from-neon-500/30 dark:hover:to-primary/30 border border-neon-500/30 text-neon-700 dark:text-neon-200 text-xs font-semibold gap-1.5 shadow-sm transition-all"
                   title="New App"
                 >
                   <Plus className="h-4 w-4 text-neon-600 dark:text-neon-400" />
                   <span>New App</span>
-                </Button>
+                </Button>}
               </div>
 
               {loadingApps ? (
@@ -1872,7 +1896,7 @@ useEffect(() => {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div data-workspace-app-grid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {filteredApps.slice((appPage - 1) * ITEMS_PER_PAGE, appPage * ITEMS_PER_PAGE).map((app) => {
                       const askarcUrl = app.netlify_subdomain ? `https://${app.netlify_subdomain}.askarc.chat` : null;
                       return (
@@ -1889,6 +1913,7 @@ useEffect(() => {
                             }
                             void openProject(app.id);
                           }}
+                          data-workspace-app-card
                           className="group relative flex flex-col justify-between rounded-2xl border border-border/40 bg-card/60 hover:bg-card/90 hover:border-neon-500/40 p-4 transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 overflow-hidden"
                         >
                           <div className="space-y-3">
@@ -2002,6 +2027,7 @@ useEffect(() => {
                         </div>
                       );
                     })}
+                    {workspacePresentation && <button type="button" data-workspace-create-card onClick={() => handleLaunchAppBuilder()} className="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-border/60 bg-transparent p-7 text-center text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"><span className="flex h-12 w-12 items-center justify-center rounded-full border border-border/60"><Plus className="h-5 w-5" /></span><span><span className="block text-xl font-medium text-foreground">Create an app</span><span className="mt-2 block text-sm">Start a new project with Arc Builder.</span></span></button>}
                   </div>
                   <PaginationBar
                     current={appPage}
@@ -2114,7 +2140,7 @@ useEffect(() => {
 
           {/* ====== FULL CANVASES ====== */}
           {activeTab === "canvases" && (
-            <motion.div key="canvases" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-canvases")}>
+            <motion.div key="canvases" data-workspace-panel="canvases" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-canvases")}>
               <AnimatePresence mode="wait">
                 {selectedCanvas ? (
                   <motion.div key="canvas-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
@@ -2192,15 +2218,18 @@ useEffect(() => {
                         <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search code & canvases…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                       </div>
                     </div>
+                    {dbCanvasesError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border px-4 py-3 text-sm text-muted-foreground"><span>{dbCanvasesError}</span><Button variant="outline" size="sm" onClick={() => { void fetchMoreCanvases(dbCanvases.length === 0); }}>Try again</Button></div>}
                     {dbCanvasesLoading && dbCanvases.length === 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div data-workspace-canvas-grid className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[1,2,3,4].map(i => <div key={i} className="rounded-xl border border-border/30 bg-muted/20 overflow-hidden"><Skeleton className="h-32 w-full" /><div className="p-3"><Skeleton className="h-4 w-3/4 mb-1.5" /><Skeleton className="h-3 w-1/2" /></div></div>)}
                       </div>
+                    ) : dbCanvasesError && filteredCanvases.length === 0 ? (
+                      <div className="py-12 text-center text-sm text-muted-foreground">Canvas history is temporarily unavailable.</div>
                     ) : filteredCanvases.length === 0 ? (
                       <EmptyState icon={Layers} text={canvasSearch ? "No matching canvases" : "No canvases yet"} sub="Ask Arc to write code, compose text, or use /write in chat." />
                     ) : (
                       <>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div data-workspace-canvas-grid className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {filteredCanvases.slice((canvasPage - 1) * ITEMS_PER_PAGE, canvasPage * ITEMS_PER_PAGE).map((item) => (
                           <div
                             key={item.id}
@@ -2258,6 +2287,7 @@ useEffect(() => {
                         ))}
                       </div>
                       <PaginationBar current={canvasPage} total={Math.ceil(filteredCanvases.length / ITEMS_PER_PAGE)} onChange={setCanvasPage} />
+                      {dbHasMoreCanvasSessions && <Button variant="ghost" size="sm" onClick={() => { void fetchMoreCanvases(); }} disabled={dbCanvasesLoading} className="mx-auto flex text-sm text-muted-foreground hover:text-foreground">{dbCanvasesLoading ? "Loading…" : "Load more from history"}</Button>}
                       </>
                     )}
                   </motion.div>
@@ -2268,13 +2298,20 @@ useEffect(() => {
 
           {/* ====== LIVING MEMORY ====== */}
           {activeTab === "memories" && (
-            <motion.div key="memories" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-memories")}>
+            <motion.div key="memories" data-workspace-panel="memory" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-memories")}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0 flex-1 basis-64">
                   <h2 className="text-lg font-semibold">Arc's living memory</h2>
 
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAddingMemory(true)}
+                  className="min-h-11 rounded-xl px-3 text-sm"
+                >
+                  <Plus className="mr-1.5 h-4 w-4 text-primary" /> Add to summary
+                </Button>
                 <Button
                   variant="outline"
                   size="icon"
@@ -2688,9 +2725,10 @@ function ChatCard({ session, timeAgo, onClick }: { session: any; timeAgo: (d: an
   );
 }
 
-function ImageCard({ img, onClick }: { img: GeneratedImage; onClick: () => void; index?: number }) {
+function ImageCard({ img, onClick, workspacePresentation = false }: { img: GeneratedImage; onClick: () => void; index?: number; workspacePresentation?: boolean }) {
   return (
     <div
+      data-workspace-image-card={workspacePresentation ? "" : undefined}
       className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer group hover:scale-[1.04] hover:-translate-y-0.5 transition-transform"
       style={{
         border: '1px solid hsl(var(--primary) / 0.12)',
@@ -2701,9 +2739,10 @@ function ImageCard({ img, onClick }: { img: GeneratedImage; onClick: () => void;
       <PrivateImage src={img.url} alt={img.prompt} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" thumbnail />
       {/* Shimmer overlay on hover */}
       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
+      <div className={cn("absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5", workspacePresentation && "workspace-dashboard-image-hover")}>
         <p className="text-white text-xs line-clamp-2 font-medium leading-snug drop-shadow-lg">{img.prompt}</p>
       </div>
+      {workspacePresentation && <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-3 pb-3 pt-10 text-white"><p className="truncate text-base font-medium">{img.prompt || "Generated image"}</p><p className="mt-1 text-xs text-white/75">{img.timestamp.toLocaleDateString()}</p></div>}
       {/* Corner glow */}
       <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-primary/15 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
     </div>
