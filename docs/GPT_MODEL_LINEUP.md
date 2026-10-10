@@ -1,10 +1,12 @@
 # GPT model lineup: October 10, 2026 review candidate
 
-This describes the cloud release candidate based on
-`e562f1fdc5f1a729d083b3b95d5a190c9efc4f63`. The observation-only database
-and eight model bundles have been staged, as recorded below. This document
-does not claim a live provider test. Do not publish new prices before
-checkout and entitlement support.
+This describes the model lineup and the bounded-tool repair candidate based on
+released main `6bcee0db5b42c63acd3a39773ddb0f4f976c2b35`. The earlier lineup
+release evidence is retained below; the current repair's exact scope, offline
+coverage, deployment gates and rollback are in
+[`qa/bounded-tools-spend-control-2026-10-10.md`](qa/bounded-tools-spend-control-2026-10-10.md).
+The repair is not deployed and has no live provider-test claim. Do not publish
+new prices before checkout and entitlement support.
 
 ## Approved model and allowance policy
 
@@ -41,10 +43,20 @@ Coming soon banner. It has no price, features, checkout or activated billing.
 - `arcModelRouting.ts` is the pure shared selection/task/effort resolver.
   `arcModelAccess.ts` verifies existing `admin_users` and `user_has_boost` on
   the server. Client flags, editable metadata and claimed email grant nothing.
-- Ordinary Chat, event streaming, Canvas/code/tool loops and durable Work/Git
-  use the existing Agents pipeline for premium requests. The raw Luna/none
-  stream remains available and requests final usage metadata. Sol/Astra never
-  enter the unsupported Chat Completions function-tool route.
+- Canonical ordinary Chat, event streaming, Canvas/code/tool loops and new
+  durable Work/Git/Builder runs use bounded Responses. The complete model
+  input (including functions, media and prior tool results) is counted before
+  every generation and output/reasoning is capped against the existing usage
+  reservation. Sol/Astra never enter Chat Completions with function tools.
+  Existing Agents sessions and all voice/legacy-installed compatibility paths
+  retain their original transport. Canonical raw streams preserve the composer
+  event format, actual model/effort, tool history and artifact metadata.
+- Display-only Responses SSE preserves incremental text for normal Chat. The
+  same single background generation POST is bounded before streaming; lost
+  event reads only fall back to GET polling of its accepted response ID. Tool
+  arguments and private reasoning are never display text, and tools still wait
+  for a complete, validated and accounted response. Canvas/code artifacts are
+  delivered only after their complete tool result is captured.
 - `arcModelUsage.ts` reserves each logical submission/provider attempt,
   pins durable actual routes, records cumulative usage and rejects ambiguous
   repeated provider POSTs. Effective completion inputs and media identities
@@ -52,16 +64,22 @@ Coming soon banner. It has no price, features, checkout or activated billing.
 - `arcTextCompletion.ts` covers text/document/image analysis and file content.
   Text-only premium completions reserve a conservative UTF-8 input bound,
   cache-write upper bound and capped output/reasoning tokens. Premium vision
-  uses a provider-capped Agents session, retaining every image input rather
-  than estimating image tokens from a URL's length.
+  uses exact Responses input-token counting, retaining every image input rather
+  than estimating image tokens from a URL's length. Initial input-fit failure
+  can release only the confirmed-unused premium reservation and create a fresh
+  image-aware Luna attempt with an explicit notice.
 - Inline non-image document payloads preserve the existing Luna transport
-  and show an explicit model-switch notice. The documented Agents input
-  schema supports text/images, not native file blocks. Extracted text can
-  still use premium models. Do not claim native premium PDF support.
+  and show an explicit model-switch notice. Native document handling is not
+  expanded by the Responses compatibility change. Extracted text can still use
+  premium models. Do not claim native premium PDF support.
 - Durable Work retains its existing Boost/tool/approval gates. App Builder
   retains Fast/Pro, current Boost access, file ownership and publication fences;
   Pro Sol uses the same account ledger. Resume never relabels an already-started
   provider when an allowance replenishes. Done-state retries reserve nothing.
+  If the first exact input count does not fit a fresh premium reservation, its
+  confirmed-unused hold is released before the engine checkpoints a server-owned
+  fallback marker. A later lease pins a distinct Luna reservation and notice
+  before any generation. An unknown POST or later tool turn never reroutes.
 - Prepared-but-not-started durable attempts are released on failure/expiry;
   unknown POSTs and existing sessions keep their holds. Confirmed terminal
   cancellation settles available usage. A final accounting outage retains
@@ -103,7 +121,33 @@ Coming soon banner. It has no price, features, checkout or activated billing.
 
 ## Accounting limits that must remain explicit
 
-Agents spend control is a positive whole-cent session limit. The application
+For new canonical requests, `boundedResponsesProvider.ts` uses the official
+Responses input-token count endpoint with the same model, instructions, function
+schemas, reasoning configuration and effective input as generation. It reserves
+cache-write-priced input plus bounded output at standard service tier. Every
+completed response records its actual token price with an immutable reservation
+ID and prior-cost boundary attached to the provider response. Repeated GETs and
+reconstructed workers therefore replay the same cumulative receipt rather than
+charging twice. Missing/interim-unrecordable usage blocks further model steps;
+a final receipt outage preserves a completed answer and the full hold.
+
+The old Agents adapter remains solely for saved Agents sessions, compatibility
+clients and the new-run rollback switch. Its ceiling is never removed. A verified
+initial rejection or a preflight that made no generation call is zero new spend;
+HTTP 408/409, malformed success, timeout and unknown acceptance retain their
+holds. Each tool keeps its existing separate approval, quota and accounting
+boundary. The new transport exposes only registered function tools, so provider
+built-in tool charges cannot bypass Arc's gates.
+
+`ARC_BOUNDED_RESPONSES_ENABLED=false` stops choosing the new adapter for fresh
+Chat/Work/Builder runs. Saved Responses jobs remain on Responses and saved
+Agents sessions remain on Agents. Do not roll cloud-worker back to a pre-adapter
+bundle while Responses jobs exist; use the selector switch or drain jobs first.
+Premium image analysis can be rolled back with its self-contained function
+bundle after in-flight HTTP requests finish; its requests are not durable jobs.
+
+
+For retained Agents sessions, spend control is a positive whole-cent session limit. The application
 uses the atomic reservation's ceiling and applies it to legacy resumed
 sessions before continuation. The provider docs do not establish a zero-
 overshoot financial guarantee. Account reservations prevent ordinary races;
@@ -117,7 +161,7 @@ ambiguous outcomes are held for reconciliation, not automatically refunded
 by age. The revision-fenced reconciliation RPC requires trusted accounting
 facts. See `docs/qa/arc-usage-ledger.md`.
 
-## Verification evidence and open gates
+## Earlier lineup verification evidence and open gates
 
 - Production Vite build and all 16 prerendered public pages pass with dummy
   public client configuration, without a production query.

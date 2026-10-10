@@ -2,6 +2,15 @@
  * execution has no dependency on a browser connection or in-memory continuation.
  * The store must fence every write with the worker's current lease token. */
 import type { CloudPresentation, CloudToolOutput } from './cloudRunArtifacts.ts';
+import { ArcModelAccessError } from './arcModelRouting.ts';
+/** Trusted provider proof that input budgeting stopped before generation. The
+ * fallback flag is set only after a fresh unused premium hold was released. */
+export class CloudModelInputBudgetError extends ArcModelAccessError {
+  constructor(readonly initialFallbackAllowed = false) {
+    super('This input does not fit the remaining model allowance.', 429);
+    this.name = 'CloudModelInputBudgetError';
+  }
+}
 export type ToolCall = { id: string; name: string; arguments: string; turnId?: string };
 export type ModelTurn = {
   calls: ToolCall[];
@@ -57,7 +66,10 @@ export type EngineState = {
     outcome?: 'completed' | 'blocked' | 'denied';
   }>;
   modelIntent?: string;
+  initialInputBudgetExceeded?: boolean;
   responseId?: string;
+  /** Last confirmed bounded Response, retained only to settle a stopped tool loop. */
+  lastResponseId?: string;
   /** Completed compatible-provider turn, fenced before any tool execution. */
   pendingModelTurn?: ModelTurn;
   /** Agents API session state is checkpointed with the rest of the run. */
@@ -75,6 +87,9 @@ export interface EnginePorts {
   save(state: EngineState, status: 'running' | 'queued' | 'awaiting_input' | 'failed', reason?: string): Promise<boolean>;
   startModel(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string>;
   pollModel(responseId: string): Promise<ModelTurn | null>;
+  cancelModel?(responseId: string): Promise<void>;
+  /** The provider can settle a previously completed Response without restarting it. */
+  retainCompletedResponseId?: boolean;
   completeModel?(transcript: unknown[], requestKey: string, maxTokens: number): Promise<ModelTurn>;
   startAgentSession?(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string>;
   pollAgentSession?(sessionId: string, previousUsageTokens?: number): Promise<ModelTurn | null>;
@@ -86,9 +101,7 @@ export interface EnginePorts {
   executeTool(call: ToolCall, idempotencyKey: string): Promise<CloudToolOutput>;
 }
 export type EngineProvider = Pick<EnginePorts, 'startModel' | 'pollModel'> &
-  Partial<Pick<EnginePorts, 'completeModel' | 'startAgentSession' | 'pollAgentSession' | 'submitAgentToolResults' | 'cancelAgentSession'>> & {
-    cancelModel?(responseId: string): Promise<void>;
-  };
+  Partial<Pick<EnginePorts, 'completeModel' | 'startAgentSession' | 'pollAgentSession' | 'submitAgentToolResults' | 'cancelAgentSession' | 'cancelModel' | 'retainCompletedResponseId'>>;
 export type CloudRunLimits = { turns: number; tokens: number; outputPerTurn: number; durationMs: number };
 export const CLOUD_LIMITS: CloudRunLimits = { turns: 16, tokens: 64000, outputPerTurn: 8000, durationMs: 20 * 60 * 1000 };
 export const CLOUD_APP_LIMITS: CloudRunLimits = { ...CLOUD_LIMITS, tokens: 512000 };
@@ -103,12 +116,22 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
   const state = structuredClone(previous);
   const failForLimit = async (reason: string) => {
     let cancellationUnconfirmed = false;
+    // A newer submission with an unknown outcome must keep its reservation.
+    // Only a known current ID or a confirmed prior turn can be settled here.
+    const responseToCancel = state.responseId ?? (!state.modelIntent ? state.lastResponseId : undefined);
     if (state.agentSessionId && ports.cancelAgentSession) {
       try {
         await ports.cancelAgentSession(state.agentSessionId, `${runId}:agent-cancel`);
       } catch {
         cancellationUnconfirmed = true;
         console.error('Agents API limit cancellation was not confirmed.');
+      }
+    } else if (responseToCancel && ports.cancelModel) {
+      try {
+        await ports.cancelModel(responseToCancel);
+      } catch {
+        cancellationUnconfirmed = true;
+        console.error('Responses API limit cancellation was not confirmed.');
       }
     }
     await ports.save(state, 'failed', cancellationUnconfirmed ? `${reason}; provider cancellation was not confirmed` : reason);
@@ -124,7 +147,7 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
   if (state.phase === 'model') {
     if (!state.responseId && !state.agentSessionId && !state.pendingModelTurn) {
       if (state.turns >= limits.turns) {
-        await ports.save(state, 'failed', 'Run step limit reached');
+        await failForLimit('Run step limit reached');
         return;
       }
       // An accepted request whose response ID was not saved is ambiguous.
@@ -136,6 +159,7 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
       state.modelIntent = `${runId}:model:${state.turns}`;
       if (!await ports.save(state, 'running')) return;
       const maxTokens = Math.min(limits.outputPerTurn, limits.tokens - state.tokens);
+      try {
       if (ports.completeModel) {
         state.modelProvider = 'compatible';
         state.pendingModelTurn = await ports.completeModel(state.transcript, state.modelIntent, maxTokens);
@@ -145,6 +169,27 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
       } else {
         state.modelProvider = 'responses';
         state.responseId = await ports.startModel(state.transcript, state.modelIntent, maxTokens);
+      }
+      } catch (error) {
+        if (error instanceof CloudModelInputBudgetError && error.initialFallbackAllowed && state.turns === 0
+            && !state.agentSessionId && !state.responseId && !state.lastResponseId && !state.pendingModelTurn) {
+          // This is not an ambiguous POST retry: the trusted adapter proved no
+          // generation started and released its initial hold. Persist the
+          // route-change request; the next lease reserves and pins Luna first.
+          state.modelIntent = undefined;
+          state.initialInputBudgetExceeded = true;
+          await ports.save(state, 'queued', 'The remaining premium allowance could not cover the prompt. Continuing with GPT 6 Luna.');
+          return;
+        }
+        if (error instanceof CloudModelInputBudgetError && state.turns > 0
+            && !state.agentSessionId && !state.responseId && !state.pendingModelTurn) {
+          // Exact input counting proved this newly fenced step never posted.
+          // Stop on the pinned model and settle only the earlier confirmed turn.
+          state.modelIntent = undefined;
+          await failForLimit('The remaining model allowance could not cover the next prompt.');
+          return;
+        }
+        throw error;
       }
       await ports.save(state, 'queued');
       return;
@@ -174,7 +219,8 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     state.tokens += turn.tokens;
     if (state.tokens > limits.tokens || ports.now() >= state.deadline ||
       (state.tokens >= limits.tokens && (turn.providerActive || turn.progressOnly))) {
-      if (turn.providerActive || (turn.progressOnly && state.tokens >= limits.tokens)) {
+      if (turn.providerActive || (turn.progressOnly && state.tokens >= limits.tokens) ||
+          (ports.retainCompletedResponseId && state.responseId && turn.calls.length > 0)) {
         await failForLimit('Run time or token limit reached');
       } else {
         await ports.save(state, 'failed', 'Run time or token limit reached');
@@ -188,6 +234,7 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     state.turns += 1;
     state.pendingModelTurn = undefined;
     state.modelIntent = undefined;
+    if (ports.retainCompletedResponseId && state.responseId) state.lastResponseId = state.responseId;
     state.responseId = undefined;
     if (turn.reasoningSummary) state.reasoningSummary = turn.reasoningSummary;
     state.calls = turn.calls;

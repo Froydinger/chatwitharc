@@ -58,7 +58,7 @@ export function arcRequestTask(request: Record<string, unknown>): ArcModelTask {
   if (request.forceCanvas === true) return 'write';
   if (request.forceWebSearch === true) return 'search';
   const text = arcRequestText(request).trim();
-  if (/^(?:\/(?:code|git|app|build)|(?:code|git|app|build)\/)\b/i.test(text)
+  if (/^(?:\/(?:code|git|app|build)\b|(?:code|git|app|build)\/)/i.test(text)
     || /\b(?:debug|refactor|implement|code review|write (?:a |an )?(?:script|function|program)|build (?:a |an )?(?:app|website|component))\b/i.test(text)) return 'code';
   if (/^(?:\/(?:write|canvas)|(?:write|canvas)\/)/i.test(text)
     || /\b(?:write|draft|rewrite|compose|edit|proofread|polish)\b[\s\S]{0,80}\b(?:email|message|letter|essay|article|post|copy|paragraph|story|report|document|proposal|memo|resume|résumé|bio|outline|poem|speech|script)\b/i.test(text)) return 'write';

@@ -1,5 +1,6 @@
 import { prepareArcModelUsage } from '../_shared/arcModelUsage.ts';
 import { arcTextCompletion } from '../_shared/arcTextCompletion.ts';
+import { boundedChatSessionProvider, BoundedResponseBudgetError } from '../_shared/boundedResponsesProvider.ts';
 import { ordinaryChatIntake } from '../_shared/ordinaryChatIntake.ts';
 import { SEARCH_EVIDENCE_RULES, searchWithVerification } from '../_shared/searchFreshness.ts';
 import { browserPreflightIntent } from '../_shared/chatBrowserbaseIntent.ts';
@@ -15,7 +16,7 @@ import { streamAgentAnswer } from '../_shared/cloudAgentAnswerStream.ts';
 import { isMultiPageBuildRequest } from '../_shared/multiPageIntent.ts';
 import { cloudAgentsProvider, isDefiniteNoGenerationRejectionStatus } from '../_shared/cloudAgentsProvider.ts';
 import { authorizedArcModelRoute } from '../_shared/arcModelAccess.ts';
-import { ARC_ASTRA, ArcModelAccessError, legacyArcChatRoute } from '../_shared/arcModelRouting.ts';
+import { ARC_ASTRA, ARC_LUNA, ArcModelAccessError, arcRequestComplexity, legacyArcChatRoute, resolveArcModelRoute } from '../_shared/arcModelRouting.ts';
 import { arcModelContext } from '../_shared/arcModelCatalog.ts';
 import { chatArtifactStream } from '../_shared/chatArtifactStream.ts';
 import { canRecoverSpendControlRejection, hasBoundedRecoveryActionIntent, isBoundedTextConversation,
@@ -1236,10 +1237,14 @@ product and is helping someone with it. Stay in that voice completely.`;
       ...messages
         .filter((m: any) => m?.role === 'user' || m?.role === 'assistant')
         .map((m: any) => {
+          // Canonical clients supply displayed conversation only. Native
+          // Responses/tool items are created exclusively by trusted adapters.
+          // Preserve the established voice/installed-client payload byte shape.
+          const message = lunaCompatibility ? m : { role: m.role, content: m.content };
           if (m.role === 'user' && typeof m.content === 'string' && m.content.startsWith('[ENHANCE_REQUEST_ONLY]')) {
-            return { ...m, content: m.content.replace(/^\[ENHANCE_REQUEST_ONLY\]\s*/, '') };
+            return { ...message, content: m.content.replace(/^\[ENHANCE_REQUEST_ONLY\]\s*/, '') };
           }
-          return m;
+          return message;
         })
     ];
     if (effectiveForceGit) {
@@ -1704,7 +1709,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     }
 
     const modelRequestId = typeof body.submissionId === 'string' ? body.submissionId : crypto.randomUUID();
-    const modelUsage = lunaCompatibility ? { route, ticket: null, notice: undefined } : await prepareArcModelUsage({ db: supabase, user,
+    let modelUsage = lunaCompatibility ? { route, ticket: null, notice: undefined } : await prepareArcModelUsage({ db: supabase, user,
       request: body, requestId: modelRequestId,
       route, source: 'chat', maxTotalTokens: MAX_CHAT_AGENT_TOKENS });
     validatedModel = modelUsage.route.model;
@@ -1738,7 +1743,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     
     // ========== STREAMING MODE ==========
     // When stream=true, stream content directly to client (for all message types)
-    if (stream && selectedModel === LUNA_MODEL && modelReasoningEffort === 'none') {
+    if (stream && lunaCompatibility && selectedModel === LUNA_MODEL && modelReasoningEffort === 'none') {
       const isCanvasOrCodeMode = wantsCode || wantsCanvas;
       console.log('🌊 Using streaming mode', isCanvasOrCodeMode ? 'for canvas/code' : 'for text');
       
@@ -2156,10 +2161,10 @@ product and is helping someone with it. Stay in that voice completely.`;
       let data: ChatPipelineData;
       let assistantMessage: ChatAssistantMessage;
       let boundedRecovery: Awaited<ReturnType<typeof runBoundedChatRecovery>> | null = null;
-      // Tool-driven Chat, including explicit Code and Canvas requests, uses the
-      // same Agents session path. Raw token-stream requests return through the
-      // established streaming handler before reaching this branch.
-      const useAgentsApi = !stream || selectedModel !== LUNA_MODEL || modelReasoningEffort !== 'none';
+      // Keep the existing session-shaped tool loop for canonical Responses
+      // and legacy Agents transports. Canonical raw text streaming also uses
+      // this loop so tools, metadata and accounting retain the same boundary.
+      const useAgentsApi = !lunaCompatibility || !stream || selectedModel !== LUNA_MODEL || modelReasoningEffort !== 'none';
       let browserbaseTools: ReturnType<typeof browserbaseChatTools> | null = null;
       const getBrowserbaseTools = () => {
         if (!user || isGuestMode) return null;
@@ -2268,7 +2273,12 @@ product and is helping someone with it. Stay in that voice completely.`;
         const toolRequirement = toolChoice === 'required'
           ? 'You must call at least one of the available functions before answering.'
           : '';
-        agentProvider = cloudAgentsProvider({
+        // The provider's optional Agents spend_control is unavailable for this
+        // project. Non-voice requests use the supported Responses transport,
+        // pre-counted and capped against the same account reservation. Keep the
+        // complete existing tool loop, policy checks, artifacts and signed log.
+        const useBoundedResponses = !lunaCompatibility && Deno.env.get('ARC_BOUNDED_RESPONSES_ENABLED') !== 'false';
+        const providerOptions = {
           apiKey: openaiApiKey,
           instructions: `You are Arc, the assistant in ArcAI. Follow the trusted system instructions and use only the supplied functions for actions. Never claim an action succeeded unless its function result confirms it. ${toolRequirement}`,
           model: selectedModel,
@@ -2279,7 +2289,12 @@ product and is helping someone with it. Stay in that voice completely.`;
           onRejected: modelUsage.ticket?.confirmZero,
           tools: agentTools,
           firstTool: forcedAgentTool,
-        });
+        };
+        agentProvider = useBoundedResponses
+          ? boundedChatSessionProvider({ ...providerOptions, ticket: modelUsage.ticket,
+            requireTool: toolChoice === 'required', signal: clientSignal, maxTotalTokens: MAX_CHAT_AGENT_TOKENS,
+            ...(sendEvent && !wantsCode && !wantsCanvas ? { onText: (text: string) => { if (!pipelineComplete) sendEvent({ type: 'answer', text }); } } : {}) })
+          : cloudAgentsProvider(providerOptions);
         finalResponseModel = selectedModel;
         const agentRequestKey = `chat:${sessionId || 'unsaved'}:${crypto.randomUUID()}`;
         const providerStart = Date.now();
@@ -2290,6 +2305,28 @@ product and is helping someone with it. Stay in that voice completely.`;
             MAX_CHAT_AGENT_TOKENS,
           );
         } catch (providerError) {
+          if (useBoundedResponses && providerError instanceof BoundedResponseBudgetError && providerError.initialFallbackAllowed && selectedModel !== LUNA_MODEL) {
+            // Exact input counting proved no generation started. Release only
+            // this unused hold, then reserve a distinct Luna attempt. Never
+            // reroute a tool round or an ambiguous/accepted provider submission.
+            await modelUsage.ticket?.releaseIfNotStarted();
+            modelUsage = await prepareArcModelUsage({ db: supabase, user, request: body,
+              requestId: modelRequestId, source: 'chat', attemptId: 'chat:bounded-input-fit-luna',
+              providerInput: conversationMessages, maxTotalTokens: MAX_CHAT_AGENT_TOKENS,
+              route: resolveArcModelRoute({ selection: ARC_LUNA, task: modelUsage.route.task,
+                complexity: arcRequestComplexity(body) }) });
+            selectedModel = modelUsage.route.model;
+            modelReasoningEffort = modelUsage.route.effort;
+            finalResponseModel = selectedModel;
+            finalResponseEffort = modelReasoningEffort;
+            finalModelSwitchNotice = 'This response uses GPT 6 Luna because the selected model allowance could not cover the full prompt.';
+            conversationMessages[0].content += '\nActual model for this response: GPT 6 Luna. The premium allowance could not cover the full prompt.';
+            agentProvider = boundedChatSessionProvider({ ...providerOptions, model: selectedModel,
+              reasoningEffort: modelReasoningEffort, ticket: modelUsage.ticket,
+              requireTool: toolChoice === 'required', signal: clientSignal, maxTotalTokens: MAX_CHAT_AGENT_TOKENS,
+            ...(sendEvent && !wantsCode && !wantsCanvas ? { onText: (text: string) => { if (!pipelineComplete) sendEvent({ type: 'answer', text }); } } : {}) });
+            agentSessionId = await agentProvider.startAgentSession!(conversationMessages, agentRequestKey, MAX_CHAT_AGENT_TOKENS);
+          } else {
           const forcedToolName = typeof forcedAgentTool === 'string' ? forcedAgentTool : undefined;
           const builderIntent = body.buildApp === true || body.appBuilder === true || body.arcMode === 'builder'
             || isMultiPageBuildRequest(lastUserContent)
@@ -2354,6 +2391,7 @@ product and is helping someone with it. Stay in that voice completely.`;
           finalResponseEffort = boundedRecovery.route.effort;
           finalModelSwitchNotice = boundedRecovery.notice ?? modelUsage.notice;
           console.warn('Agents spend-control recovery used a bounded text-only completion.');
+          }
         }
 
         if (boundedRecovery) {
@@ -2361,7 +2399,7 @@ product and is helping someone with it. Stay in that voice completely.`;
           assistantMessage = data.choices[0].message;
         } else {
           console.log('Chat provider start timing', { elapsedMs: Date.now() - providerStart });
-          if (sendEvent && Deno.env.get('CHAT_AGENT_ANSWER_STREAM_ENABLED') !== 'false') {
+          if (!useBoundedResponses && sendEvent && Deno.env.get('CHAT_AGENT_ANSWER_STREAM_ENABLED') !== 'false') {
             answerStream = new AbortController();
             let firstAnswer = true;
             void streamAgentAnswer({ apiKey: openaiApiKey, sessionId: agentSessionId!, signal: answerStream.signal,
@@ -3632,10 +3670,12 @@ product and is helping someone with it. Stay in that voice completely.`;
       });
     }
 
-    if (stream && selectedModel === SOL_MODEL) {
+    if (stream && !lunaCompatibility) {
       return new Response(chatArtifactStream({ signal: req.signal,
         mode: wantsCode ? 'code' : wantsCanvas ? 'canvas' : 'text',
-        run: signal => runChatPipeline(undefined, signal),
+        run: (signal, onText) => runChatPipeline(onText ? event => {
+          if (event.type === 'answer' && typeof event.text === 'string') onText(event.text);
+        } : undefined, signal),
       }), { headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' } });
     }
 

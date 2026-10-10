@@ -14,6 +14,15 @@ export type ArcModelUsageTicket = {
   releaseIfNotStarted(): Promise<void>;
   /** Paid text-only requests reserve input plus this bounded output before POST. */
   completionTokenLimit(input: unknown, requested: number): number;
+  /** Fenced Responses turns may continue a saved run; unknown initial POSTs may not. */
+  assertProviderStep(): void;
+  responseTokenLimit(inputTokens: number, requested: number): number;
+  /** Adds one confirmed response once, preserving its exact per-request price. */
+  observeResponse(usage: unknown, final: boolean, providerId: string, priorCostNanos: number): Promise<void>;
+  currentResponseCostNanos(): number;
+  finalizeResponses(providerId: string): Promise<void>;
+  /** A definite rejection consumes no NEW tokens, but prior turns may have spend. */
+  settleResponseRejection(reason: string): Promise<void>;
 };
 
 async function fingerprint(value: unknown): Promise<string> {
@@ -29,7 +38,7 @@ export async function prepareDurableArcModelUsage(options: Omit<Parameters<typeo
 }) {
   const { run } = options;
   const saved = run.checkpoint.modelRoute as ArcModelRoute | undefined;
-  const engine = run.checkpoint.engine as { phase?: string; agentSessionId?: string; responseId?: string; modelIntent?: string } | undefined;
+  const engine = run.checkpoint.engine as { phase?: string; turns?: number; agentSessionId?: string; responseId?: string; lastResponseId?: string; modelIntent?: string; initialInputBudgetExceeded?: boolean } | undefined;
   if (saved && (![ARC_LUNA, ARC_SOL, ARC_ASTRA].includes(saved.model)
     || !['none', 'low', 'medium', 'high'].includes(saved.effort)
     || !['chat', 'write', 'code', 'search', 'analysis', 'file'].includes(saved.task))) {
@@ -38,14 +47,21 @@ export async function prepareDurableArcModelUsage(options: Omit<Parameters<typeo
   // Final persistence retries cannot generate again and need no fresh hold.
   if (engine?.phase === 'done') return { route: saved ?? options.route, ticket: null,
     notice: typeof run.checkpoint.modelSwitchNotice === 'string' ? run.checkpoint.modelSwitchNotice : undefined };
-  const usage = await prepareArcModelUsage({ ...options, route: saved ?? options.route,
+  const needsInputFitFallback = engine?.initialInputBudgetExceeded === true && (engine.turns ?? 0) === 0
+    && !engine.agentSessionId && !engine.responseId && !engine.lastResponseId && !engine.modelIntent
+    && (saved ?? options.route).model !== ARC_LUNA;
+  const inputFitRoute = needsInputFitFallback ? resolveArcModelRoute({ selection: ARC_LUNA,
+    task: (saved ?? options.route).task, complexity: arcRequestComplexity(run.request) }) : undefined;
+  const usage = await prepareArcModelUsage({ ...options, route: inputFitRoute ?? saved ?? options.route,
     requestId: run.id, request: run.request,
-    attemptId: typeof run.checkpoint.modelUsageAttempt === 'string' ? run.checkpoint.modelUsageAttempt : undefined,
-    resume: !!(engine?.agentSessionId || engine?.responseId || engine?.modelIntent),
+    attemptId: needsInputFitFallback ? `${options.source}:input-fit-luna`
+      : typeof run.checkpoint.modelUsageAttempt === 'string' ? run.checkpoint.modelUsageAttempt : undefined,
+    resume: !!(engine?.agentSessionId || engine?.responseId || engine?.modelIntent || (engine?.turns ?? 0) > 0),
   });
   run.checkpoint.modelRoute = usage.route;
-  run.checkpoint.modelUsageAttempt = typeof run.checkpoint.modelUsageAttempt === 'string'
+  run.checkpoint.modelUsageAttempt = needsInputFitFallback ? `${options.source}:input-fit-luna` : typeof run.checkpoint.modelUsageAttempt === 'string'
     ? run.checkpoint.modelUsageAttempt : `${options.source}:${usage.notice ? 'fallback-luna' : 'primary'}`;
+  if (needsInputFitFallback) usage.notice = 'This response uses GPT 6 Luna because the selected model allowance could not cover the full prompt.';
   if (usage.notice) run.checkpoint.modelSwitchNotice = usage.notice;
   if (!usage.notice && typeof run.checkpoint.modelSwitchNotice === 'string') usage.notice = run.checkpoint.modelSwitchNotice;
   return usage;
@@ -111,11 +127,73 @@ export async function prepareArcModelUsage(options: {
   const reservationId = reservation.reservationId!;
   let lastPartialCost = reservation.cumulativeCostNanos ?? 0;
   let providerStarted = options.resume === true;
+  let responseAccountingBlocked = false;
+  let responsesFinished = false;
+  const observedResponses = new Set<string>();
   const ticket: ArcModelUsageTicket = {
     reservation,
     assertNewProviderAttempt() {
-      if (reservation.replayed) throw new ArcModelAccessError('This request already started. Check the existing response before trying again.', 409);
+      if (reservation.replayed || responsesFinished) throw new ArcModelAccessError('This request already started. Check the existing response before trying again.', 409);
       providerStarted = true;
+    },
+    assertProviderStep() {
+      if (responseAccountingBlocked || responsesFinished || reservation.state === 'settled' || (reservation.replayed && !options.resume)) {
+        throw new ArcModelAccessError('This request cannot start another model step. Check the existing response before trying again.', 409);
+      }
+      providerStarted = true;
+    },
+    responseTokenLimit(inputTokens, requested) {
+      if (responseAccountingBlocked || responsesFinished || !Number.isSafeInteger(inputTokens) || inputTokens < 0
+          || !Number.isSafeInteger(requested) || requested < 1) throw new ArcModelAccessError('Model usage could not be verified.', 503);
+      const input = { inputTokens, cachedInputTokens: 0, cacheWriteTokens: inputTokens };
+      const inputCost = priceArcTokenUsage(model, { ...input, outputTokens: 0 }).costNanos;
+      const outputPrice = priceArcTokenUsage(model, { ...input, outputTokens: 1 }).costNanos - inputCost;
+      const available = Math.floor((reservation.reservedNanos - lastPartialCost - inputCost) / outputPrice);
+      if (available < 128) throw new ArcModelAccessError('This request reached its safe model allowance. Try a shorter request or GPT 6 Luna.', 429);
+      return Math.min(requested, available);
+    },
+    currentResponseCostNanos() { return lastPartialCost; },
+    async observeResponse(usage, final, providerId, priorCostNanos) {
+      if (observedResponses.has(providerId)) return;
+      let price;
+      try { price = priceArcProviderUsage(model, usage); } catch { price = null; }
+      if (!price) {
+        responseAccountingBlocked = true;
+        throw new ArcModelAccessError('Model usage could not be verified; no additional model step was started.', 503);
+      }
+      if (!Number.isSafeInteger(priorCostNanos) || priorCostNanos < 0 || priorCostNanos > lastPartialCost) {
+        responseAccountingBlocked = true;
+        throw new ArcModelAccessError('The model usage boundary could not be verified.', 503);
+      }
+      try {
+        const saved = await recordArcUsage(options.db, { userId, reservationId,
+          receiptId: `response:${providerId}:${price.costNanos}`,
+          cumulativeCostNanos: priorCostNanos + price.costNanos, final,
+          usage: { ...price, providerId, terminal: final, accumulation: 'confirmed-responses' } });
+        lastPartialCost = Math.max(lastPartialCost, saved.cumulativeCostNanos);
+        observedResponses.add(providerId);
+        if (final) responsesFinished = true;
+      } catch {
+        responseAccountingBlocked = true;
+        // The complete answer is still valid when its final ledger write is
+        // unavailable. Keep the full hold and prohibit another model step.
+        if (final) { console.error('Final response usage receipt was not saved; reservation retained.'); return; }
+        throw new ArcModelAccessError('Model usage could not be saved; no additional model step was started.', 503);
+      }
+    },
+    async finalizeResponses(providerId) {
+      if (responseAccountingBlocked) throw new ArcModelAccessError('Unconfirmed model usage remains reserved.', 503);
+      await recordArcUsage(options.db, { userId, reservationId,
+        receiptId: `responses:terminal:${providerId}:${lastPartialCost}`, cumulativeCostNanos: lastPartialCost,
+        final: true, usage: { providerId, terminal: true, accumulation: 'confirmed-responses' } });
+      responsesFinished = true;
+    },
+    async settleResponseRejection(reason) {
+      if (responseAccountingBlocked) throw new ArcModelAccessError('Unconfirmed model usage remains reserved.', 503);
+      await recordArcUsage(options.db, { userId, reservationId,
+        receiptId: `responses:rejected:${reason}:${lastPartialCost}`, cumulativeCostNanos: lastPartialCost,
+        final: true, usage: { reason, terminal: true, accumulation: 'confirmed-responses' } });
+      responsesFinished = true;
     },
     async observe(usage, final, providerId, aggregation = 'request') {
       let price;
@@ -147,6 +225,7 @@ export async function prepareArcModelUsage(options: {
       // request or a new caller's validation result cannot prove it spent zero.
       if (reservation.replayed) throw new ArcModelAccessError('This request already started. Check the existing response before trying again.', 409);
       await releaseArcUsage(options.db, { userId, reservationId, receiptId: `${attemptId}:confirmed-zero:${reason}`, reason });
+      responsesFinished = true;
     },
     async releaseIfNotStarted() {
       if (!providerStarted && !reservation.replayed) await ticket.confirmZero('provider-not-started');
@@ -155,7 +234,7 @@ export async function prepareArcModelUsage(options: {
       if (model === ARC_LUNA) return requested;
       // Text-only OpenAI calls: UTF-8 bytes are a conservative token upper bound,
       // with overhead for chat framing. Image/document tokens are not estimated
-      // here; those calls must use a provider session spend control instead.
+      // here; the bounded Responses adapter counts their full provider input.
       const inputBound = new TextEncoder().encode(JSON.stringify(input)).byteLength + 1024;
       // Reserve the higher cache-write input price and the applicable per-request
       // long-context output rate. Cached reads can only lower the final charge.

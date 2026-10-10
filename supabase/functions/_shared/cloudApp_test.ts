@@ -25,6 +25,7 @@ import {
   type CloudAppRuntimePorts,
 } from "./cloudAppRuntime.ts";
 import type { ClaimedCloudRun, CloudWorkerStore } from "./cloudRunWorker.ts";
+import { initialEngineState } from "./cloudRunEngine.ts";
 const owner = "00000000-0000-4000-8000-000000000001";
 const projectId = "00000000-0000-4000-8000-000000000004";
 const baseRun = (): ClaimedCloudRun => ({
@@ -405,4 +406,21 @@ Deno.test("persistence owner filters are explicit; subscription errors never gra
   );
   boostError = true;
   await rejects(cloudAppPersistence(db).authorize(baseRun()), /entitlement/);
+});
+
+Deno.test('App worker preserves cancellation for an expired saved bounded Response', async () => {
+  const f = runtimeFixture();
+  const cancelled: string[] = [];
+  const provider = f.ports.provider;
+  f.ports.provider = (...args) => ({ ...provider(...args),
+    cancelModel: async (id) => { cancelled.push(id); },
+  });
+  const expired = Date.now() - 24 * 60 * 60 * 1000;
+  f.run.checkpoint.engine = { ...initialEngineState(f.run.request.messages, expired),
+    responseId: 'resp_existing_app', modelIntent: 'existing:0', modelProvider: 'responses' };
+  await advanceCloudAppRun(f.run.id, f.ports);
+  equal(f.status(), 'failed');
+  deepStrictEqual(cancelled, ['resp_existing_app']);
+  equal(f.starts(), 0);
+  equal(f.completed(), 0);
 });

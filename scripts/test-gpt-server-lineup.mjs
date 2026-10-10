@@ -1,5 +1,5 @@
 // Offline execution of the actual handlers, authorization, routing, usage ledger
-// adapter, accounting, completion helpers and Agents wire adapter. Only the database, provider
+// adapter, accounting, completion helpers and provider wire adapters. Only the database, provider
 // transports and unrelated chat integrations are fixtures. No external I/O.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -23,14 +23,16 @@ function compile(file) {
 }
 const realHelpers = new Set(['arcModelRouting.ts', 'arcModelAccess.ts', 'arcModelUsage.ts',
   'arcTextCompletion.ts', 'arcUsageLedger.ts', 'arcUsageAccounting.ts', 'arcModelCatalog.ts',
-  'arcModelAccess_test.ts', 'cloudAgentsProvider.ts', 'cloudRunEngine.ts']);
+  'arcModelAccess_test.ts', 'cloudAgentsProvider.ts', 'cloudRunEngine.ts',
+  'boundedResponsesProvider.ts', 'boundedResponseStream.ts', 'cloudRunProvider.ts', 'chatArtifactStream.ts', 'ordinaryChatResponse.ts']);
 
 function loadEndpoint(endpoint, options = {}) {
   const { user = owner, admin = false, adminId = admin ? user?.id : null, boost = false,
     adminError = null, boostError = null, ledgerError = null, deniedModels = [],
     malformedReservation, replayed = false, providerStatus = 200, providerThrow = false,
     authError = user ? null : 'invalid', throwAdmin = false, throwBoost = false, reservationNanos,
-    enforcementEnabled = true, configured = true,
+    enforcementEnabled = true, configured = true, inputTokens = 12,
+    preflightStatus = 200, responsePollThrow = false, recordError = null,
   } = options;
   let handler;
   const calls = [], providerCalls = [], logs = [], modules = new Map();
@@ -60,6 +62,7 @@ function loadEndpoint(endpoint, options = {}) {
       }
       if (name === 'record_arc_usage') {
         assert.equal(args.target_user_id, user.id);
+        if (recordError) return { data: null, error: recordError };
         return { data: { revision: 1, cumulativeCostNanos: args.cumulative_nanos,
           replayed: false, enforcementEnabled: true }, error: null };
       }
@@ -103,8 +106,36 @@ function loadEndpoint(endpoint, options = {}) {
   const recordProvider = (transport, payload) => {
     const call = { transport, payload }; providerCalls.push(call); calls.push(['provider', call]);
   };
-  let agentSpendControl;
+  let agentSpendControl, responseMetadata;
+  let responsePolls = 0;
   const fetchMock = async (url, init = {}) => {
+    const responseRoot = 'https://api.openai.com/v1/responses';
+    if (String(url).startsWith(responseRoot)) {
+      const path = String(url).slice(responseRoot.length);
+      const payload = init.body ? JSON.parse(init.body) : undefined;
+      calls.push(['responses-http', { path, method: init.method ?? 'GET', payload }]);
+      if (path === '/input_tokens' && init.method === 'POST') {
+        return Response.json(preflightStatus === 200 ? { input_tokens: inputTokens }
+          : { error: { code: 'fixture_count_rejection' } }, { status: preflightStatus });
+      }
+      if (path === '' && init.method === 'POST') {
+        recordProvider('responses', payload);
+        responseMetadata = payload.metadata;
+        if (providerThrow) throw Error('Provider transport interrupted');
+        return Response.json(providerStatus === 200 ? { id: 'resp_fixture', status: 'queued', metadata: responseMetadata }
+          : { error: { code: 'fixture_rejection' } }, { status: providerStatus });
+      }
+      if (path === '/resp_fixture' && (init.method ?? 'GET') === 'GET') {
+        if (responsePollThrow && responsePolls++ === 0) throw Error('Provider poll interrupted');
+        if (responsePollThrow) return Response.json({ id: 'resp_fixture', status: 'in_progress', metadata: responseMetadata });
+        return Response.json({ id: 'resp_fixture', status: 'completed', usage, metadata: responseMetadata,
+          output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'Fixture response.' }] }] });
+      }
+      if (path === '/resp_fixture/cancel' && init.method === 'POST') {
+        return Response.json({ id: 'resp_fixture', status: 'cancelled', usage, metadata: responseMetadata });
+      }
+      throw Error(`Unexpected Responses fixture request: ${init.method} ${path}`);
+    }
     const agentRoot = 'https://api.openai.com/v1/agents';
     if (String(url).startsWith(agentRoot)) {
       const path = String(url).slice(agentRoot.length);
@@ -219,10 +250,10 @@ function assertProvider(fixture, model, effort) {
   assert.equal(fixture.providerCalls.length, 1, JSON.stringify(fixture.logs));
   const { payload } = fixture.providerCalls[0];
   assert.equal(payload.agent?.model ?? payload.model, model);
-  if (effort) assert.equal(payload.agent?.reasoning.effort ?? payload.reasoning_effort, effort);
+  if (effort) assert.equal(payload.agent?.reasoning.effort ?? payload.reasoning?.effort ?? payload.reasoning_effort, effort);
 }
 const providerEffort = fixture => fixture.providerCalls[0].payload.agent?.reasoning.effort
-  ?? fixture.providerCalls[0].payload.reasoning_effort;
+  ?? fixture.providerCalls[0].payload.reasoning?.effort ?? fixture.providerCalls[0].payload.reasoning_effort;
 function assertMeteredBeforeProvider(fixture, model) {
   const providerIndex = fixture.calls.findIndex(([name]) => name === 'provider');
   const reservationIndex = fixture.calls.findIndex(([name, args]) => name === 'reserve_arc_usage' && args.model_name === model);
@@ -388,7 +419,7 @@ test('Untagged legacy camera requests ignore raw premium hints and preserve Luna
 
 test('Premium remote vision carries every image and a provider-enforced ceiling within its reservation', async () => {
   // URL length says nothing about remote image resolution, provider token count
-  // or dollar cost. Check the actual Agents wire payload instead of byte estimates.
+  // or dollar cost. Verify exact-input counting and bounded Responses output.
   const images = Array.from({ length: 16 }, (_, i) => `https://img.example/${i}`);
   for (const entitlement of [
     { modelSelection: SOL, boost: false }, { modelSelection: SOL, boost: true },
@@ -402,22 +433,104 @@ test('Premium remote vision carries every image and a provider-enforced ceiling 
       assert.equal(response.status, 200, JSON.stringify(data));
       assertProvider(f, entitlement.modelSelection, 'low');
       const [{ transport, payload }] = f.providerCalls;
-      assert.equal(transport, 'agents', 'Premium vision must never use an uncapped completion POST');
-      assert.equal(payload.spend_control.limit, Math.floor(reservationNanos / 10_000_000));
-      assert.ok(payload.spend_control.limit * 10_000_000 <= reservationNanos);
-      assert.ok(payload.spend_control.limit >= 1);
-      assert.deepEqual(payload.environment, { type: 'none' });
-      assert.deepEqual(payload.agent.tools, []);
+      assert.equal(transport, 'responses', 'Premium vision must use bounded Responses');
+      assert.ok(Number.isSafeInteger(payload.max_output_tokens) && payload.max_output_tokens >= 128);
+      assert.ok(payload.max_output_tokens <= 16_384);
+      assert.equal(payload.background, true);
+      assert.deepEqual(payload.tools, []);
+      assert.equal(payload.spend_control, undefined);
+      const counts = f.calls.filter(([name, request]) => name === 'responses-http' && request.path === '/input_tokens');
+      assert.equal(counts.length, 1);
+      assert.deepEqual(counts[0][1].payload.input, payload.input);
+      assert.equal(counts[0][1].payload.model, payload.model);
+      assert.equal(counts[0][1].payload.instructions, payload.instructions);
+      assert.deepEqual(counts[0][1].payload.tools, payload.tools);
+      const { priceArcTokenUsage } = f.load('supabase/functions/_shared/arcUsageAccounting.ts');
+      const ceiling = priceArcTokenUsage(entitlement.modelSelection, {
+        inputTokens: 12, cachedInputTokens: 0, cacheWriteTokens: 12, outputTokens: payload.max_output_tokens,
+      }).costNanos;
+      assert.ok(ceiling <= reservationNanos, 'Counted input plus worst-case output must fit the existing reservation');
+      assert.ok(!f.calls.some(([name]) => name === 'agents-http'));
       const attached = payload.input.flatMap(message => message.content)
         .filter(part => part.type === 'input_image').map(part => part.image_url);
       assert.deepEqual(attached, images, 'No input image may be dropped or silently replaced');
       assertMeteredBeforeProvider(f, entitlement.modelSelection);
       assert.ok(ledgerCalls(f).some(([name, args]) => name === 'record_arc_usage'
-        && args.is_final === true && args.cumulative_nanos > 0), 'Provider session usage must settle');
+        && args.is_final === true && args.cumulative_nanos > 0), 'Provider response usage must settle');
       assert.equal(data.model_used, entitlement.modelSelection);
       assert.equal(data.reasoning_effort_used, 'low'); assert.equal(data.model_switch_notice, undefined);
     }
   }
+});
+
+test('Premium vision unknown generation outcomes keep the hold and never fall back or restart', async () => {
+  for (const options of [{ providerThrow: true }, { providerStatus: 408 }, { providerStatus: 409 }, { providerStatus: 500 }]) {
+    const f = loadEndpoint('analyze-image', options);
+    const response = await f.invoke({ ...bodies['analyze-image'], modelSelection: SOL });
+    assert.ok(response.status >= 400); assertProvider(f, SOL);
+    assert.equal(f.providerCalls[0].transport, 'responses');
+    assert.equal(f.calls.filter(([name]) => name === 'record_arc_usage').length, 0);
+    assert.deepEqual(reservations(f).map(args => args.model_name), [SOL]);
+    assert.equal(f.calls.filter(([name, args]) => name === 'responses-http' && args.path.endsWith('/cancel')).length, 0);
+  }
+});
+
+test('Premium vision input-count failure stops before generation and releases its untouched hold', async () => {
+  for (const options of [{ preflightStatus: 400 }, { inputTokens: 'unknown' }]) {
+    const f = loadEndpoint('analyze-image', options);
+    const response = await f.invoke({ ...bodies['analyze-image'], modelSelection: SOL });
+    assert.ok(response.status >= 400); assert.equal(f.providerCalls.length, 0);
+    assert.deepEqual(reservations(f).map(args => args.model_name), [SOL]);
+    const receipts = f.calls.filter(([name]) => name === 'record_arc_usage');
+    assert.equal(receipts.length, 1); assert.equal(receipts[0][1].cumulative_nanos, 0);
+    assert.equal(receipts[0][1].is_final, true);
+  }
+});
+
+test('Premium vision input-fit failure releases only the unused premium hold and uses bounded Luna with an honest notice', async () => {
+  const images = ['https://example.com/first.png', 'https://example.com/second.png'];
+  const f = loadEndpoint('analyze-image', { inputTokens: 10_000, reservationNanos: 10_000_000 });
+  const response = await f.invoke({ ...bodies['analyze-image'], image: undefined, images, modelSelection: SOL });
+  const data = await responseJson(response);
+  assert.equal(response.status, 200, JSON.stringify(data));
+  assertProvider(f, LUNA); assert.equal(f.providerCalls[0].transport, 'responses');
+  assert.equal(data.model_used, LUNA); assert.equal(data.reasoning_effort_used, providerEffort(f));
+  assert.match(data.model_switch_notice, /too large.*premium allowance.*GPT 6 Luna/);
+  assert.deepEqual(reservations(f).map(args => args.model_name), [SOL, LUNA]);
+  const counts = f.calls.filter(([name, args]) => name === 'responses-http' && args.path === '/input_tokens');
+  assert.deepEqual(counts.map(([, args]) => args.payload.model), [SOL, LUNA]);
+  const attached = f.providerCalls[0].payload.input.flatMap(message => Array.isArray(message.content) ? message.content : [])
+    .filter(part => part.type === 'input_image').map(part => part.image_url);
+  assert.deepEqual(attached, images);
+  const releasedIndex = f.calls.findIndex(([name, args]) => name === 'record_arc_usage'
+    && args.reservation_id === `reservation:${SOL}` && args.cumulative_nanos === 0 && args.is_final === true);
+  const generationIndex = f.calls.findIndex(([name]) => name === 'provider');
+  assert.ok(releasedIndex >= 0 && releasedIndex < generationIndex);
+  assert.ok(!f.calls.some(([name]) => name === 'agents-http'));
+});
+
+test('Premium vision cannot fall back when releasing the initial hold fails or a too-large request is replayed', async () => {
+  for (const options of [{ recordError: 'Fixture release failed' }, { replayed: true }]) {
+    const f = loadEndpoint('analyze-image', { ...options, inputTokens: 10_000, reservationNanos: 10_000_000 });
+    const response = await f.invoke({ ...bodies['analyze-image'], modelSelection: SOL });
+    assert.ok(response.status >= 400);
+    assert.equal(f.providerCalls.length, 0);
+    assert.deepEqual(reservations(f).map(args => args.model_name), [SOL]);
+    if (options.replayed) {
+      assert.equal(response.status, 409);
+      assert.equal(f.calls.filter(([name]) => name === 'record_arc_usage').length, 0);
+      assert.ok(!f.calls.some(([name]) => name === 'responses-http'));
+    }
+  }
+});
+
+test('Premium vision poll failure cancels the known Response without another generation', async () => {
+  const f = loadEndpoint('analyze-image', { responsePollThrow: true });
+  const response = await f.invoke({ ...bodies['analyze-image'], modelSelection: SOL });
+  assert.ok(response.status >= 400); assertProvider(f, SOL);
+  assert.equal(f.providerCalls[0].transport, 'responses');
+  assert.equal(f.calls.filter(([name, args]) => name === 'responses-http' && args.path === '/resp_fixture/cancel').length, 1);
+  assert.deepEqual(reservations(f).map(args => args.model_name), [SOL]);
 });
 
 test('Inline PDF and non-image data documents truthfully use Luna before any premium provider call', async () => {
@@ -607,24 +720,26 @@ test('SSE done event reports actual Luna fallback and server effort', async () =
   assert.equal(data.reasoning_effort_used, 'none'); assert.match(data.model_switch_notice, /GPT 6 Luna/);
 });
 
-test('Raw Luna token stream settles usage and reports actual none effort', async () => {
+test('Canonical Luna stream uses bounded Responses, settles usage and reports actual none effort', async () => {
   const f = loadEndpoint('chat');
   const response = await f.invoke({ ...bodies.chat, modelSelection: LUNA, reasoningEffort: 'high', stream: true });
   const data = await responseJson(response);
   assertProvider(f, LUNA, 'none'); assert.equal(data.model_used, LUNA);
+  assert.equal(f.providerCalls[0].transport, 'responses');
+  assert.equal(f.providerCalls[0].payload.stream, true);
   assert.equal(data.reasoning_effort_used, 'none'); assert.equal(data.content, 'Fixture response.');
   assertMeteredBeforeProvider(f, LUNA);
   assert.ok(ledgerCalls(f).some(([name]) => name === 'record_arc_usage'));
 });
 
 test('Paid completion failures never retry an ambiguous provider attempt', async () => {
-  for (const options of [{ providerThrow: true }, { providerStatus: 500 }, { providerStatus: 429 }]) {
+  for (const options of [{ providerThrow: true }, { providerStatus: 408 }, { providerStatus: 409 }, { providerStatus: 500 }, { providerStatus: 429 }]) {
     const f = loadEndpoint('analyze-document', options);
     const response = await f.invoke({ ...bodies['analyze-document'], modelSelection: SOL });
     assert.ok(response.status >= 400); assertProvider(f, SOL);
     const receipts = f.calls.filter(([name]) => name === 'record_arc_usage');
     assert.equal(receipts.length, options.providerStatus === 429 ? 1 : 0,
-      'Only a confirmed 4xx rejection may release a paid reservation');
+      'Only a definite no-generation rejection may release a paid reservation');
     if (receipts.length) assert.equal(receipts[0][1].cumulative_nanos, 0);
   }
 });
@@ -634,7 +749,9 @@ test('Retired Gemini dispatch stays absent and persisted metadata uses server re
   assert.ok(!source.includes('flynnChatSession') && !source.includes('GEMINI_API_KEY') && !source.includes('shouldAutoUseFlash'));
   assert.match(source, /model: selectedModel,/);
   assert.match(source, /reasoning_effort_used: modelReasoningEffort/);
-  assert.match(source, /stream && selectedModel === LUNA_MODEL && modelReasoningEffort === 'none'/);
+  assert.match(source, /stream && lunaCompatibility && selectedModel === LUNA_MODEL && modelReasoningEffort === 'none'/);
+  assert.match(source, /if \(stream && !lunaCompatibility\)/);
+  assert.match(source, /useAgentsApi = !lunaCompatibility/);
   const ordinary = readFileSync('supabase/functions/_shared/ordinaryChatIntake.ts', 'utf8');
   assert.ok(!ordinary.includes('reasoning_effort_used:body.reasoningEffort'), 'saved metadata must not overwrite actual server effort');
   assert.ok(ordinary.includes('modelSelection:body.modelSelection'), 'replay identity covers captured model');

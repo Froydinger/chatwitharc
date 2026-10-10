@@ -67,3 +67,10 @@ Deno.test('Astra is available only to verified Boost or admin accounts', () => {
   equal(resolveArcModelRoute({ selection: ARC_ASTRA, task: 'chat', hasBoost: true, isAdmin: false }).model, ARC_ASTRA);
   equal(resolveArcModelRoute({ selection: ARC_ASTRA, task: 'chat', hasBoost: false, isAdmin: true }).model, ARC_ASTRA);
 });
+
+Deno.test('unflagged postfix code Git and builder aliases preserve code routing', () => {
+  for (const prompt of ['code/ test', 'git/ status', 'app/ hello', 'build/ hello']) {
+    equal(arcRequestTask({ prompt }), 'code');
+  }
+  equal(arcRequestTask({ prompt: '/codeword is text' }), 'chat');
+});

@@ -44,3 +44,35 @@ Deno.test('artifact SSE never submits a pre-cancelled request and reports failur
     run: () => Promise.reject(new Error('Provider unavailable')) }));
   deepStrictEqual(output, [{ type: 'start', mode: 'text' }, { type: 'error', message: 'Provider unavailable' }]);
 });
+
+Deno.test('artifact SSE preserves safe final tool, model and history fields for canonical streams', async () => {
+  const publicResult = {
+    choices: [{ message: { content: 'The draft and reminder are ready.' } }],
+    code_update: { code: 'export default 42;', language: 'js', label: 'Example' },
+    canvas_update: { content: 'Written draft', label: 'Draft' },
+    model_used: 'gpt-6-luna', reasoning_effort_used: 'low',
+    model_switch_notice: 'This response uses GPT 6 Luna.',
+    tool_calls_used: ['update_code', 'save_memory', 'get_weather', 'schedule_task'],
+    web_sources: [{ title: 'Verified source', url: 'https://example.com/source' }],
+    search_provider: 'tavily', search_images: ['https://example.com/image.png'],
+    memory_saved: { content: 'A saved preference' },
+    weather_data: { city: 'Fixture', temperature: 20 },
+    scheduled_task: { id: 'fixture-reminder', title: 'Reminder' },
+    notification_dispatch: { status: 'sent', count: 1 },
+  };
+  const output = await events(chatArtifactStream({ mode: 'code', signal: new AbortController().signal,
+    run: () => Promise.resolve({ ...publicResult,
+      choices: [{ message: { content: publicResult.choices[0].message.content,
+        tool_calls: [{ arguments: 'private-arguments' }], reasoning: 'private-reasoning' } }],
+      usage: { private: 'private-usage' }, metadata: { private: 'private-provider-state' },
+    }),
+  }));
+  const done = output.find(event => event.type === 'done');
+  equal(done.mode, 'code'); equal(done.content, publicResult.code_update.code);
+  deepStrictEqual(done.choices, [{ message: { role: 'assistant', content: publicResult.choices[0].message.content } }]);
+  for (const [key, value] of Object.entries(publicResult)) {
+    if (key !== 'choices') deepStrictEqual(done[key], value, `${key} must survive the canonical stream`);
+  }
+  deepStrictEqual(done.webSources, publicResult.web_sources);
+  ok(!JSON.stringify(output).includes('private-'));
+});

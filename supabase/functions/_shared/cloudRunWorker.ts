@@ -118,6 +118,8 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
     },
     startModel: context.provider.startModel,
     pollModel: context.provider.pollModel,
+    ...(context.provider.cancelModel ? { cancelModel: context.provider.cancelModel } : {}),
+    ...(context.provider.retainCompletedResponseId ? { retainCompletedResponseId: true } : {}),
     ...(context.provider.completeModel ? { completeModel: context.provider.completeModel } : {}),
     ...(context.provider.startAgentSession ? { startAgentSession: context.provider.startAgentSession } : {}),
     ...(context.provider.pollAgentSession ? { pollAgentSession: context.provider.pollAgentSession } : {}),

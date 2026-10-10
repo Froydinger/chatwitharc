@@ -13,10 +13,10 @@ import {
 } from "./cloudAppCore.ts";
 import { CLOUD_APP_INSTRUCTIONS } from "./cloudAppPrompts.ts";
 import { loadCloudRunContext } from "./cloudRunContext.ts";
-import { cloudAgentsProvider } from "./cloudAgentsProvider.ts";
+import { durableArcProvider } from "./durableArcProvider.ts";
 import { cloudWorkerStore } from "./cloudRunStore.ts";
 import type { CloudPublisherConfig } from "./cloudAppPublisher.ts";
-import { CLOUD_APP_LIMITS } from "./cloudRunEngine.ts";
+import { CLOUD_APP_LIMITS, type EngineProvider } from "./cloudRunEngine.ts";
 import {
   type ClaimedCloudRun,
   type CloudWorkerStore,
@@ -24,7 +24,7 @@ import {
 } from "./cloudRunWorker.ts";
 
 class AppAccessDenied extends Error {}
-type Provider = ReturnType<typeof cloudAgentsProvider>;
+type Provider = EngineProvider;
 type ModelUsage = Awaited<ReturnType<typeof prepareDurableArcModelUsage>>;
 export type CloudAppRuntimePorts = {
   store: CloudWorkerStore;
@@ -113,6 +113,7 @@ export async function advanceCloudAppRun(
           reasoningEffortUsed: usage?.route.effort ?? "low",
           modelSwitchNotice: usage?.notice,
           provider: {
+            ...(provider.retainCompletedResponseId ? { retainCompletedResponseId: true } : {}),
             startModel: async (...args) => {
               await guard(run);
               return provider.startModel(...args);
@@ -121,6 +122,10 @@ export async function advanceCloudAppRun(
               await guard(run);
               return provider.pollModel(responseId);
             },
+            ...(provider.cancelModel ? {
+              // Cancel an already-started response even when access was revoked.
+              cancelModel: (responseId) => provider.cancelModel!(responseId),
+            } : {}),
             ...(provider.startAgentSession ? {
               startAgentSession: async (...args) => {
                 await guard(run);
@@ -198,18 +203,15 @@ export function cloudAppAdvance(
           route: { ...route, selection: route.model, task: 'code' }, source: 'app', maxTotalTokens: CLOUD_APP_LIMITS.tokens });
       },
       provider: (instructions, run, usage) =>
-        cloudAgentsProvider({
+        durableArcProvider(run.checkpoint.engine, {
           apiKey,
           instructions: instructions + (images ? "\nBuilder images default to Flare Low, including transparent assets. Only use Sunburst when the current user explicitly requests better images. Use generate_image/edit_image and save returned asset URLs into project files. Image safety caps apply." : ""),
           model: usage?.route.model ?? appModelRoute((run.request ?? {}) as Record<string, unknown>).model,
           reasoningEffort: usage?.route.effort ?? "low",
-          spendLimitCents: usage?.ticket?.reservation.providerBudgetCents,
-          beforeStart: usage?.ticket?.assertNewProviderAttempt,
-          onUsage: usage?.ticket?.observeSession,
-          onRejected: usage?.ticket?.confirmZero,
+          ticket: usage?.ticket ?? null, maxTotalTokens: CLOUD_APP_LIMITS.tokens,
           tools: [...CLOUD_APP_DEFINITIONS, ...(images?.definitions ?? [])],
           fetcher: options.fetcher,
-        }),
+        }, Deno.env.get('ARC_BOUNDED_RESPONSES_ENABLED') !== 'false'),
     });
   };
 }

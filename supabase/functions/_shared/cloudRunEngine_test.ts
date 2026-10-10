@@ -33,6 +33,7 @@ class FakePorts {
   cancelled = false;
   leaseLost = false;
   agentCancellations: { sessionId: string; key: string }[] = [];
+  responseCancellations: string[] = [];
   rejectSave: (state: EngineState, status: Status) => boolean = () => false;
   policy: (call: ToolCall) => Policy = () => ({ allowed: true, needsApproval: false, replaySafe: true });
   approved: (call: ToolCall) => boolean = () => false;
@@ -81,6 +82,10 @@ class FakePorts {
         const plan = this.responses.get(id);
         if (!plan?.length) throw new Error(`Unexpected poll: ${id}`);
         return Promise.resolve(clone(plan.shift()!));
+      },
+      cancelModel: (responseId) => {
+        this.responseCancellations.push(responseId);
+        return Promise.resolve();
       },
       cancelAgentSession: (sessionId, key) => {
         this.agentCancellations.push({ sessionId, key });
@@ -687,4 +692,52 @@ Deno.test('cloud engine: deadline crossed during provider polling cannot complet
   await fake.tick();
   equal(fake.completions.length, 0, 'the deadline must be rechecked after the provider await');
   equal(fake.status, 'failed');
+});
+
+Deno.test('cloud engine: a timed-out bounded Response is cancelled before failure without restarting', async () => {
+  const fake = new FakePorts([[null]]);
+  await fake.tick();
+  const responseId = fake.durable.responseId!;
+  fake.clock = fake.durable.deadline;
+  await fake.tick();
+  equal(fake.status, 'failed');
+  deepStrictEqual(fake.responseCancellations, [responseId]);
+  equal(fake.agentCancellations.length, 0);
+  equal(fake.starts.length, 1);
+  equal(fake.polls.length, 0);
+});
+
+Deno.test('cloud engine: deadline reached during a pending Response poll cancels the saved ID', async () => {
+  const fake = new FakePorts([[null]]);
+  await fake.tick();
+  const responseId = fake.durable.responseId!;
+  fake.onPoll = () => { fake.clock = fake.durable.deadline; };
+  await fake.tick();
+  equal(fake.status, 'failed');
+  deepStrictEqual(fake.responseCancellations, [responseId]);
+  equal(fake.starts.length, 1);
+  equal(fake.completions.length, 0);
+});
+
+Deno.test('cloud engine: unknown bounded Response cancellation remains failed and never retries generation', async () => {
+  const fake = new FakePorts([[null]]);
+  await fake.tick();
+  fake.clock = fake.durable.deadline;
+  fake.ports.cancelModel = async () => { throw new Error('private provider details'); };
+  await fake.tick();
+  equal(fake.status, 'failed');
+  ok(fake.reason?.includes('provider cancellation was not confirmed'));
+  ok(!fake.reason?.includes('private provider details'));
+  equal(fake.starts.length, 1);
+});
+
+Deno.test('cloud engine: exhausted total token budget cancels a saved bounded Response before tools', async () => {
+  const fake = new FakePorts();
+  fake.durable.responseId = 'resp_exhausted';
+  fake.durable.modelProvider = 'responses';
+  fake.durable.tokens = CLOUD_LIMITS.tokens;
+  await fake.tick();
+  equal(fake.status, 'failed');
+  deepStrictEqual(fake.responseCancellations, ['resp_exhausted']);
+  equal(fake.starts.length, 0); equal(fake.polls.length, 0); equal(fake.executions.length, 0);
 });
