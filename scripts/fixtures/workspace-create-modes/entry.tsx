@@ -15,20 +15,7 @@ import '@/workspace/workspace.css';
 import './fixture.css';
 
 const preview = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100"><rect width="160" height="100" fill="#888"/><circle cx="80" cy="50" r="29" fill="#ddd"/></svg>')}`;
-export function CreateModesFixture() {
-  const [theme, setTheme] = useState<WorkspaceTheme>('dark');
-  const [mode, setMode] = useState('image');
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [promptsOpen, setPromptsOpen] = useState(false);
-  const [draft, setDraft] = useState('Design a quiet workspace');
-  const [documents, setDocuments] = useState(() => [new File(['Local fixture'], 'project-notes.txt')]);
-  const [images, setImages] = useState(() => [new File(['local fixture'], 'composition.png')]);
-  const [edit, setEdit] = useState(false);
-  const [anchored, setAnchored] = useState(false);
-  const input = useRef<HTMLTextAreaElement>(null);
-  const anchor = useRef<HTMLButtonElement>(null);
-  const composer = useRef<HTMLDivElement>(null);
-  const qa = useQaState();
+function FixtureThemeOwner({ theme }: { theme: WorkspaceTheme }) {
   useWorkspaceTheme(theme);
   // Production's global theme owner also sets Noir and dark/light classes.
   // Mirror that only inside this fixture so the actual global CSS competes.
@@ -43,6 +30,25 @@ export function CreateModesFixture() {
     apply(); media.addEventListener('change', apply);
     return () => media.removeEventListener('change', apply);
   }, [theme]);
+  return null;
+}
+
+export function CreateModesFixture({ theme: controlledTheme, onThemeChange }: { theme?: WorkspaceTheme; onThemeChange?: (value: WorkspaceTheme) => void } = {}) {
+  const [localTheme, setLocalTheme] = useState<WorkspaceTheme>('dark');
+  const theme = controlledTheme ?? localTheme;
+  const setTheme = onThemeChange ?? setLocalTheme;
+  const [mode, setMode] = useState('image');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [promptsOpen, setPromptsOpen] = useState(false);
+  const [draft, setDraft] = useState('Design a quiet workspace');
+  const [documents, setDocuments] = useState(() => [new File(['Local fixture'], 'project-notes.txt')]);
+  const [images, setImages] = useState(() => [new File(['local fixture'], 'composition.png')]);
+  const [edit, setEdit] = useState(false);
+  const [anchored, setAnchored] = useState(false);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const anchor = useRef<HTMLButtonElement>(null);
+  const composer = useRef<HTMLDivElement>(null);
+  const qa = useQaState();
   const choose = (next: string) => { setMenuOpen(false);setMode(next);input.current?.focus(); };
   const actions = [
     {id:'attach',label:'Attach File',icon:Paperclip,run:()=>choose('attachments')},
@@ -68,6 +74,7 @@ export function CreateModesFixture() {
     {(mode==='git' || mode==='combined') && <GitModeDock workspaceUI />}
   </>;
   return <main className="workspace-ui qa-create-page">
+    {controlledTheme === undefined && <FixtureThemeOwner theme={theme} />}
     <header><h1>Creation controls: offline QA</h1><p>Actual production view components, local fixtures. No authentication, model calls, checkout, upload, or publishing.</p></header>
     <div className="qa-create-controls">
       {(['dark','light','system'] as const).map(value=><button key={value} aria-pressed={theme===value} onClick={()=>setTheme(value)}>{value}</button>)}

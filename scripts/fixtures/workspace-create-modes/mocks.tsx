@@ -1,22 +1,28 @@
 import { create } from 'zustand';
 
 export const useQaState = create<{
-  hasBoost: boolean; failure: boolean; events: string[];
+  hasBoost: boolean; isAdmin: boolean; failure: boolean; events: string[];
   record: (text: string) => void;
 }>((set) => ({
-  hasBoost: true, failure: false, events: [],
+  hasBoost: true, isAdmin: false, failure: false, events: [],
   record: text => set(state => ({ events: [...state.events, text].slice(-8) })),
 }));
 const record = (text: string) => useQaState.getState().record(text);
-export const useAuth = () => ({ user: { id: 'offline-fixture-owner' } });
+export const useAuth = () => ({ user: { id: 'offline-fixture-owner', is_anonymous: false }, loading: false });
 export const useSubscription = () => ({
-  hasBoost: useQaState(state => state.hasBoost), isAdmin: false, loading: false,
+  hasBoost: useQaState(state => state.hasBoost || state.isAdmin),
+  hasVerifiedBoost: useQaState(state => state.hasBoost),
+  isAdmin: useQaState(state => state.isAdmin),
+  isVerifiedModelAdmin: useQaState(state => state.isAdmin), loading: false,
   openCheckout: () => record('Checkout blocked in this offline fixture'),
 });
 export const useToast = () => ({ toast: (value: { title: string; description?: string }) => record(`${value.title}: ${value.description || ''}`) });
 export const supabase = null;
 export const isSupabaseConfigured = false;
 export const getModelForTask = () => 'fixture-only-no-model-call';
+// The real local preference store and pure entitlement guard make picker UI
+// faithful without connecting auth, billing, or a model provider.
+export { useModelStore, ASTRA_MODEL, canSelectAstra } from '../../../src/store/useModelStore';
 export const CACHE_KEY_PREFIX = 'arc-create-qa-prompts-';
 export const getCachedPrompts = (category: string) => [
   { label: `${category}: plan a thoughtful next step`, prompt: `Help me plan a thoughtful next step for ${category}.` },
