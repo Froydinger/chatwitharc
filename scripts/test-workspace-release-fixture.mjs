@@ -37,6 +37,15 @@ try{
   document.querySelector('.ws-desktop-sidebar-trigger').click();await wait();
   assert.equal(document.querySelector('.ws-frame').dataset.sidebarState,'peek');
   assert.ok(document.querySelector('[data-arc-composer]')===draft);
+  document.querySelector('.ws-sidebar [aria-label="Dock sidebar"]').click();await wait();
+  const search=document.querySelector('.ws-sidebar [aria-label="Search workspace"]');
+  document.querySelector('[aria-label="More workspace options"]').focus();
+  search.click();await wait();
+  assert.equal(document.activeElement.getAttribute('aria-label'),'Fixture search','real autofocus child takes focus');
+  document.dispatchEvent(new win.KeyboardEvent('keydown',{key:'k',metaKey:true,bubbles:true}));await wait();
+  document.querySelector('[aria-label="Close dialog"]').click();await wait();
+  assert.ok(document.activeElement===search,'Safari-style pointer Search returns to its explicit docked invoker after a repeated shortcut');
+
   for(const page of ['overview','chats','apps','images','canvases','memory','reminders','shared','settings','modes','chat']){
     await choose('Fixture page',page);
     assert.equal(document.querySelector('.ws-header').querySelectorAll('h1,h2,h3,.ws-title').length,0,page+' header');

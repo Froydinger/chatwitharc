@@ -134,8 +134,12 @@ try {
   const focusRoot = createRoot(document.getElementById('root'));
   function SearchFlow() {
     const [open, setOpen] = React.useState(false);
-    return React.createElement(WorkspaceChrome, { ...props, onSearch: () => setOpen(true) },
-      React.createElement(WorkspaceDialog, { title: 'Search your chats', open, onOpenChange: setOpen }, React.createElement('input', { 'aria-label': 'Search text' })));
+    const returnFocusRef = React.useRef(null);
+    return React.createElement(WorkspaceChrome, { ...props, onSearch: trigger => {
+      if (open) return;
+      returnFocusRef.current = trigger ?? document.activeElement;
+      setOpen(true);
+    } }, React.createElement(WorkspaceDialog, { title: 'Search your chats', open, onOpenChange: setOpen, returnFocusRef }, React.createElement('input', { 'aria-label': 'Search text', autoFocus: true })));
   }
   await act(async () => focusRoot.render(React.createElement(SearchFlow)));
   await click(button('Show sidebar'));
@@ -147,9 +151,31 @@ try {
   await click(button('Show sidebar'));
   await click(document.querySelector('.ws-sidebar [aria-label="Dock sidebar"]'));
   const dockedSearch = document.querySelector('.ws-sidebar [aria-label="Search workspace"]');
+  // Safari-style pointer activation does not focus the clicked button. Keep a
+  // different visible control focused; the caller must capture the real invoker.
+  await act(async () => button('More workspace options').focus());
   await click(dockedSearch);
+  await act(async () => document.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })));
   await click(button('Close dialog')); await wait(30);
-  assert.ok(document.activeElement === dockedSearch, `a still-visible docked opener regains focus; actual=${document.activeElement?.getAttribute('aria-label')}`);
+  assert.ok(document.activeElement === dockedSearch, `a still-visible docked opener regains focus after pointer/Close; actual=${document.activeElement?.getAttribute('aria-label')}`);
+  await act(async () => button('More workspace options').focus());
+  await click(dockedSearch);
+  await act(async () => document.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })));
+  await act(async () => document.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+  await wait(30);
+  assert.ok(document.activeElement === dockedSearch, `Safari pointer/Escape restores the actual Search invoker; actual=${document.activeElement?.getAttribute('aria-label')}`);
+  assert.match(css, /\.ws-brand-search:focus\s*\{ opacity:1;/, 'restored pointer focus keeps the Search icon visible');
+  await act(async () => button('More workspace options').focus());
+  await act(async () => document.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));
+  assert(document.querySelector('[role="dialog"]'), 'keyboard shortcut still opens Search');
+  await click(button('Close dialog')); await wait(30);
+  assert.ok(document.activeElement === button('More workspace options'), 'shortcut returns to its original focused control');
+  const shell = readFileSync(`${stage}/src/workspace/WorkspaceShell.tsx`, 'utf8');
+  assert.ok(shell.includes('searchReturnFocusRef.current = trigger ?? (active instanceof HTMLElement ? active : null)'));
+  assert.ok(shell.includes("if (dialog === 'search') return;"), 'repeated shortcuts cannot overwrite the original invoker with the dialog input');
+  assert.ok(shell.includes('<WorkspaceDialog title="Search your chats" returnFocusRef={searchReturnFocusRef}'));
+  assert.ok(shell.includes('<input autoFocus placeholder="Search chat titles…"'), 'fixture mirrors the production autofocus child');
+
   await act(async () => { desktop = false; listeners.forEach(listener => listener()); });
   await click(button('Open navigation'));
   await click(document.querySelector('.ws-mobile-sidebar [aria-label="Find chats"]'));

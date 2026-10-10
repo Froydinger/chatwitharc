@@ -16,7 +16,7 @@ html[data-workspace-theme=light] .workspace-ui { --ws-bg:#fcfcfa; --ws-sidebar:#
 .ws-brand { height:78px; flex:none; display:flex; align-items:center; gap:10px; padding:8px 7px 0; font-size:27px; font-weight:630; letter-spacing:-.8px; }
 .ws-brand .ws-logo { width:44px; height:44px; }
 .ws-brand .ws-brand-search { margin-left:auto; opacity:0; color:var(--ws-muted); transition:opacity .18s; }
-.ws-brand:hover .ws-brand-search,.ws-brand-search:focus-visible { opacity:1; }
+.ws-brand:hover .ws-brand-search,.ws-brand-search:focus { opacity:1; }
 .ws-new-chat { border:1px solid #c0c0bc; height:46px; flex:none; display:flex; align-items:center; gap:14px; border-radius:10px; padding:0 13px; margin:2px 6px 15px; text-align:left; font-size:15px !important; font-weight:530 !important; }
 .ws-new-chat svg { width:23px; height:23px; stroke-width:1.5; }
 .ws-new-chat:hover { background:var(--ws-surface); }
