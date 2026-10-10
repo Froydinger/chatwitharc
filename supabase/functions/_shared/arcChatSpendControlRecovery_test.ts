@@ -794,7 +794,8 @@ Deno.test("Agents rejection classifier matches the confirmed unsupported/not-ena
         type: "invalid_request_error",
         code: "",
         param: "spend_control",
-        message: "spend_control is not enabled for this project",
+        message:
+          "The provider does not support or has not enabled spend control for this request.",
       },
       {
         type: "invalid_request_error",
