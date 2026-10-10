@@ -11,7 +11,7 @@ const built = await build({
       export const render = editMode => renderToStaticMarkup(React.createElement(ImageOptionsContent, {showUsage:false, editMode}));`,
     resolveDir: process.cwd(), loader: 'tsx',
   },
-  bundle: true, write: false, format: 'esm', platform: 'node', jsx: 'automatic',
+  bundle: true, write: false, format: 'esm', platform: 'node', jsx: 'automatic', loader: { '.css': 'empty' },
   plugins: [{ name: 'image-ui-fixtures', setup(b) {
     b.onResolve({ filter: /^@\/hooks\/useSubscription$/ }, () => ({ path: 'subscription', namespace: 'fixture' }));
     b.onResolve({ filter: /^@\/store\/useImageGenStore$/ }, () => ({ path: 'hydrated-store', namespace: 'fixture' }));

@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { build } from 'esbuild-wasm';
+import path from 'node:path';
+const require=createRequire(import.meta.url);
+const {JSDOM}=await import(process.env.QA_JSDOM_PATH || 'jsdom');
+const dom=new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>',{url:'http://localhost/'});
+for(const name of ['window','document','navigator','HTMLElement','HTMLInputElement','HTMLTextAreaElement','HTMLSelectElement','HTMLButtonElement','Node','NodeFilter','DocumentFragment','Element','Event','MouseEvent','KeyboardEvent','MutationObserver','CustomEvent','getComputedStyle','localStorage','sessionStorage','File'])Object.defineProperty(globalThis,name,{configurable:true,value:name==='getComputedStyle'?dom.window.getComputedStyle.bind(dom.window):dom.window[name]});
+let network=0;
+globalThis.fetch=async()=>{network++;throw new Error('Network prohibited in fixture QA');};
+globalThis.IS_REACT_ACT_ENVIRONMENT=true;
+globalThis.requestAnimationFrame=callback=>setTimeout(callback,0);globalThis.cancelAnimationFrame=clearTimeout;
+globalThis.ResizeObserver=class{observe(){}unobserve(){}disconnect(){}};
+window.matchMedia=()=>({matches:false,addEventListener(){},removeEventListener(){}});
+window.HTMLElement.prototype.scrollIntoView=function(){};
+const {act}=require('react');
+const mock=path.join(process.cwd(),'scripts/fixtures/workspace-create-modes/mocks.tsx');
+const mocked=new Set(['hooks/useSubscription','hooks/useAuth','hooks/use-toast','hooks/useImageQuota','store/useGitStore','store/useModelStore','integrations/supabase/client','hooks/usePromptPreload','services/enhancePrompt'].map(x=>`@/${x}`));
+const result=await build({entryPoints:['scripts/fixtures/workspace-create-modes/entry.tsx'],bundle:true,write:false,format:'cjs',platform:'node',jsx:'automatic',loader:{'.css':'empty'},external:['react','react/*','react-dom','react-dom/*'],plugins:[{name:'offline-fixture-aliases',setup(b){b.onResolve({filter:/^@\//},args=>mocked.has(args.path)?{path:mock}:undefined);}}]});
+const compiled=result.outputFiles[0].text;
+assert.ok(!/supabase\.co|\/functions\/v1\/|api\.openai\.com|VITE_SUPABASE/.test(compiled),'no live service graph');
+try {
+ await act(async()=>new Function('require','module','exports',compiled)(require,{exports:{}},{}));
+ await act(async()=>new Promise(resolve=>setTimeout(resolve,30)));
+ assert.match(document.querySelector('h1')?.textContent || '',/Creation controls: offline QA/,'entry actually mounts rather than leaving an empty root');
+ assert.ok(document.querySelector('[aria-label="Image size"]'));
+ const click=async node=>{assert.ok(node);await act(async()=>node.click());await act(async()=>new Promise(resolve=>setTimeout(resolve,10)));};
+ const byText=text=>[...document.querySelectorAll('button')].find(button=>button.textContent.trim()===text);
+ await click(byText('git'));assert.ok(document.querySelector('[aria-label="GitHub repository"]'));
+ await click(byText('attachments'));assert.ok(document.querySelector('[aria-label="Remove project-notes.txt"]'));
+ await click(byText('Prompts'));assert.ok(document.querySelector('[role="dialog"]'));assert.match(document.querySelector('[role="dialog"]').textContent,/Prompts/);
+ await click(document.querySelector('[aria-label="Close prompt library"]'));assert.equal(document.querySelector('[role="dialog"]'),null);
+ await click(byText('light'));assert.equal(document.documentElement.dataset.workspaceTheme,'light');assert.equal(document.documentElement.classList.contains('light'),true);assert.equal(document.documentElement.dataset.accent,'noir');
+ await click(byText('dark'));assert.equal(document.documentElement.dataset.workspaceTheme,'dark');assert.equal(document.documentElement.classList.contains('dark'),true);
+ assert.equal(network,0,'fixture has made zero network requests');
+ console.log('PASS: isolated fixture actually mounts production controls, opens Git/attachments/prompts, closes dialog, switches themes, and makes zero network requests. This is DOM QA, not Safari layout.');
+} finally {dom.window.close();}
