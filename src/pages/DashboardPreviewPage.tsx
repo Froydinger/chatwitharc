@@ -41,7 +41,6 @@ import { logDashboardNavPhase, type DashboardNavPhase } from "@/lib/dashboardNav
 import { isIOSPWA } from "@/utils/platform";
 import { APP_BUILDER_ENABLED } from "@/lib/features";
 import { useWorkspaceUI } from "@/workspace/WorkspaceContext";
-import { WorkspaceDashboardPage } from "@/workspace/WorkspaceDashboardPages";
 const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
 
 type DashboardTab = "overview" | "chats" | "images" | "apps" | "canvases" | "memory";
@@ -870,7 +869,9 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
       <div className="dashboard-preview-page-content relative z-10 mx-auto flex w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
         <main className="min-w-0 flex-1">
           {live && workspaceUI ? (
-            <WorkspaceDashboardPage tab={activeTab} />
+            <Suspense fallback={<div role="status" className="py-8 text-center text-sm text-muted-foreground">Loading workspace…</div>}>
+              <DashboardPageInner embedded workspacePresentation key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} />
+            </Suspense>
           ) : activeTab !== "overview" ? (
             <Suspense fallback={<div role="status" className="py-8 text-center text-sm text-muted-foreground">Loading library…</div>}>
               <DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} />

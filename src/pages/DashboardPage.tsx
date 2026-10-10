@@ -63,6 +63,8 @@ import { APP_BUILDER_ENABLED } from "@/lib/features";
 import { isAppBuilderDesktopAvailable } from "@/lib/builderViewport";
 import { useAppBuilderDesktopAvailability } from "@/hooks/useAppBuilderDesktopAvailability";
 import { AppBuilderDesktopNotice } from "@/components/app-builder/AppBuilderDesktopNotice";
+import { WorkspaceDashboardPage, type WorkspaceDashboardModel } from "@/workspace/WorkspaceDashboardPages";
+import { requestWorkspaceCanvasOpen } from "@/workspace/workspaceCanvasOpenIntent";
 
 type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -85,7 +87,7 @@ interface RecentApp {
   updated_at: string;
   created_at: string;
   version: number;
-  versions?: any;
+  versions?: Record<string, unknown> | null;
 }
 
 function toDate(ts: unknown): Date | null {
@@ -150,11 +152,11 @@ export function DashboardPageInner({ embedded = false, workspacePresentation = f
   const { profile } = useProfile();
   const { isLoaded } = useChatSync();
   const {
-    chatSessions, createNewSession, loadSession, deleteSession, syncedUserId,
+    chatSessions, createNewSession, loadSession, deleteSession, updateSessionTitle, syncedUserId,
     syncFromSupabase, currentSessionId, messages,
     folders, createFolder, deleteFolder, pinFolder, moveChatToFolder
   } = useArcStore();
-  const { blocks: contextBlocks, loading: blocksLoading, updateBlock, addBlock } = useContextBlocks();
+  const { blocks: contextBlocks, loading: blocksLoading, error: blocksError, updateBlock, addBlock, refetch: refetchBlocks } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
 
 // Detect desktop standalone (PWA/Electron) for traffic light safe area
@@ -198,6 +200,8 @@ useEffect(() => {
   const { isPlaying: isMusicPlaying } = useMusicStore();
   const [recentApps, setRecentApps] = useState<RecentApp[]>([]);
   const [loadingApps, setLoadingApps] = useState(true);
+  const [appsError, setAppsError] = useState<string | null>(null);
+  const [appRetry, setAppRetry] = useState(0);
   const [chatSearch, setChatSearch] = useState("");
   const [imageSearch, setImageSearch] = useState("");
   const [appSearch, setAppSearch] = useState("");
@@ -205,6 +209,7 @@ useEffect(() => {
   const [editMemoryContent, setEditMemoryContent] = useState("");
   const [isAddingMemory, setIsAddingMemory] = useState(false);
   const [newMemoryContent, setNewMemoryContent] = useState("");
+  const [memorySaving, setMemorySaving] = useState(false);
   const [viewingImageIndex, setViewingImageIndex] = useState<number | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [chatPage, setChatPage] = useState(1);
@@ -253,19 +258,43 @@ useEffect(() => {
 
   // Folder states
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isSavingFolder, setIsSavingFolder] = useState(false);
+  const folderCreateInFlightRef = useRef(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+  const [workspacePinnedFolderIds, setWorkspacePinnedFolderIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!workspacePresentation || !user?.id) {
+      setWorkspacePinnedFolderIds([]);
+      return;
+    }
+    try {
+      const saved = localStorage.getItem(`arc_workspace_pinned_folders_${user.id}`);
+      const parsed: unknown = saved ? JSON.parse(saved) : [];
+      setWorkspacePinnedFolderIds(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []);
+    } catch {
+      setWorkspacePinnedFolderIds([]);
+    }
+  }, [workspacePresentation, user?.id]);
 
   const toggleFolder = (id: string) => {
     setExpandedFolders(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) return;
-    const success = await createFolder(newFolderName);
-    if (success) {
-      setNewFolderName("");
-      setIsCreatingFolder(false);
+    if (!newFolderName.trim() || folderCreateInFlightRef.current) return;
+    folderCreateInFlightRef.current = true;
+    setIsSavingFolder(true);
+    try {
+      const success = await createFolder(newFolderName);
+      if (success) {
+        setNewFolderName("");
+        setIsCreatingFolder(false);
+      }
+    } finally {
+      folderCreateInFlightRef.current = false;
+      setIsSavingFolder(false);
     }
   };
 
@@ -283,6 +312,10 @@ useEffect(() => {
   const closeIDE = useIDEStore((s) => s.closeIDE);
   const builderDesktopAvailable = useAppBuilderDesktopAvailability();
   const [hasMountedBuilder, setHasMountedBuilder] = useState(false);
+  const [openingAppId, setOpeningAppId] = useState<string | null>(null);
+  const openingAppRequestRef = useRef(false);
+  const creatingCanvasRef = useRef(false);
+  const [creatingCanvas, setCreatingCanvas] = useState(false);
 
   useEffect(() => {
     if (builderDesktopAvailable) setHasMountedBuilder(true);
@@ -299,6 +332,9 @@ useEffect(() => {
       navigate(`/build/${appId}`);
       return;
     }
+    if (openingAppRequestRef.current) return;
+    openingAppRequestRef.current = true;
+    setOpeningAppId(appId);
     try {
       const { data, error } = await supabase
         .from('ide_projects')
@@ -315,6 +351,9 @@ useEffect(() => {
         description: e instanceof Error ? e.message : 'Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      openingAppRequestRef.current = false;
+      setOpeningAppId(null);
     }
   };
 
@@ -652,7 +691,12 @@ useEffect(() => {
       });
 
       newImages.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-      setDbImages(prev => reset ? newImages : [...prev, ...newImages]);
+      setDbImages(prev => {
+        const unique = new Map<string, GeneratedImage>();
+        for (const image of reset ? [] : prev) unique.set(`${image.sessionId}:${image.messageId}`, image);
+        for (const image of newImages) unique.set(`${image.sessionId}:${image.messageId}`, image);
+        return [...unique.values()].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      });
       setDbSessionOffset(offset + DB_SESSION_BATCH);
       setDbHasMoreSessions((data || []).length === DB_SESSION_BATCH);
     } catch (e) {
@@ -746,7 +790,12 @@ useEffect(() => {
 
       const found = extractCanvases(data as any);
       found.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-      setDbCanvases(prev => reset ? found : [...prev, ...found]);
+      setDbCanvases(prev => {
+        const unique = new Map<string, CanvasItem>();
+        for (const item of reset ? [] : prev) unique.set(`${item.sessionId || ''}:${item.id}`, item);
+        for (const item of found) unique.set(`${item.sessionId || ''}:${item.id}`, item);
+        return [...unique.values()].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      });
       setDbCanvasOffset(offset + DB_SESSION_BATCH);
       setDbHasMoreCanvasSessions(
         (codeRes.data || []).length === DB_SESSION_BATCH || (canvasRes.data || []).length === DB_SESSION_BATCH,
@@ -869,69 +918,53 @@ useEffect(() => {
   }, [activeTab, isBubbleDragging]);
 
   useEffect(() => {
-    if (!APP_BUILDER_ENABLED || activeTab !== "apps" || authLoading) return;
-    if (!user) {
-      setRecentApps([]);
+    if (!APP_BUILDER_ENABLED) {
       setLoadingApps(false);
       return;
     }
+    if (activeTab !== "apps" || authLoading) return;
+    if (!user) {
+      setRecentApps([]);
+      setAppsError(null);
+      setLoadingApps(false);
+      return;
+    }
+    let cancelled = false;
     (async () => {
       setLoadingApps(true);
+      setAppsError(null);
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
+        if (!session?.user || session.user.id !== user.id) {
+          throw new Error('Your account session could not be verified. Please sign in again.');
+        }
         // Deliberately excludes `files` and `messages`: those are the whole
         // virtual filesystem and the full chat history for every project, and
         // the cards below only need titles, links and dates. They are fetched
         // per-project in openProject() when someone actually opens one.
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('ide_projects')
           .select('id, title, prompt, favicon_label, netlify_url, netlify_subdomain, updated_at, created_at, version, versions')
           .eq('user_id', session.user.id)
           .order('updated_at', { ascending: false });
-        if (data) setRecentApps(data as RecentApp[]);
+        if (error) throw error;
+        if (!cancelled) setRecentApps((data ?? []) as RecentApp[]);
       } catch (e) {
         console.error('Failed to load apps:', e);
+        if (!cancelled) {
+          setRecentApps([]);
+          setAppsError(e instanceof Error ? e.message : 'Could not load your apps.');
+        }
       } finally {
-        setLoadingApps(false);
+        if (!cancelled) setLoadingApps(false);
       }
     })();
-  }, [user, activeTab, authLoading]);
-
-  const [appUsersTrigger, setAppUsersTrigger] = useState(0);
-
-  useEffect(() => {
-    const handleAuthOrStorage = () => {
-      setAppUsersTrigger(c => c + 1);
-    };
-    window.addEventListener('netlify-auth-change', handleAuthOrStorage);
-    window.addEventListener('storage', handleAuthOrStorage);
-    return () => {
-      window.removeEventListener('netlify-auth-change', handleAuthOrStorage);
-      window.removeEventListener('storage', handleAuthOrStorage);
-    };
-  }, []);
-
-  const getAppUserCount = useCallback((app: RecentApp): number => {
-    void appUsersTrigger;
-    try {
-      const raw = localStorage.getItem(`netlify_mock_users:${app.id}`);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed.length;
-      }
-      if (app.versions && typeof app.versions === 'object') {
-        const users = (app.versions as any).app_users;
-        if (Array.isArray(users)) return users.length;
-      }
-    } catch {}
-    return 0;
-  }, [appUsersTrigger]);
+    return () => { cancelled = true; };
+  }, [user?.id, activeTab, authLoading, appRetry]);
 
   const [deletingAppId, setDeletingAppId] = useState<string | null>(null);
 
-  const handleDeleteApp = async (e: React.MouseEvent, appId: string, appTitle?: string) => {
-    e.stopPropagation();
+  const deleteApp = async (appId: string, appTitle?: string) => {
     if (!window.confirm(`Are you sure you want to delete "${appTitle || 'this app'}"? This cannot be undone.`)) {
       return;
     }
@@ -946,9 +979,6 @@ useEffect(() => {
       if (error) throw error;
 
       setRecentApps(prev => prev.filter(a => a.id !== appId));
-      try {
-        localStorage.removeItem(`netlify_mock_users:${appId}`);
-      } catch {}
 
       toast({
         title: "App deleted",
@@ -966,19 +996,28 @@ useEffect(() => {
     }
   };
 
+  const handleDeleteApp = (e: React.MouseEvent, appId: string, appTitle?: string) => {
+    e.stopPropagation();
+    void deleteApp(appId, appTitle);
+  };
+
   const [settingsApp, setSettingsApp] = useState<RecentApp | null>(null);
   const [settingsTitle, setSettingsTitle] = useState('');
   const [settingsSeoDesc, setSettingsSeoDesc] = useState('');
   const [settingsHideBadge, setSettingsHideBadge] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
-  const handleOpenSettings = (e: React.MouseEvent, app: RecentApp) => {
-    e.stopPropagation();
+  const openAppSettings = (app: RecentApp) => {
     setSettingsApp(app);
     setSettingsTitle(app.title || '');
     const v = (app.versions && typeof app.versions === 'object') ? (app.versions as any) : {};
     setSettingsSeoDesc(v.seo_description || '');
     setSettingsHideBadge(!!v.hide_badge);
+  };
+
+  const handleOpenSettings = (e: React.MouseEvent, app: RecentApp) => {
+    e.stopPropagation();
+    openAppSettings(app);
   };
 
   const handleSaveSettings = async () => {
@@ -1236,6 +1275,240 @@ useEffect(() => {
     animate: { opacity: 1, x: 0, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] as const } },
     exit: (dir: number) => ({ opacity: 0, x: dir * -10, transition: { duration: 0.16, ease: [0.4, 0, 0.2, 1] as const } }),
   };
+
+  if (workspacePresentation) {
+    const ownedFolders = user?.id
+      ? folders.filter(folder => folder.userId === user.id).map(folder => ({
+          ...folder,
+          isPinned: workspacePinnedFolderIds.includes(folder.id),
+        }))
+      : [];
+    const openWorkspaceChat = (id: string) => {
+      if (!allChats.some(session => session.id === id)) return;
+      loadSession(id);
+      navigate(`/chat/${encodeURIComponent(id)}`);
+    };
+    const openWorkspaceApp = (app: RecentApp) => {
+      if (!hasBoost && !isAdmin) {
+        openCheckout();
+        toast({ title: 'ArcAI Boost Required', description: 'App Builder is exclusively available to Boost subscribers and admins.' });
+        return;
+      }
+      void openProject(app.id);
+    };
+    const startWorkspaceChat = () => {
+      const id = createNewSession();
+      navigate(`/chat/${encodeURIComponent(id)}`);
+    };
+    const setWorkspaceFolderPin = (id: string, pinned: boolean) => {
+      if (!user?.id) return;
+      const next = pinned
+        ? [...new Set([...workspacePinnedFolderIds, id])]
+        : workspacePinnedFolderIds.filter(folderId => folderId !== id);
+      setWorkspacePinnedFolderIds(next);
+      try {
+        localStorage.setItem(`arc_workspace_pinned_folders_${user.id}`, JSON.stringify(next));
+      } catch {
+        toast({ title: 'Could not save folder order', description: 'Check this browser’s storage settings.', variant: 'destructive' });
+      }
+      void pinFolder(id, pinned);
+    };
+    const removeWorkspaceFolder = async (id: string) => {
+      try {
+        await deleteFolder(id);
+        setWorkspaceFolderPin(id, false);
+      } catch (error) {
+        toast({ title: 'Could not delete folder', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+      }
+    };
+    const mergeMemory = async () => {
+      if (!newMemoryContent.trim() || memorySaving) return;
+      setMemorySaving(true);
+      try {
+        const saved = await addBlock(newMemoryContent.trim());
+        if (!saved) throw new Error('Could not update your living summary. Your draft is still here.');
+        setNewMemoryContent('');
+        setIsAddingMemory(false);
+        toast({ title: 'Memory updated', description: 'Your note was merged into the living summary.' });
+      } catch (error) {
+        toast({ title: 'Could not update memory', description: error instanceof Error ? error.message : 'Your draft is still here. Please try again.', variant: 'destructive' });
+      } finally {
+        setMemorySaving(false);
+      }
+    };
+    const saveMemoryEdit = async () => {
+      if (!contextBlocks[0] || !editMemoryContent.trim() || memorySaving) return;
+      setMemorySaving(true);
+      try {
+        const saved = await updateBlock(contextBlocks[0].id, editMemoryContent.trim());
+        if (!saved) throw new Error('Could not save the living summary. Your edits are still here.');
+        setEditingMemoryId(null);
+        toast({ title: 'Memory saved' });
+      } catch (error) {
+        toast({ title: 'Could not save memory', description: error instanceof Error ? error.message : 'Your edits are still here. Please try again.', variant: 'destructive' });
+      } finally {
+        setMemorySaving(false);
+      }
+    };
+    const exportMemory = () => {
+      const data = { summary: contextBlocks[0]?.content || '', format: 'arc-living-memory-v1' };
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `arc-living-memory-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+    const importMemory = async (file: File) => {
+      try {
+        const imported: unknown = JSON.parse(await file.text());
+        const summary = imported && typeof imported === 'object' && 'summary' in imported && typeof imported.summary === 'string'
+          ? imported.summary
+          : Array.isArray(imported)
+            ? imported.map(item => item && typeof item === 'object' && 'content' in item && typeof item.content === 'string' ? item.content : '').filter(Boolean).join('\n')
+            : '';
+        if (!summary.trim()) throw new Error('Choose a living-memory JSON file with a summary.');
+        setMemorySaving(true);
+        const saved = await addBlock(summary.trim());
+        if (!saved) throw new Error('Could not import the summary. Please try again.');
+        toast({ title: 'Living memory imported', description: 'Arc merged the file into your existing summary.' });
+      } catch (error) {
+        toast({ title: 'Could not import memory', description: error instanceof Error ? error.message : 'Choose a valid living-memory JSON file.', variant: 'destructive' });
+      } finally {
+        setMemorySaving(false);
+      }
+    };
+    const openCanvas = (item: CanvasItem) => {
+      if (!item.sessionId || !allChats.some(session => session.id === item.sessionId)) return;
+      requestWorkspaceCanvasOpen({
+        sessionId: item.sessionId,
+        kind: 'artifact',
+        content: item.content,
+        type: item.type === 'code' ? 'code' : 'writing',
+        language: item.language || 'text',
+      });
+      openWorkspaceChat(item.sessionId);
+    };
+    const createCanvas = () => {
+      if (!user || creatingCanvasRef.current) return;
+      creatingCanvasRef.current = true;
+      setCreatingCanvas(true);
+      const id = createNewSession();
+      requestWorkspaceCanvasOpen({ sessionId: id, kind: 'new' });
+      navigate(`/chat/${encodeURIComponent(id)}`);
+    };
+
+    let workspacePage: WorkspaceDashboardModel;
+    if (activeTab === 'overview') {
+      workspacePage = {
+        tab: 'overview',
+        greeting,
+        displayName: profile?.display_name?.trim() || '',
+        chatsLoading: !isLoaded,
+        recentChats: allChats.slice(0, 6),
+        stats: [
+          { label: 'Chats', value: allChats.length, tab: 'chats' },
+          { label: 'Images', value: totalImageCount ?? '—', tab: 'images' },
+          { label: 'Canvases', value: canvasCount ?? '—', tab: 'canvases' },
+          { label: 'Living memory', value: blocksError ? '—' : (blocksLoading ? '—' : contextBlocks.length ? 1 : 0), tab: 'memory' },
+        ],
+        timeAgo,
+        onNewChat: startWorkspaceChat,
+        onOpenChat: openWorkspaceChat,
+        onDeleteChat: id => { void deleteSession(id); },
+        onRenameChat: (id, title) => updateSessionTitle(id, title),
+        onOpenLibrary: tab => navigate(`/dashboard?tab=${tab === 'memory' ? 'memories' : tab}`),
+        usageSnapshot: <UsageSnapshotWidget onOpenPlan={() => navigate('/dashboard/settings?section=plan')} />,
+        onOpenPlan: () => navigate('/dashboard/settings?section=plan'),
+        onOpenReminders: () => navigate('/tasks'),
+        onOpenShared: () => navigate('/shared'),
+        onOpenStatus: () => navigate('/status'),
+      };
+    } else if (activeTab === 'chats') {
+      const ungroupedCount = filteredChats.filter(session => !session.folderId).length;
+      workspacePage = {
+        tab: 'chats', isLoaded, sessions: filteredChats, currentSessionId, folders: ownedFolders,
+        search: chatSearch, onSearchChange: setChatSearch,
+        page: chatPage, totalPages: Math.max(1, Math.ceil(ungroupedCount / ITEMS_PER_PAGE)), onPageChange: setChatPage,
+        expandedFolders,
+        onToggleFolder: toggleFolder,
+        isCreatingFolder, isSavingFolder, newFolderName, onFolderNameChange: setNewFolderName,
+        onCreateFolder: () => { void handleCreateFolder().catch(error => toast({ title: 'Could not create folder', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' })); },
+        onCancelCreateFolder: () => { setIsCreatingFolder(false); setNewFolderName(''); },
+        onStartCreateFolder: () => setIsCreatingFolder(true),
+        onDeleteFolder: id => { void removeWorkspaceFolder(id); },
+        onPinFolder: setWorkspaceFolderPin,
+        onMoveChat: (chatId, folderId) => { void moveChatToFolder(chatId, folderId).catch(error => toast({ title: 'Could not move chat', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' })); },
+        onOpenChat: openWorkspaceChat,
+        onNewChat: startWorkspaceChat,
+        onDeleteChat: id => deleteSession(id),
+        onRenameChat: (id, title) => updateSessionTitle(id, title),
+      };
+    } else if (activeTab === 'apps') {
+      workspacePage = {
+        tab: 'apps', loading: loadingApps, error: appsError,
+        search: appSearch, onSearchChange: setAppSearch,
+        apps: filteredApps as RecentApp[], page: appPage,
+        totalPages: Math.max(1, Math.ceil(filteredApps.length / ITEMS_PER_PAGE)), onPageChange: setAppPage,
+        onRetry: () => setAppRetry(retry => retry + 1),
+        openingAppId, deletingAppId,
+        onCreate: () => handleLaunchAppBuilder(),
+        onOpen: app => openWorkspaceApp(app),
+        onDelete: app => { void deleteApp(app.id, app.title); },
+        onEditSettings: app => openAppSettings(app),
+        settings: {
+          app: settingsApp,
+          title: settingsTitle,
+          description: settingsSeoDesc,
+          hideBadge: settingsHideBadge,
+          saving: savingSettings,
+          onOpenChange: open => { if (!open && !savingSettings) setSettingsApp(null); },
+          onTitleChange: setSettingsTitle,
+          onDescriptionChange: setSettingsSeoDesc,
+          onBadgeChange: show => setSettingsHideBadge(!show),
+          onSave: () => { void handleSaveSettings(); },
+        },
+        timeAgo,
+      };
+    } else if (activeTab === 'images') {
+      workspacePage = {
+        tab: 'images', loading: dbImagesLoading, error: dbImagesError,
+        search: imageSearch, onSearchChange: value => { setImageSearch(value); setViewingImageIndex(null); },
+        images: filteredImages, totalCount: totalImageCount,
+        page: imagePage, totalPages: Math.max(1, Math.ceil(filteredImages.length / ITEMS_PER_PAGE)), onPageChange: setImagePage,
+        hasMore: dbHasMoreSessions, onLoadMore: () => { void fetchMoreImages(); }, onRetry: () => { void fetchMoreImages(dbImages.length === 0); },
+        viewerIndex: viewingImageIndex, onSetViewerIndex: setViewingImageIndex,
+        onDownload: image => { void downloadImage(image); }, onOpenChat: openWorkspaceChat,
+      };
+    } else if (activeTab === 'canvases') {
+      workspacePage = {
+        tab: 'canvases', loading: dbCanvasesLoading, error: dbCanvasesError,
+        search: canvasSearch, onSearchChange: setCanvasSearch,
+        canvases: filteredCanvases, selected: selectedCanvas,
+        onSelect: item => { setSelectedCanvas(item); setCanvasDetailTab('canvas'); },
+        page: canvasPage, totalPages: Math.max(1, Math.ceil(filteredCanvases.length / ITEMS_PER_PAGE)), onPageChange: setCanvasPage,
+        hasMore: dbHasMoreCanvasSessions, onLoadMore: () => { void fetchMoreCanvases(); }, onRetry: () => { void fetchMoreCanvases(dbCanvases.length === 0); },
+        onOpenCanvas: openCanvas, onOpenChat: openWorkspaceChat, onCreateCanvas: createCanvas,
+        creatingCanvas,
+        timeAgo, deployedView: <DeploysPanel />, detailTab: canvasDetailTab, onDetailTab: setCanvasDetailTab,
+      };
+    } else {
+      workspacePage = {
+        tab: 'memory', loading: blocksLoading, error: blocksError, summary: contextBlocks[0] ?? null,
+        isAdding: isAddingMemory, newContent: newMemoryContent, onNewContent: setNewMemoryContent,
+        onStartAdd: () => { setNewMemoryContent(''); setIsAddingMemory(true); },
+        onAdd: () => { void mergeMemory(); },
+        onCancelAdd: () => { if (!memorySaving) setIsAddingMemory(false); },
+        editing: Boolean(editingMemoryId), editContent: editMemoryContent, onEditContent: setEditMemoryContent,
+        onStartEdit: () => { if (contextBlocks[0]) { setEditingMemoryId(contextBlocks[0].id); setEditMemoryContent(contextBlocks[0].content); } },
+        onCancelEdit: () => { if (!memorySaving) setEditingMemoryId(null); },
+        onSave: () => { void saveMemoryEdit(); }, saving: memorySaving,
+        onImport: file => { void importMemory(file); }, onExport: exportMemory,
+        onRetry: () => { void refetchBlocks(); },
+      };
+    }
+    return <WorkspaceDashboardPage model={workspacePage} />;
+  }
 
   return (
     <motion.div
@@ -1930,18 +2203,6 @@ useEffect(() => {
                                     <span>v{app.version || 1}</span>
                                     <span>·</span>
                                     <span>{timeAgo(app.updated_at || app.created_at)}</span>
-                                    {(() => {
-                                      const uCount = getAppUserCount(app);
-                                      return (
-                                        <>
-                                          <span>·</span>
-                                          <span className="inline-flex items-center gap-1 text-neon-600 dark:text-neon-400 font-semibold">
-                                            <Users className="h-2.5 w-2.5" />
-                                            {uCount} {uCount === 1 ? 'user' : 'users'}
-                                          </span>
-                                        </>
-                                      );
-                                    })()}
                                   </div>
                                 </div>
                               </div>

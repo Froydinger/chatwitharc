@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronRight, MessageCircle, Music, Search } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,6 +8,7 @@ import { useAccentStore } from '@/store/useAccentStore';
 import { IconButton, WorkspaceChrome, WorkspaceDialog, type WorkspaceSection } from './WorkspaceChrome';
 import { getConversationCanvas, isCurrentConversationRoute } from './conversationCanvas';
 import { useWorkspaceTheme } from './useWorkspaceTheme';
+import { WORKSPACE_CANVAS_OPEN_EVENT, type WorkspaceCanvasOpenIntent } from './workspaceCanvasOpenIntent';
 const PlanUsageBreakdown = lazy(() => import('@/components/PlanUsageBreakdown').then(module => ({ default: module.PlanUsageBreakdown })));
 const destination: Record<WorkspaceSection, string> = {
   chat: '/', build: '/build', apps: '/dashboard?tab=apps', images: '/dashboard?tab=images',
@@ -27,6 +28,7 @@ function sectionFor(path: string, search: string): WorkspaceSection {
 }
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const { user, profile } = useAuth();
+  const userId = user?.id;
   const location = useLocation();
   const navigate = useNavigate();
   const sessions = useArcStore(state => state.chatSessions);
@@ -38,6 +40,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const setTheme = useAccentStore(state => state.setThemeMode);
   const [dialog, setDialog] = useState<'about' | 'usage' | 'search' | null>(null);
   const [search, setSearch] = useState('');
+  const pendingCanvasOpen = useRef<WorkspaceCanvasOpenIntent | null>(null);
   const chatRoute = location.pathname === '/' || location.pathname.startsWith('/chat/');
   const section = sectionFor(location.pathname, location.search);
   // Unowned legacy cache entries are visible only after this account's sync.
@@ -56,11 +59,47 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   // deliberately does not run title generation or introduce a second chat hook.
   useEffect(() => {
     const state = useArcStore.getState();
-    if (user && state.syncedUserId !== user.id && !state.isSyncing) {
+    if (userId && state.syncedUserId !== userId && !state.isSyncing) {
       void state.syncFromSupabase().catch(error => console.warn('Workspace history sync failed.', error));
     }
-  }, [user?.id]);
+  }, [userId]);
   useEffect(() => { setDialog(null); }, [location.pathname, location.search]);
+  useEffect(() => {
+    const receiveCanvasOpen = (event: Event) => {
+      const detail = (event as CustomEvent<WorkspaceCanvasOpenIntent>).detail;
+      if (!detail?.sessionId || !useArcStore.getState().chatSessions.some(session => session.id === detail.sessionId)) return;
+      pendingCanvasOpen.current = detail;
+    };
+    window.addEventListener(WORKSPACE_CANVAS_OPEN_EVENT, receiveCanvasOpen);
+    return () => window.removeEventListener(WORKSPACE_CANVAS_OPEN_EVENT, receiveCanvasOpen);
+  }, []);
+  useEffect(() => {
+    const intent = pendingCanvasOpen.current;
+    if (!intent || intent.sessionId !== currentId || !current?.isHydrated
+      || !isCurrentConversationRoute(location.pathname, currentId)) return;
+
+    // MobileChatApp closes and rehydrates the canvas as it commits a session
+    // switch. Run after that effect and re-check ownership against the latest
+    // store state, so a saved artifact from another chat can never bleed in.
+    const timeout = window.setTimeout(() => {
+      if (pendingCanvasOpen.current !== intent) return;
+      const state = useArcStore.getState();
+      const target = state.chatSessions.find(session => session.id === intent.sessionId);
+      const owned = target && (target.persistenceOwnerId === user?.id
+        || (!target.persistenceOwnerId && state.syncedUserId === user?.id));
+      if (!owned || state.currentSessionId !== intent.sessionId) {
+        pendingCanvasOpen.current = null;
+        return;
+      }
+
+      const canvas = useCanvasStore.getState();
+      if (intent.kind === 'new') canvas.hydrateFromSession('', 'writing');
+      else canvas.hydrateFromSession(intent.content, intent.type, intent.language);
+      canvas.reopenCanvas();
+      pendingCanvasOpen.current = null;
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [currentId, current?.isHydrated, location.pathname, user?.id, syncedUserId]);
   useEffect(() => {
     const openUsage = () => setDialog('usage');
     window.addEventListener('workspace-open-usage', openUsage);
