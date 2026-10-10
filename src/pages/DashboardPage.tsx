@@ -724,7 +724,9 @@ useEffect(() => {
         // falling back to a fenced block inside content for legacy messages.
         let canvasContent = '';
         if (m.type === 'canvas') {
-          canvasContent = m.canvasContent || (typeof m.content === 'string' ? m.content : '');
+          canvasContent = typeof m.canvasContent === 'string'
+            ? m.canvasContent
+            : (typeof m.content === 'string' ? m.content : '');
         } else {
           const codeContent = m.codeContent;
           const rawContent = typeof m.content === 'string' ? m.content : '';
@@ -1389,13 +1391,40 @@ useEffect(() => {
       });
       openWorkspaceChat(item.sessionId);
     };
-    const createCanvas = () => {
+    const createCanvas = async () => {
       if (!user || creatingCanvasRef.current) return;
       creatingCanvasRef.current = true;
       setCreatingCanvas(true);
-      const id = createNewSession();
-      requestWorkspaceCanvasOpen({ sessionId: id, kind: 'new' });
-      navigate(`/chat/${encodeURIComponent(id)}`);
+      let id: string | null = null;
+      let saveError: unknown = null;
+      try {
+        const { data: { user: authUser }, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        if (!authUser || authUser.id !== user.id) throw new Error('Your account could not be confirmed. Sign in again and retry.');
+
+        id = createNewSession();
+        const artifactId = await useArcStore.getState().upsertCanvasMessage('', 'Untitled canvas', undefined, {
+          sessionId: id,
+          awaitPersistence: true,
+        });
+        if (!artifactId) throw new Error('The new canvas could not be attached to its chat.');
+      } catch (error) {
+        saveError = error;
+      }
+
+      if (id) {
+        // Keep the local draft open if its first cloud save failed; subsequent
+        // edits use the normal session canvas autosave path.
+        requestWorkspaceCanvasOpen({ sessionId: id, kind: 'new' });
+        navigate(`/chat/${encodeURIComponent(id)}`);
+      }
+      if (saveError) toast({
+        title: id ? 'Canvas opened; save needs a retry' : 'Could not create canvas',
+        description: saveError instanceof Error ? saveError.message : 'Please try again.',
+        variant: 'destructive',
+      });
+      creatingCanvasRef.current = false;
+      setCreatingCanvas(false);
     };
 
     let workspacePage: WorkspaceDashboardModel;

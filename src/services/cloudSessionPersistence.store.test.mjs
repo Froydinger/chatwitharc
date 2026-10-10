@@ -43,8 +43,10 @@ async function fixture({ enabled = true, localOnly = false, protectedSession = t
   };
   globalThis.localStorage = { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v) };
   Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { onLine: true } });
+  const canvasState = { hydrateCalls: [] };
   globalThis.__storeFixture = {
     supabase,
+    useCanvasStore: { getState: () => ({ hydrateFromSession: content => canvasState.hydrateCalls.push(content) }) },
     create: () => initializer => {
       let state;
       const set = value => { state = { ...state, ...(typeof value === 'function' ? value(state) : value) }; };
@@ -59,9 +61,13 @@ async function fixture({ enabled = true, localOnly = false, protectedSession = t
     if (line.includes('cloudSessionChanges')) return `import { transcriptChanges } from ${JSON.stringify(changesUrl)};`;
     return '';
   });
-  source = `const { create, supabase } = globalThis.__storeFixture;
+  source = `const { create, supabase, useCanvasStore } = globalThis.__storeFixture;
     const persist = fn => fn; const isSupabaseConfigured = true;
-    const useCanvasStore = {}; const detectMemoryCommand = () => null;
+    const isActiveVoiceConversation = () => false;
+    const loadOrdinaryChatTurns = async () => [];
+    const mergeOrdinaryChatTurns = messages => messages;
+    const discardOrdinaryChatTurns = async () => {};
+    const detectMemoryCommand = () => null;
     const addToMemoryBank = () => {}; const formatMemoryConfirmation = () => '';\n` + source;
   source = source.replace("import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true'", String(enabled));
   source = source.replace('const LEGACY_SAVE_WAIT_MS = 5_000;', `const LEGACY_SAVE_WAIT_MS = ${legacyWaitMs};`);
@@ -213,6 +219,56 @@ test('canvas mutation outside updater captures true before value', async () => {
   const f = await fixture();
   await f.store.getState().updateSessionCanvasContent(id, 'new canvas');
   assert.deepEqual(f.calls.find(c => c.name).args.p_operation, { kind: 'canvas', expected: null, value: 'new canvas' });
+});
+
+test('Workspace canvas artifact is persisted, survives New chat and reload, and reopens from its owning session', async () => {
+  const f = await fixture({ protectedSession: false });
+  f.remote.persistence_version = 0;
+
+  // Older canvas-only sessions can have no transcript messages yet. Starting a
+  // chat must keep a non-empty persisted document instead of deleting its row.
+  const legacyCanvasId = '55555555-5555-4555-8555-555555555555';
+  f.store.setState({
+    currentSessionId: legacyCanvasId,
+    messages: [],
+    chatSessions: [{ id: legacyCanvasId, title: 'Canvas only', messages: [], canvasContent: 'Saved before the chat moved', isHydrated: true }],
+  });
+  f.store.getState().createNewSession();
+  assert.ok(f.store.getState().chatSessions.some(session => session.id === legacyCanvasId), 'non-empty canvas content prevents empty-chat cleanup');
+
+  // Mirror the Workspace flow: create the session, persist an explicit canvas
+  // message artifact, then save edits to that artifact.
+  const canvasId = f.store.getState().createNewSession();
+  const artifactId = await f.store.getState().upsertCanvasMessage('', 'Untitled canvas', undefined, {
+    sessionId: canvasId,
+    awaitPersistence: true,
+  });
+  assert.ok(artifactId);
+  await f.store.getState().updateSessionCanvasContent(canvasId, '## A real saved document\n\nWorkspace canvas content.');
+  assert.equal(f.remote.id, canvasId);
+  assert.ok(f.remote.messages.some(message => message.id === artifactId && message.type === 'canvas'), 'library query can match the persisted canvas message');
+  assert.equal(f.remote.messages.find(message => message.id === artifactId).canvasContent, '## A real saved document\n\nWorkspace canvas content.');
+  assert.equal(f.remote.canvas_content, '## A real saved document\n\nWorkspace canvas content.');
+
+  // Navigate away through New chat, then simulate a fresh app load and the
+  // dashboard's library query/open path using only the owning conversation.
+  const nextChatId = f.store.getState().createNewSession();
+  assert.ok(f.store.getState().chatSessions.some(session => session.id === canvasId), 'New chat retains the canvas session');
+  f.store.getState().loadSession(canvasId);
+  assert.equal(f.store.getState().currentSessionId, canvasId, 'library navigation returns to the canvas owner chat');
+  f.store.setState({ currentSessionId: canvasId, messages: [], chatSessions: [{
+    id: canvasId, title: 'New Chat', messages: [], canvasContent: '', isHydrated: false,
+  }] });
+  await f.store.getState().hydrateSession(canvasId);
+  f.store.getState().loadSession(canvasId);
+  assert.notEqual(nextChatId, canvasId);
+  const hydrated = f.store.getState().chatSessions.find(session => session.id === canvasId);
+  assert.ok(hydrated?.messages.some(message => message.type === 'canvas'));
+  const { getConversationCanvas } = await import(moduleUrl(await read('../workspace/conversationCanvas.ts')));
+  assert.deepEqual(getConversationCanvas(hydrated), {
+    content: '## A real saved document\n\nWorkspace canvas content.',
+    type: 'writing',
+  }, 'library reopen hydrates the document from its owner session');
 });
 
 test('authoritative reload accepts shorter transcript and never changes another selected chat', async () => {

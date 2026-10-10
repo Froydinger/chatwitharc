@@ -305,7 +305,7 @@ export interface ArcState {
   patchOwnedMessage: (sessionId: string, messageId: string, patch: Partial<Message>, persist?: boolean) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
-  upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string }) => Promise<string>;
+  upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string; awaitPersistence?: boolean }) => Promise<string>;
   upsertCodeMessage: (codeContent: string, language: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string }) => Promise<string>;
   clearCurrentMessages: () => void;
 
@@ -1471,7 +1471,7 @@ export const useArcStore = create<ArcState>()(
         // If current session is empty, delete it first
         if (state.currentSessionId) {
           const currentSession = state.chatSessions.find(s => s.id === state.currentSessionId);
-          if (currentSession && currentSession.messages.length === 0 && !isActiveVoiceConversation(currentSession.id)) {
+          if (currentSession && currentSession.messages.length === 0 && !currentSession.canvasContent?.trim() && !isActiveVoiceConversation(currentSession.id)) {
             console.log('🗑️ Auto-deleting empty session before creating new one:', state.currentSessionId);
             get().deleteSession(state.currentSessionId);
           }
@@ -1525,7 +1525,7 @@ export const useArcStore = create<ArcState>()(
         // If current session is empty, delete it first
         if (state.currentSessionId) {
           const currentSession = state.chatSessions.find(s => s.id === state.currentSessionId);
-          if (currentSession && currentSession.messages.length === 0) {
+          if (currentSession && currentSession.messages.length === 0 && !currentSession.canvasContent?.trim()) {
             get().deleteSession(state.currentSessionId);
           }
         }
@@ -2022,11 +2022,23 @@ export const useArcStore = create<ArcState>()(
           };
         });
 
-        // Fire-and-forget save to Supabase (don't block UI)
+        // Most canvas writes remain fire-and-forget. Workspace's initial blank
+        // document opts into awaiting this save so the library artifact is
+        // durable before the editor route opens.
         if (sessionToSave) {
-          get().saveChatToSupabase(sessionToSave, undefined, state.chatSessions.find(cs => cs.id === sessionId)).catch(error => {
-            console.error('❌ Failed to save canvas message to Supabase:', error);
-          });
+          const save = get().saveChatToSupabase(sessionToSave, undefined, state.chatSessions.find(cs => cs.id === sessionId));
+          if (options?.awaitPersistence) {
+            try {
+              await save;
+            } catch (error) {
+              console.error('❌ Failed to save canvas message to Supabase:', error);
+              throw error;
+            }
+          } else {
+            void save.catch(error => {
+              console.error('❌ Failed to save canvas message to Supabase:', error);
+            });
+          }
         }
 
         return uniqueCanvasId;

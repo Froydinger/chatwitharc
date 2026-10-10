@@ -605,18 +605,20 @@ function MemoryPage({ model }: { model: WorkspaceMemoryModel }) {
             <div><Button type="button" variant="ghost" onClick={model.onCancelAdd} disabled={model.saving}>Cancel</Button><Button type="button" onClick={model.onAdd} disabled={model.saving || !model.newContent.trim()}>{model.saving && <LoaderCircle className="animate-spin" />}Merge into summary</Button></div>
           </div>
         )}
-        {model.loading ? <div className="workspace-dashboard-records-loading" role="status">Loading memory…</div> : model.error ? null : !model.summary ? (
+        {model.loading && !model.editing && <div className="workspace-dashboard-records-loading" role="status">Loading memory…</div>}
+        {!model.loading && !model.summary && !model.editing && !model.error ? (
           <div className="workspace-dashboard-empty"><Brain aria-hidden="true" /><h4>Your living memory is empty</h4><p>Add a note or import an existing summary.</p></div>
-        ) : (
+        ) : null}
+        {(model.summary || model.editing) && (
           <article className="workspace-dashboard-memory-summary">
-            <header><span><Brain /></span><div><h3>Arc’s living summary</h3><p>{model.summary.updated_at ? 'Updated ' + new Date(model.summary.updated_at).toLocaleString() : 'Update time unavailable'}</p></div>{!model.editing && <Button variant="outline" onClick={model.onStartEdit}><Settings2 />Edit</Button>}</header>
+            <header><span><Brain /></span><div><h3>Arc’s living summary</h3><p>{model.summary?.updated_at ? 'Updated ' + new Date(model.summary.updated_at).toLocaleString() : model.summary ? 'Update time unavailable' : 'Saved copy could not be loaded; your draft is still here.'}</p></div>{model.summary && !model.editing && <Button variant="outline" onClick={model.onStartEdit}><Settings2 />Edit</Button>}</header>
             {model.editing ? (
               <div className="workspace-dashboard-memory-editor">
                 <Label htmlFor="workspace-memory-edit">Living summary</Label>
                 <Textarea id="workspace-memory-edit" autoFocus value={model.editContent} onChange={(event) => model.onEditContent(event.target.value)} />
                 <div><Button type="button" variant="ghost" onClick={model.onCancelEdit} disabled={model.saving}>Cancel</Button><Button type="button" onClick={model.onSave} disabled={model.saving || !model.editContent.trim()}>{model.saving && <LoaderCircle className="animate-spin" />}Save summary</Button></div>
               </div>
-            ) : <p className="workspace-dashboard-memory-copy">{model.summary.content}</p>}
+            ) : model.summary ? <p className="workspace-dashboard-memory-copy">{model.summary.content}</p> : null}
           </article>
         )}
       </section>
