@@ -105,6 +105,32 @@ assert.ok(chrome.includes("section === 'chat' ? <h1 className=\"sr-only\">{title
 const composerTextarea = read('src/components/chat-input/ComposerTextarea.tsx');
 assert.ok(composerTextarea.includes('text-base md:text-base'), 'composer remains 16px at desktop breakpoints');
 assert.ok(!/maximum-scale|user-scalable\s*=\s*no/.test(read('index.html')), 'pinch zoom remains available');
+const mobileChatSource = read('src/components/MobileChatApp.tsx');
+const emptyChatLayout = mobileChatSource.slice(
+  mobileChatSource.indexOf('{/* Greeting - above quick prompts on empty state */'),
+  mobileChatSource.indexOf('{/* Music Popup */'),
+);
+const greetingIndex = emptyChatLayout.indexOf('<CyclingGreeting />');
+const quickPromptIndex = emptyChatLayout.indexOf('<SmartSuggestions');
+const composerIndex = emptyChatLayout.indexOf('<ChatInput ref=');
+assert.ok(greetingIndex >= 0 && quickPromptIndex > greetingIndex && composerIndex > quickPromptIndex, 'quick prompts sit beneath the unchanged greeting and before the composer');
+assert.ok(emptyChatLayout.includes('messages.length === 0') && emptyChatLayout.includes('!isVoiceActive'), 'greeting and prompts keep their original empty-chat/non-voice visibility gate');
+const workspaceChrome = read('src/workspace/WorkspaceChrome.tsx');
+assert.ok(workspaceChrome.includes("viewport?.addEventListener('resize', update)"));
+assert.ok(workspaceChrome.includes("viewport?.addEventListener('scroll', update)"), 'keyboard viewport panning refreshes the Workspace frame');
+assert.ok(workspaceChrome.includes("'--ws-viewport-height'") && workspaceChrome.includes("'--ws-viewport-top'"));
+const workspaceCss = read('src/workspace/workspace.css');
+assert.ok(workspaceCss.includes('.workspace-ui .ws-live-content .glass-dock:focus-within'));
+assert.ok(workspaceCss.includes('box-shadow:0 0 0 2px var(--ws-text)!important'), 'focus halo follows the existing rounded composer card');
+assert.ok(!workspaceCss.includes('.workspace-ui .workspace-live-composer:focus-within { outline:2px'), 'no rectangular inner composer outline');
+assert.ok(workspaceCss.includes('bottom:calc(16px + env(safe-area-inset-bottom,0px))'), 'floating composer clears the home indicator');
+assert.ok(workspaceCss.includes('env(safe-area-inset-left,0px)') && workspaceCss.includes('env(safe-area-inset-right,0px)'), 'floating composer clears both side insets');
+for (const [width, safeSide] of [[320, 0], [390, 0], [852, 59], [1024, 0], [1440, 0]]) {
+  const minimum = width <= 650 ? 12 : width <= 980 ? 16 : 22;
+  const safePad = width <= 980 ? 8 : 12;
+  const gutter = Math.max(minimum, safeSide + safePad);
+  assert.ok(width - gutter * 2 > 180, `composer card keeps visible side clearance at ${width}px`);
+}
 const modelPicker = read('src/components/ChatModelPicker.tsx');
 assert.ok(!modelPicker.includes('Choose how Arc responds'));
 assert.ok(!modelPicker.includes('Auto can use your Sol allowance'));

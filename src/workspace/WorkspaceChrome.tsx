@@ -29,9 +29,20 @@ export function WorkspaceChrome({ section, onNavigate, onNewChat, recent, curren
   const [drawer, setDrawer] = useState(false);
   useEffect(() => { setDrawer(false); }, [section, currentId]);
   useEffect(() => {
-    const update = () => document.documentElement.style.setProperty('--ws-viewport-height', `${window.visualViewport?.height ?? window.innerHeight}px`);
-    update(); window.visualViewport?.addEventListener('resize', update); window.addEventListener('resize', update);
-    return () => { window.visualViewport?.removeEventListener('resize', update); window.removeEventListener('resize', update); };
+    const viewport = window.visualViewport;
+    const update = () => {
+      document.documentElement.style.setProperty('--ws-viewport-height', `${viewport?.height ?? window.innerHeight}px`);
+      document.documentElement.style.setProperty('--ws-viewport-top', `${viewport?.offsetTop ?? 0}px`);
+    };
+    update();
+    viewport?.addEventListener('resize', update);
+    viewport?.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    return () => {
+      viewport?.removeEventListener('resize', update);
+      viewport?.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
   }, []);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {

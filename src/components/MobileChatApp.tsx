@@ -1782,10 +1782,10 @@ export function MobileChatApp() {
                 </div>
               )}</ConditionalTransition>
 
-              {/* Greeting - above input on empty state */}
+              {/* Greeting - above quick prompts on empty state */}
               {!isVoiceActive && messages.length === 0 && (
                 <Transition preset="fade" delay={0.1}><div
-                  className={cn("flex justify-center mb-6", workspaceUI && "ws-live-greeting")}
+                  className={cn("flex justify-center mb-4", workspaceUI && "ws-live-greeting")}
                 >
                   <div className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-center">
                     <span className="relative inline-block">
@@ -1793,6 +1793,17 @@ export function MobileChatApp() {
                     </span>
                   </div>
                 </div></Transition>
+              )}
+
+              {/* Quick prompts sit immediately below the unchanged time-based greeting. */}
+              {!isVoiceActive && messages.length === 0 && (
+                <div className="pointer-events-auto mb-4 flex justify-center">
+                  <SmartSuggestions
+                    suggestions={staticSuggestions}
+                    onSelectPrompt={triggerPrompt}
+                    onShowMore={() => setShowLibrary(true)}
+                  />
+                </div>
               )}
 
               {/* Voice mode replaces the dock outright rather than collapsing
@@ -1829,16 +1840,6 @@ export function MobileChatApp() {
                 </ArcInputEffects>
               </div>
               )}</ConditionalTransition>
-              {/* Quick Prompts - below input bar on empty state */}
-              {!isVoiceActive && messages.length === 0 && (
-                <div className="pointer-events-auto mt-4 flex justify-center">
-                  <SmartSuggestions
-                    suggestions={staticSuggestions}
-                    onSelectPrompt={triggerPrompt}
-                    onShowMore={() => setShowLibrary(true)}
-                  />
-                </div>
-              )}
             </div>
           </div>
         </div>
