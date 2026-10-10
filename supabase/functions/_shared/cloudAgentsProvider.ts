@@ -208,9 +208,11 @@ export function cloudAgentsProvider(options: {
       ]).has(code.toLowerCase());
       const explicitlyUnavailableMessage = /spend[ _-]?control/i.test(providerMessage)
         && /(?:not enabled|disabled|unsupported|not supported|unavailable|not available)/i.test(providerMessage);
+      const invalidRequestCategory = type === 'invalid_request_error'
+        || code.toLowerCase() === 'invalid_request_error';
       const spendControlUnavailable = response.status === 400
         && method === 'POST' && path === '/sessions' && param === 'spend_control'
-        && type === 'invalid_request_error'
+        && invalidRequestCategory
         && (explicitlyUnavailableCode || explicitlyUnavailableMessage);
       let confirmedZero = false;
       if (method === 'POST' && path === '/sessions' && response.status >= 400 && response.status < 500) {
