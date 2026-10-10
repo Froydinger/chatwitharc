@@ -1,6 +1,6 @@
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
-import { X, Mic, MicOff, Loader2, Camera, CameraOff, Paperclip, SwitchCamera, Check, RotateCw, Search } from "lucide-react";
+import { X, Mic, MicOff, Loader2, Camera, CameraOff, Paperclip, SwitchCamera, Check, RotateCw, Search, AudioLines, Minimize2, Maximize2, PhoneOff, Volume2, VolumeX } from "lucide-react";
 import { WeatherCard } from "@/components/WeatherCard";
 import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -12,6 +12,10 @@ import { ThinkingOrb } from "thinking-orbs";
 import { MetalFx, PRESETS } from "metal-fx";
 import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
 import { normalizedOrbSpeed, useVoiceOrbConfig, useThinkingOrbConfig, useMotionConfig, type VoicePhase } from "@/hooks/useThinkingOrbConfig";
+
+import { WorkspaceVoiceVisual } from '@/workspace/WorkspaceVoiceVisual';
+import { WorkspaceVoiceTranscript } from '@/workspace/WorkspaceVoiceTranscript';
+import '@/workspace/workspace-voice.css';
 
 // Global ref for mute-handoff (commit audio and get response when user mutes after speaking)
 let globalMuteHandoffHandler: (() => boolean) | null = null;
@@ -53,7 +57,20 @@ export function setGlobalPushToTalkHandlers(start: (() => void) | null, end: (()
   globalEndPushToTalk = end;
 }
 
-export function VoiceModeOverlay() {
+export function VoiceModeOverlay({ layout = 'legacy', compact = false, onOpenConversation }: { layout?: 'legacy' | 'workspace'; compact?: boolean; onOpenConversation?: () => void }) {
+  const workspace = layout === 'workspace';
+  const [minimized, setMinimized] = useState(false);
+  const holdingRef = useRef(false);
+  const startHold = useCallback(() => {
+    if (holdingRef.current) return;
+    holdingRef.current = true;
+    globalStartPushToTalk?.();
+  }, []);
+  const endHold = useCallback(() => {
+    if (!holdingRef.current) return;
+    holdingRef.current = false;
+    globalEndPushToTalk?.();
+  }, []);
   const {
     isActive,
     status,
@@ -77,6 +94,8 @@ export function VoiceModeOverlay() {
     setWeatherData,
     isSchedulingTask,
     selectedVoice,
+    volume,
+    setVolume,
     // Camera state
     isCameraActive,
     activateCamera,
@@ -236,27 +255,34 @@ export function VoiceModeOverlay() {
       if (e.code === 'Space' && !e.repeat) {
         const target = e.target as HTMLElement;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+        if (workspace && target?.closest?.('button, a, select, [role=menuitem], [role=dialog]')) return;
         e.preventDefault();
-        if (globalStartPushToTalk) globalStartPushToTalk();
+        if (workspace) startHold();
+        else if (globalStartPushToTalk) globalStartPushToTalk();
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
+        if (workspace && holdingRef.current) { e.preventDefault(); endHold(); return; }
         const target = e.target as HTMLElement;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+        if (workspace && target?.closest?.('button, a, select, [role=menuitem], [role=dialog]')) return;
         e.preventDefault();
-        if (globalEndPushToTalk) globalEndPushToTalk();
+        if (workspace) endHold();
+        else if (globalEndPushToTalk) globalEndPushToTalk();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    if (workspace) window.addEventListener('blur', endHold);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      if (workspace) { window.removeEventListener('blur', endHold); endHold(); }
     };
-  }, [isActive]);
+  }, [isActive, workspace, startHold, endHold]);
 
   const voiceOrbConfig = useVoiceOrbConfig();
   const thinkingOrbConfig = useThinkingOrbConfig();
@@ -342,7 +368,10 @@ export function VoiceModeOverlay() {
   return (
       <ConditionalTransition preset="modal">{isActive && (
         <div
-          className="fixed inset-x-0 bottom-0 z-[100] pointer-events-none px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]"
+          className={workspace ? 'workspace-ui ws-voice-panel' : 'fixed inset-x-0 bottom-0 z-[100] pointer-events-none px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]'}
+          data-compact={workspace ? compact || minimized : undefined}
+          role={workspace ? 'region' : undefined}
+          aria-label={workspace ? 'Arc live voice' : undefined}
         >
           <input
             ref={fileInputRef}
@@ -352,9 +381,12 @@ export function VoiceModeOverlay() {
             onChange={handleFileChange}
           />
 
-          <div className="mx-auto w-[min(760px,calc(100vw-1.5rem))] pointer-events-auto flex flex-col items-center">
+          {workspace && <header className="ws-voice-heading"><span><AudioLines aria-hidden="true" /> Voice with Arc</span><button type="button" onClick={() => compact && onOpenConversation ? onOpenConversation() : setMinimized(value => !value)} aria-label={compact ? 'Return to voice chat' : minimized ? 'Expand voice panel' : 'Compact voice panel'}>{compact || minimized ? <Maximize2 /> : <Minimize2 />}</button></header>}
+          <div className={workspace ? 'ws-voice-panel-grid' : 'mx-auto w-[min(760px,calc(100vw-1.5rem))] pointer-events-auto flex flex-col items-center'}>
+          <div className={workspace ? 'ws-voice-call' : 'contents'}>
+            {workspace && <WorkspaceVoiceVisual status={status} amplitude={amplitude} muted={isMuted} label={getStatusText()} />}
             {/* Floating previews & rich cards above voice bar */}
-            <div className="w-full mb-2 flex flex-col items-center gap-2">
+            <div className={workspace ? "ws-voice-previews" : "w-full mb-2 flex flex-col items-center gap-2"}>
               {/* Camera Preview */}
                 <ConditionalTransition preset="modal">{isCameraActive && (
                   <div
@@ -496,15 +528,15 @@ export function VoiceModeOverlay() {
 
             {/* Hero Orb-Focused Voice Bar Pill */}
             <TransitionPart><div
-              className="relative mx-auto w-full sm:w-fit sm:max-w-fit overflow-hidden rounded-full border border-primary/25 bg-background/90 px-4 py-2 sm:px-6 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all"
-              style={{
+              className={workspace ? "ws-voice-controls" : "relative mx-auto w-full sm:w-fit sm:max-w-fit overflow-hidden rounded-full border border-primary/25 bg-background/90 px-4 py-2 sm:px-6 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all"}
+              style={workspace ? undefined : {
                 boxShadow: orbTheme === 'dark'
                   ? `0 0 0 1px hsl(var(--primary) / ${0.15 + Math.min(1, amplitude * 1.2) * 0.25}), 0 18px 48px rgba(0, 0, 0, 0.65)`
                   : `0 0 0 1px hsl(var(--primary) / 0.15), 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)`,
               }}
             >
               {/* Liquid Metal sheen ring / glow */}
-              <div
+              {!workspace && <div
                 className="absolute inset-0 rounded-full pointer-events-none overflow-hidden transition-opacity duration-500"
                 style={{ zIndex: 0, opacity: Math.min(0.28, orbTheme === 'dark' ? metalOpacity : metalOpacity * 0.75) }}
                 aria-hidden="true"
@@ -520,10 +552,10 @@ export function VoiceModeOverlay() {
                 >
                   <span style={{ width: '100%', height: '100%', display: 'block', borderRadius: 9999 }} />
                 </MetalFx>
-              </div>
+              </div>}
 
               {/* Radial ambient sheen */}
-              <div
+              {!workspace && <div
                 className="pointer-events-none absolute inset-0 -z-10 transition-opacity duration-300"
                 style={{
                   opacity: orbTheme === 'dark' ? (status === 'speaking' ? 0.35 : 0.2) : 0.08,
@@ -531,9 +563,9 @@ export function VoiceModeOverlay() {
                     'radial-gradient(ellipse at center, hsl(var(--primary) / 0.2), transparent 70%)',
                 }}
                 aria-hidden="true"
-              />
+              />}
 
-              <div className="relative z-10 flex items-center justify-between sm:justify-center gap-3 sm:gap-4">
+              <div className={workspace ? "ws-voice-control-row" : "relative z-10 flex items-center justify-between sm:justify-center gap-3 sm:gap-4"}>
                 {/* Left Action Controls */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
@@ -542,8 +574,9 @@ export function VoiceModeOverlay() {
                       isMuted ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' : 'bg-muted/70 text-foreground hover:bg-muted'
                     }`}
                     aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+                    aria-pressed={isMuted}
                   >
-                    {isMuted ? <MicOff className="h-4.5 w-4.5" /> : <Mic className="h-4.5 w-4.5" />}
+                    {isMuted ? <MicOff className="h-4.5 w-4.5" /> : <Mic className="h-4.5 w-4.5" />}{workspace && <span>{isMuted ? "Unmute" : "Mute"}</span>}
                   </button>
 
                   <button
@@ -554,7 +587,7 @@ export function VoiceModeOverlay() {
                     }`}
                     aria-label="Attach image"
                   >
-                    <Paperclip className="h-4 w-4" />
+                    <Paperclip className="h-4 w-4" />{workspace && <span>Image</span>}
                   </button>
 
                   <button
@@ -563,13 +596,14 @@ export function VoiceModeOverlay() {
                       isCameraActive ? 'bg-primary/20 text-primary' : 'bg-muted/60 text-foreground hover:bg-muted'
                     }`}
                     aria-label={isCameraActive ? "Turn off camera" : "Turn on camera"}
+                    aria-pressed={isCameraActive}
                   >
-                    {isCameraActive ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+                    {isCameraActive ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}{workspace && <span>Camera</span>}
                   </button>
                 </div>
 
                 {/* Center Hero ThinkingOrb & Status */}
-                <div className="flex flex-1 sm:flex-initial items-center justify-center gap-3 sm:gap-4 px-1 py-0.5 min-w-0">
+                {!workspace && <div className="flex flex-1 sm:flex-initial items-center justify-center gap-3 sm:gap-4 px-1 py-0.5 min-w-0">
                   {/* GPT-Live stays open full-duplex; interruption is handled by
                       natural speech detection, not by tapping the orb. */}
                   <div
@@ -611,7 +645,7 @@ export function VoiceModeOverlay() {
                       )}
                     </div>
                   </div>
-                </div>
+                </div>}
 
                 {/* Right Action Controls */}
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -619,13 +653,32 @@ export function VoiceModeOverlay() {
                   <button
                     onClick={deactivateVoiceMode}
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted"
-                    aria-label="Close voice mode"
+                    aria-label={workspace ? "End voice session" : "Close voice mode"}
                   >
-                    <X className="h-4 w-4" />
+                    {workspace ? <><PhoneOff className="h-4 w-4" /><span>End</span></> : <X className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
             </div></TransitionPart>
+            {workspace && <div className="ws-voice-secondary-controls">
+              <Popover open={voicePickerOpen} onOpenChange={open => { setVoicePickerOpen(open); if (!open) setPendingVoiceSwitch(null); }}>
+                <PopoverTrigger asChild><button type="button" disabled={isSwitching} aria-label="Choose voice"><AudioLines aria-hidden="true" />{REALTIME_VOICES.find(voice => voice.id === selectedVoice)?.name || selectedVoice}</button></PopoverTrigger>
+                <PopoverContent className="workspace-ui ws-voice-picker" side="top" align="start">
+                  <p>Choose a voice</p>
+                  <div role="group" aria-label="Available voices">{REALTIME_VOICES.map(voice => <button type="button" key={voice.id} onClick={() => setPendingVoiceSwitch(voice.id)} aria-pressed={(pendingVoiceSwitch || selectedVoice) === voice.id}><span><strong>{voice.name}</strong><small>{voice.description}</small></span>{(pendingVoiceSwitch || selectedVoice) === voice.id && <Check aria-hidden="true" />}</button>)}</div>
+                  <div className="ws-voice-volume"><button type="button" onClick={() => setVolume(volume === 0 ? 0.8 : 0)} aria-label={volume === 0 ? "Unmute voice audio" : "Mute voice audio"}>{volume === 0 ? <VolumeX /> : <Volume2 />}</button><label htmlFor="ws-voice-volume">Volume</label><input id="ws-voice-volume" aria-label="Voice volume" type="range" min="0" max="1" step="0.01" value={volume} onChange={event => setVolume(Number(event.target.value))} /></div>
+                  {pendingVoiceInfo && pendingVoiceSwitch !== selectedVoice && <div className="ws-voice-switch-confirm"><p>Your current conversation is saved before switching.</p><button type="button" onClick={handleConfirmVoiceSwitch}>Switch to {pendingVoiceInfo.name}</button></div>}
+                </PopoverContent>
+              </Popover>
+              <button type="button" onClick={handleReconnect} disabled={status === 'connecting' || isSwitching} aria-label="Reconnect voice"><RotateCw aria-hidden="true" /> Reconnect</button>
+              <button type="button" className="ws-voice-hold" aria-label="Hold to talk" disabled={status === 'connecting' || isSwitching}
+                onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); startHold(); }}
+                onPointerUp={endHold} onPointerCancel={endHold} onLostPointerCapture={endHold} onBlur={endHold}
+                onKeyDown={event => { if ((event.code === 'Space' || event.code === 'Enter') && !event.repeat) { event.preventDefault(); startHold(); } }}
+                onKeyUp={event => { if (event.code === 'Space' || event.code === 'Enter') { event.preventDefault(); endHold(); } }}><Mic aria-hidden="true" /> Hold to talk</button>
+            </div>}
+          </div>
+          {workspace && <WorkspaceVoiceTranscript />}
           </div>
         </div>
       )}</ConditionalTransition>

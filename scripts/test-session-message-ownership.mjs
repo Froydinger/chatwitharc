@@ -84,3 +84,19 @@ const pendingSave=awaitingPatch('chat-a',target,{content:'awaited'},true).then((
 await Promise.resolve();assert.equal(finished,false,'Completion waits for persistence');
 finishSave();await pendingSave;assert.equal(finished,true);
 console.log('Owned local patches passed: active/inactive owners, no truncation, missing/deleted targets, source metadata and awaited final persistence.');
+// A late voice user turn can precede its saved assistant, only inside its owner.
+const activeUnchanged = state.messages;
+await append({id:'voice-anchor',role:'assistant',type:'text',content:'assistant final'}, {sessionId:'chat-a'});
+await append({id:'voice-late-user',role:'user',type:'text',content:'late user'}, {sessionId:'chat-a',beforeMessageId:'voice-anchor'});
+let owned=state.chatSessions.find(session=>session.id==='chat-a').messages;
+assert.equal(owned.findIndex(message=>message.id==='voice-late-user')+1,owned.findIndex(message=>message.id==='voice-anchor'));
+assert.equal(state.messages,activeUnchanged);
+await append({id:'voice-no-anchor',role:'user',type:'text',content:'missing anchor'}, {sessionId:'chat-a',beforeMessageId:'not-in-this-chat'});
+owned=state.chatSessions.find(session=>session.id==='chat-a').messages;
+assert.equal(owned.at(-1).id,'voice-no-anchor');
+const count=owned.length;
+await append({id:'voice-late-user',role:'user',type:'text',content:'duplicate retry'}, {sessionId:'chat-a',beforeMessageId:'voice-anchor'});
+assert.equal(state.chatSessions.find(session=>session.id==='chat-a').messages.length,count);
+await append({id:'normal-append',role:'user',content:'normal append'});
+assert.equal(state.messages.at(-1).id,'normal-append');
+console.log('Voice late-order options preserve background owner, missing-anchor append, stable-ID dedupe and default active append.');

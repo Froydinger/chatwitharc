@@ -1,5 +1,8 @@
 import { BoostIcon } from '@/components/BoostIcon';
 import { useWorkspaceUI } from '@/workspace/WorkspaceContext';
+import { useWorkspaceVoiceHost } from '@/workspace/WorkspaceVoiceContext';
+import { WORKSPACE_VOICE_UI_ENABLED } from '@/workspace/voiceRollout';
+import { useActiveVoiceConversationId } from '@/lib/voiceConversationOwnership';
 import { useOrdinaryChatRecovery } from '@/hooks/useOrdinaryChatRecovery';
 import { captureCloudLocationContext } from '@/lib/cloudLocationContext';
 import { hasSessionCloudProgress } from '@/lib/chatPresentation';
@@ -339,6 +342,9 @@ function writeWorkSessions(ownerId: string | null | undefined, ids: Set<string>)
 
 export function MobileChatApp() {
   const workspaceUI = useWorkspaceUI();
+  const workspaceVoiceHost = useWorkspaceVoiceHost();
+  const voiceConversationId = useActiveVoiceConversationId();
+  const workspaceVoicePanel = workspaceVoiceHost && workspaceUI && WORKSPACE_VOICE_UI_ENABLED;
   const navigate = useNavigate();
   const isLocalPreview = isLocalChatPreview();
   const themeMode = useAccentStore((s) => s.themeMode);
@@ -375,7 +381,8 @@ export function MobileChatApp() {
     voiceHistoryRef.current = new Set(messages.map((message) => message.id));
     voiceStartedAtRef.current = new Date();
   }
-  const allDisplayedMessages: Message[] = isVoiceActive ? [
+  const showLegacyVoiceCaptions = !workspaceVoiceHost || (!workspaceVoicePanel && voiceConversationId === currentSessionId);
+  const allDisplayedMessages: Message[] = isVoiceActive && showLegacyVoiceCaptions ? [
     ...messages.filter((message) => voiceHistoryRef.current?.has(message.id) || message.type !== 'text'),
     ...liveCaptionEntries.map((entry): Message => ({
       id: `voice-caption-${entry.id}`, role: entry.role, content: entry.text,
@@ -1284,7 +1291,7 @@ export function MobileChatApp() {
   if (isLoading && !isVoiceActive && !isGeneratingImage && liveReplyId) actionReplyIds.push(liveReplyId);
   return (
     <ReplyActionsProvider scopeKey={currentSessionId ?? "new-chat"} replyIds={actionReplyIds}>
-    <div className={cn("h-screen flex relative overflow-hidden", workspaceUI && "ws-original-chat", historyDocked && "chat-layout-history-docked")} data-workspace-voice-active={workspaceUI && isVoiceActive ? true : undefined}>
+    <div className={cn("h-screen flex relative overflow-hidden", workspaceUI && "ws-original-chat", historyDocked && "chat-layout-history-docked")} data-workspace-voice-active={workspaceUI && isVoiceActive && !workspaceVoicePanel ? true : undefined}>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10">
@@ -1599,7 +1606,7 @@ export function MobileChatApp() {
 
             {/* Voice calls get a dedicated live transcript. The saved chat
                 returns here automatically once the call ends. */}
-            {isVoiceActive && <LiveVoiceTranscript />}
+            {isVoiceActive && showLegacyVoiceCaptions && <LiveVoiceTranscript />}
             {!isVoiceActive && messages.length === 0 ? (
               currentSessionId && isHydratingSession === currentSessionId && !hydrationTimedOut ? (
                 // Show loading spinner while hydrating session messages (with 5s timeout)
@@ -2171,10 +2178,10 @@ export function MobileChatApp() {
       `}</style>
 
       {/* Voice Mode Overlay */}
-      <VoiceModeOverlay />
+      {!workspaceVoiceHost && <VoiceModeOverlay />}
 
       {/* Voice Mode Controller (orchestrates the conversation) */}
-      <VoiceModeController />
+      {!workspaceVoiceHost && <VoiceModeController />}
 
       <Dialog open={isWorkHandoffOpen} onOpenChange={setIsWorkHandoffOpen}>
         <DialogContent className="glass-card max-w-md">

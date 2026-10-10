@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import type { VoiceConversationPersistence } from '@/lib/voiceConversationPersistence';
 import { updateVoiceToolCue } from '@/lib/voiceToolCue';
 import { useVoiceModeStore, REALTIME_SUPPORTED_VOICES, VoiceName } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime, ARC_LIVE_PROMPT } from '@/hooks/useOpenAIRealtime';
@@ -339,11 +340,14 @@ function summarizeVoiceTurns(turns: Array<{ role: string; transcript: string }>,
 // How many turns we've already persisted (incremental save pointer)
 let savedTurnIndex = 0;
 
-export function VoiceModeController() {
+export function VoiceModeController({ conversation, requireConversation = false }: { conversation?: VoiceConversationPersistence; requireConversation?: boolean } = {}) {
   const { toast } = useToast();
   const { hasBoost, isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const { addMessage, replaceMessage, messages, createNewSession } = useArcStore();
+  const { addMessage: legacyAddMessage, replaceMessage: legacyReplaceMessage, messages, createNewSession } = useArcStore();
+  // Workspace supplies a captured chat owner. Native iOS keeps the legacy path.
+  const addMessage = conversation?.addMessage ?? legacyAddMessage;
+  const replaceMessage = conversation?.replaceMessage ?? legacyReplaceMessage;
   const { profile, updateProfile } = useProfile();
   const {
     isActive,
@@ -431,7 +435,7 @@ export function VoiceModeController() {
   }, []);
 
   const getLastChatImageUrl = useCallback(() => {
-    const currentMessages = useArcStore.getState().messages;
+    const currentMessages = conversation?.getMessages() ?? useArcStore.getState().messages;
     for (let i = currentMessages.length - 1; i >= 0; i -= 1) {
       const message = currentMessages[i];
       if (message.type !== 'image') continue;
@@ -439,7 +443,7 @@ export function VoiceModeController() {
       if (message.imageUrls?.length) return message.imageUrls[message.imageUrls.length - 1];
     }
     return null;
-  }, []);
+  }, [conversation]);
 
   // Image generation handler
   // Voice transcripts are persisted in batches, but tool cards (images, weather,
@@ -459,20 +463,22 @@ export function VoiceModeController() {
       const deadline = Date.now() + PENDING_TURN_WAIT_MS;
       while (Date.now() < deadline) {
         const { conversationTurns, isActive } = useVoiceModeStore.getState();
-        if (!isActive) break;
-        const hasUnsavedUserTurn = conversationTurns
+        if (!isActive || (conversation && !conversation.isCurrent())) break;
+        const hasUnsavedUserTurn = conversation ? conversation.hasUnsavedUserTurn() : conversationTurns
           .slice(savedTurnIndex)
           .some((turn) => turn.role === 'user' && turn.transcript.trim());
         if (hasUnsavedUserTurn) break;
         await new Promise((resolve) => setTimeout(resolve, PENDING_TURN_POLL_MS));
       }
-      await saveNewTurnsRef.current?.(false);
+      if (conversation) await conversation.saveTurns(false);
+      else await saveNewTurnsRef.current?.(false);
     } catch (error) {
       console.warn('Could not flush voice turns before writing a tool card:', error);
     }
-  }, []);
+  }, [conversation]);
 
   const handleImageGenerate = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
+    if (conversation && !conversation.isCurrent()) return '';
     console.log('VoiceModeController: Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
     const runId = Symbol('voice-image-generate');
     latestImageRunRef.current = runId;
@@ -497,7 +503,7 @@ export function VoiceModeController() {
       const urls = generationResult.imageUrls;
       const placeholderId = await placeholderPromise;
       const imageUrl = urls[0];
-      if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
+      if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive || (conversation && !conversation.isCurrent())) {
         return imageUrl;
       }
       console.log('VoiceModeController: Image generated:', imageUrl);
@@ -511,12 +517,13 @@ export function VoiceModeController() {
         sourceModel: 'cloud-image',
         modelUsed: generationResult.modelUsed,
       });
-      setIsGeneratingImage(false);
+      if (!conversation || conversation.isCurrent()) setIsGeneratingImage(false);
       return imageUrl;
     } catch (error) {
       console.error('VoiceModeController: Image generation failed:', error);
-      if (latestImageRunRef.current !== runId) return '';
+      if (latestImageRunRef.current !== runId || (conversation && !conversation.isCurrent())) return '';
       const placeholderId = await placeholderPromise;
+      if (conversation && !conversation.isCurrent()) return '';
       await replaceMessage(placeholderId, {
         content: "I couldn't finish that image generation. Try a simpler prompt and I'll take another swing.",
         role: 'assistant',
@@ -524,13 +531,14 @@ export function VoiceModeController() {
         sourceModel: 'cloud-image',
         modelUsed: voiceImageModel,
       });
-      setIsGeneratingImage(false);
+      if (!conversation || conversation.isCurrent()) setIsGeneratingImage(false);
       throw error;
     }
-  }, [addMessage, flushTurnsBeforeCard, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
+  }, [addMessage, conversation, flushTurnsBeforeCard, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image revision handler: voice edits go through the Image 2.5 Sunburst edit path.
   const handleImageRevise = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
+    if (conversation && !conversation.isCurrent()) return '';
     const { generatedImage, attachedImage, attachedImageMime } = useVoiceModeStore.getState();
     const attachedImageUrl = attachedImage
       ? `data:${attachedImageMime || 'image/jpeg'};base64,${attachedImage}`
@@ -562,7 +570,7 @@ export function VoiceModeController() {
       const urls = editResult.imageUrls;
       const imageUrl = urls[0];
       const placeholderId = await placeholderPromise;
-      if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
+      if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive || (conversation && !conversation.isCurrent())) {
         return imageUrl;
       }
       console.log('VoiceModeController: Image revised:', imageUrl);
@@ -577,12 +585,13 @@ export function VoiceModeController() {
         sourceModel: 'cloud-image-edit',
         modelUsed: editResult.modelUsed,
       });
-      setIsGeneratingImage(false);
+      if (!conversation || conversation.isCurrent()) setIsGeneratingImage(false);
       return imageUrl;
     } catch (error) {
       console.error('VoiceModeController: Image revision failed:', error);
-      if (latestImageRunRef.current !== runId) return '';
+      if (latestImageRunRef.current !== runId || (conversation && !conversation.isCurrent())) return '';
       const placeholderId = await placeholderPromise;
+      if (conversation && !conversation.isCurrent()) return '';
       await replaceMessage(placeholderId, {
         content: "I couldn't finish that image edit. Try a simpler edit and I'll run it again.",
         role: 'assistant',
@@ -590,13 +599,14 @@ export function VoiceModeController() {
         sourceModel: 'cloud-image-edit',
         modelUsed: reviseModel,
       });
-      setIsGeneratingImage(false);
+      if (!conversation || conversation.isCurrent()) setIsGeneratingImage(false);
       throw error;
     }
-  }, [addMessage, flushTurnsBeforeCard, getLastChatImageUrl, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
+  }, [addMessage, conversation, flushTurnsBeforeCard, getLastChatImageUrl, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image dismiss handler
   const handleImageDismiss = useCallback(() => {
+    if (conversation && !conversation.isCurrent()) return;
     console.log('VoiceModeController: Dismissing image');
     setGeneratedImage(null);
     useVoiceModeStore.getState().setIsGeneratingImage(false);
@@ -605,7 +615,7 @@ export function VoiceModeController() {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('arc-close-image-preview'));
     }
-  }, [setGeneratedImage]);
+  }, [conversation, setGeneratedImage]);
 
   // Web search handler with abort support
   const handleWebSearch = useCallback(async (query: string): Promise<string> => {
@@ -613,7 +623,7 @@ export function VoiceModeController() {
     const runId = Symbol('voice-web-search');
     latestWebSearchRunRef.current = runId;
     
-    if (!useVoiceModeStore.getState().isActive) {
+    if (!useVoiceModeStore.getState().isActive || (conversation && !conversation.isCurrent())) {
       console.log('Voice mode inactive, aborting search');
       return 'Search cancelled.';
     }
@@ -629,6 +639,7 @@ export function VoiceModeController() {
         locationUsed = getCachedLocation();
         if (!locationUsed) {
           locationUsed = await getUserLocation();
+          if (conversation && !conversation.isCurrent()) return 'Search cancelled.';
         }
         if (locationUsed) {
           searchQuery = `${query}\n\n${formatLocationForContext(locationUsed)}`;
@@ -647,6 +658,7 @@ export function VoiceModeController() {
         'Web search took too long.'
       );
       
+      if (conversation && !conversation.isCurrent()) return 'Search cancelled.';
       if (latestWebSearchRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
         console.log('Voice mode deactivated during search, discarding results');
         setIsSearching(false);
@@ -725,7 +737,7 @@ export function VoiceModeController() {
       return response;
     } catch (error: any) {
       console.error('VoiceModeController: Web search failed:', error);
-      if (latestWebSearchRunRef.current === runId) {
+      if (latestWebSearchRunRef.current === runId && (!conversation || conversation.isCurrent())) {
         setIsSearching(false);
       }
       
@@ -734,18 +746,19 @@ export function VoiceModeController() {
       }
       return 'I ran into a problem completing that search. Please try again in a moment.';
     }
-  }, [addMessage, flushTurnsBeforeCard, setIsSearching, setSearchSummary, withTimeout]);
+  }, [addMessage, conversation, flushTurnsBeforeCard, setIsSearching, setSearchSummary, withTimeout]);
 
   // Weather handler
   const handleGetWeather = useCallback(async (location: string): Promise<string> => {
     console.log('VoiceModeController: Get weather for:', location);
-    if (!useVoiceModeStore.getState().isActive) return 'Cancelled.';
+    if (!useVoiceModeStore.getState().isActive || (conversation && !conversation.isCurrent())) return 'Cancelled.';
     setIsFetchingWeather(true);
     try {
       let weatherLocation = location;
       let locationUsed: UserLocation | null = null;
       if (!location?.trim() || isCurrentLocationRequest(location)) {
         locationUsed = getCachedLocation() || await getUserLocation();
+        if (conversation && !conversation.isCurrent()) return 'Cancelled.';
         if (locationUsed) {
           weatherLocation = locationLabel(locationUsed);
         } else if (!location?.trim() || isCurrentLocationRequest(location)) {
@@ -754,11 +767,13 @@ export function VoiceModeController() {
         }
       }
 
+      if (conversation && !conversation.isCurrent()) return 'Cancelled.';
       const { data, error } = await supabase.functions.invoke('get-weather', {
         body: locationUsed
           ? { location: weatherLocation, latitude: locationUsed.latitude, longitude: locationUsed.longitude }
           : { location: weatherLocation },
       });
+      if (conversation && !conversation.isCurrent()) return 'Cancelled.';
       setIsFetchingWeather(false);
       if (error) {
         console.error('Weather error:', error);
@@ -786,10 +801,10 @@ export function VoiceModeController() {
       return `Weather in ${data.location}: ${data.temperature}°F (feels like ${data.feelsLike}°F), ${data.condition}. High ${data.high}°, low ${data.low}°. Humidity ${data.humidity}%, wind ${data.wind} mph. Briefly tell the user what it's like — keep it casual and short.`;
     } catch (e: any) {
       console.error('Weather lookup failed:', e);
-      setIsFetchingWeather(false);
+      if (!conversation || conversation.isCurrent()) setIsFetchingWeather(false);
       return `Weather lookup failed: ${e?.message || 'Unknown error'}`;
     }
-  }, [addMessage, flushTurnsBeforeCard, setIsFetchingWeather, setWeatherData]);
+  }, [addMessage, conversation, flushTurnsBeforeCard, setIsFetchingWeather, setWeatherData]);
 
   const handleGetUserLocation = useCallback(async (): Promise<string> => {
     // Resolve an approximate network city without opening a permission prompt.
@@ -807,7 +822,7 @@ export function VoiceModeController() {
   const handleCreateScheduledTask = useCallback(async (request: string): Promise<string> => {
     const cleanRequest = request?.trim();
     if (!cleanRequest) return 'No reminder request provided.';
-    if (!useVoiceModeStore.getState().isActive) return 'Reminder cancelled.';
+    if (!useVoiceModeStore.getState().isActive || (conversation && !conversation.isCurrent())) return 'Reminder cancelled.';
 
     setIsSchedulingTask(true);
     try {
@@ -815,9 +830,10 @@ export function VoiceModeController() {
         [{ role: 'user', content: cleanRequest }],
         profile || undefined,
         undefined,
-        useArcStore.getState().currentSessionId || undefined,
+        conversation?.sessionId ?? useArcStore.getState().currentSessionId ?? undefined,
       );
 
+      if (conversation && !conversation.isCurrent()) return 'Reminder cancelled.';
       await flushTurnsBeforeCard();
       await addMessage({
         content: result.content || 'Reminder set.',
@@ -838,47 +854,47 @@ export function VoiceModeController() {
       console.error('VoiceModeController: Reminder scheduling failed:', error);
       return `Reminder scheduling failed: ${error?.message || 'Unknown error'}`;
     } finally {
-      setIsSchedulingTask(false);
+      if (!conversation || conversation.isCurrent()) setIsSchedulingTask(false);
     }
-  }, [addMessage, flushTurnsBeforeCard, profile, setIsSchedulingTask]);
+  }, [addMessage, conversation, flushTurnsBeforeCard, profile, setIsSchedulingTask]);
 
   // Memory: save
   const handleSaveMemory = useCallback(async (memory: string, replaces?: string[]): Promise<string> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 'Not signed in.';
+      if (!user || (conversation && !conversation.isCurrent())) return 'Not signed in.';
       const replacementNote = replaces?.length ? ` Update the existing summary where appropriate using: ${replaces.join(', ')}` : '';
       await applyMemorySummary('save', `${memory}${replacementNote}`);
       return 'OK_SAVED';
     } catch (e: any) {
       return `Memory save failed: ${e?.message || 'unknown error'}`;
     }
-  }, []);
+  }, [conversation]);
 
   // Memory: recall
   const handleRecallMemory = useCallback(async (query?: string): Promise<string> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 'Not signed in.';
+      if (!user || (conversation && !conversation.isCurrent())) return 'Not signed in.';
       const result = await getMemorySummary();
       if (!result.summary.trim()) return query ? `No memories match "${query}".` : 'No memories saved yet.';
       return result.summary;
     } catch (e: any) {
       return `Memory recall failed: ${e?.message || 'unknown error'}`;
     }
-  }, []);
+  }, [conversation]);
 
   // Memory: delete by keyword
   const handleDeleteMemory = useCallback(async (keywords: string[]): Promise<string> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 'Not signed in.';
+      if (!user || (conversation && !conversation.isCurrent())) return 'Not signed in.';
       await applyMemorySummary('delete', keywords.join(', '));
       return `OK_DELETED_${keywords.length}`;
     } catch (e: any) {
       return `Memory delete failed: ${e?.message || 'unknown error'}`;
     }
-  }, []);
+  }, [conversation]);
 
 
   // Past chats search handler
@@ -887,7 +903,7 @@ export function VoiceModeController() {
     const runId = Symbol('voice-past-chat-search');
     latestPastChatSearchRunRef.current = runId;
 
-    if (!useVoiceModeStore.getState().isActive) {
+    if (!useVoiceModeStore.getState().isActive || (conversation && !conversation.isCurrent())) {
       console.log('Voice mode inactive, aborting past chat search');
       return 'Search cancelled.';
     }
@@ -900,6 +916,7 @@ export function VoiceModeController() {
         22000,
         'Past chat search took too long.'
       );
+      if (conversation && !conversation.isCurrent()) return 'Past chat search cancelled.';
       if (latestPastChatSearchRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
         setIsSearchingPastChats(false);
         return 'Past chat search cancelled.';
@@ -909,15 +926,16 @@ export function VoiceModeController() {
       return results;
     } catch (error: any) {
       console.error('VoiceModeController: Past chat search failed:', error);
-      if (latestPastChatSearchRunRef.current === runId) {
+      if (latestPastChatSearchRunRef.current === runId && (!conversation || conversation.isCurrent())) {
         setIsSearchingPastChats(false);
       }
       return `I had trouble searching through past conversations: ${error.message || 'Unknown error'}`;
     }
-  }, [setIsSearchingPastChats, withTimeout]);
+  }, [conversation, setIsSearchingPastChats, withTimeout]);
 
   // Incremental save: persist new turns since last save
   const saveNewTurns = useCallback((final: boolean = false): Promise<number> => {
+    if (conversation) return conversation.saveTurns(final);
     const saveOperation = async (): Promise<number> => {
       const { attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
 
@@ -980,7 +998,7 @@ export function VoiceModeController() {
     const queuedSave = saveQueueRef.current.then(saveOperation, saveOperation);
     saveQueueRef.current = queuedSave.then(() => undefined, () => undefined);
     return queuedSave;
-  }, [addMessage]);
+  }, [addMessage, conversation]);
 
   saveNewTurnsRef.current = saveNewTurns;
 
@@ -1162,7 +1180,8 @@ export function VoiceModeController() {
     
     // 1. Save current conversation turns
     await saveNewTurns(true);
-    const turnCount = savedTurnIndex;
+    if (conversation && !conversation.isCurrent()) return;
+    const turnCount = conversation?.savedTurnCount ?? savedTurnIndex;
     
     // 2. Deactivate voice mode (triggers full cleanup via the isActive effect)
     deactivateVoiceMode();
@@ -1178,6 +1197,7 @@ export function VoiceModeController() {
     // 4. Wait for cleanup to complete, then reactivate
     await new Promise(resolve => setTimeout(resolve, 600));
     
+    if (conversation && !conversation.isCurrent()) return;
     activateVoiceMode();
     
     const voiceName = REALTIME_SUPPORTED_VOICES.includes(newVoice) 
@@ -1190,7 +1210,7 @@ export function VoiceModeController() {
         ? `Previous conversation saved (${turnCount} messages)`
         : 'Starting fresh conversation',
     });
-  }, [saveNewTurns, deactivateVoiceMode, setSelectedVoice, activateVoiceMode, updateProfile, toast]);
+  }, [saveNewTurns, conversation, deactivateVoiceMode, setSelectedVoice, activateVoiceMode, updateProfile, toast]);
 
   // Register voice switch handler globally
   useLayoutEffect(() => {
@@ -1246,6 +1266,9 @@ export function VoiceModeController() {
 
   // Single effect to handle activation/deactivation
   useEffect(() => {
+    // External-store notifications can render before the host's owner prop.
+    // Do not initialize a Workspace call using the previous call's context.
+    if (isActive && requireConversation && (!conversation || !conversation.isCurrent())) return;
     const justActivated = isActive && !wasActiveRef.current;
     const justDeactivated = !isActive && wasActiveRef.current;
     
@@ -1260,10 +1283,10 @@ export function VoiceModeController() {
         try {
           console.log('Initializing voice mode...');
 
-          const sessionId = useArcStore.getState().currentSessionId || createNewSession();
+          const sessionId = conversation?.sessionId ?? (useArcStore.getState().currentSessionId || createNewSession());
           console.log('Voice mode bound to chat session:', sessionId);
 
-          const recentChatSummary = summarizeRecentChats(messagesRef.current);
+          const recentChatSummary = summarizeRecentChats(conversation?.getMessages() ?? messagesRef.current);
           const voiceSystemPrompt = await buildVoiceSystemPrompt(profileRef.current, recentChatSummary);
           if (activationGeneration !== activationGenerationRef.current || !useVoiceModeStore.getState().isActive) return;
           console.log('Voice mode using unified system prompt with dynamic chat search');
@@ -1311,19 +1334,22 @@ export function VoiceModeController() {
 
       // Final save of any remaining turns
       saveNewTurns(true).then((count) => {
-        if (count > 0 || savedTurnIndex > 0) {
-          console.log(`✅ Voice conversation fully saved (${savedTurnIndex} total turns)`);
+        // A queued final save may finish after another call has started.
+        if (conversation && (!conversation.isCurrent() || useVoiceModeStore.getState().isActive)) return;
+        const savedCount = conversation?.savedTurnCount ?? savedTurnIndex;
+        if (count > 0 || savedCount > 0) {
+          console.log(`✅ Voice conversation fully saved (${savedCount} total turns)`);
           toast({
             title: 'Conversation saved',
-            description: `${savedTurnIndex} messages added to chat`,
+            description: `${savedCount} messages added to chat`,
           });
         }
         
         useVoiceModeStore.getState().clearConversation();
         savedTurnIndex = 0;
-      });
+      }).catch((error) => console.warn('Could not finish saving voice conversation:', error));
     }
-  }, [isActive, connect, disconnect, stopCameraCapture, toast, deactivateVoiceMode, saveNewTurns, createNewSession]);
+  }, [isActive, conversation, requireConversation, connect, disconnect, stopCameraCapture, toast, deactivateVoiceMode, saveNewTurns, createNewSession]);
 
   // Save finalized voice transcripts into the normal chat thread shortly after
   // each turn lands so voice mode feels like the regular chat, not a separate UI.
@@ -1345,6 +1371,10 @@ export function VoiceModeController() {
     const handlePageHide = () => {
       if (!useVoiceModeStore.getState().isActive) return;
       console.log('🚨 Page hiding — emergency saving voice turns');
+      if (conversation) {
+        void conversation.saveTurns(true).catch(error => console.warn('Could not save voice conversation on page hide:', error));
+        return;
+      }
       const { conversationTurns } = useVoiceModeStore.getState();
       const unsaved = conversationTurns.slice(savedTurnIndex).filter(t => t.transcript.trim() || t.imageUrl);
       if (unsaved.length > 0) {
@@ -1386,7 +1416,7 @@ export function VoiceModeController() {
       window.removeEventListener('pagehide', handlePageHide);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [addMessage]);
+  }, [addMessage, conversation]);
 
   // Cleanup on unmount — this is what happens when the user navigates away
   // from the chat (to the dashboard, settings, anywhere). A voice call cannot

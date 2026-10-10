@@ -81,7 +81,7 @@ if (baseline) {
   const oldMobile = readFileSync(`${baseline}/src/components/MobileChatApp.tsx`, 'utf8');
   const newMobile = read('src/components/MobileChatApp.tsx');
   const voiceMounts = source => source.slice(source.indexOf('      {/* Voice Mode Overlay */}'), source.indexOf('      <Dialog open={isWorkHandoffOpen}'));
-  assert.equal(voiceMounts(newMobile), voiceMounts(oldMobile), 'voice components/mount placement unchanged');
+  assert.equal(voiceMounts(newMobile), voiceMounts(oldMobile).replace('<VoiceModeOverlay />', '{!workspaceVoiceHost && <VoiceModeOverlay />}').replace('<VoiceModeController />', '{!workspaceVoiceHost && <VoiceModeController />}'), 'native/legacy mounts retained behind exclusive host ownership');
   for (const name of ['handleNewChat', 'requestWorkMode', 'persistCanvasBeforeLeaving']) {
     const extract = source => {
       const ast = ts.createSourceFile('fixture.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX); let result;
@@ -92,13 +92,14 @@ if (baseline) {
   }
 }
 const boundary = read('src/workspace/WorkspaceBoundary.tsx');
-assert.ok(!/key=|matchMedia|innerWidth|hasBoost|useVoice/.test(boundary), 'no layout/provider remount keys or viewport/tier gate');
+assert.ok(!/key=|matchMedia|innerWidth|hasBoost|useVoice/.test(boundary.replace('key={user.id}', '')), 'only authenticated account changes may remount the voice host');
+assert.ok(boundary.includes('key={user.id}'));
 const shell = read('src/workspace/WorkspaceShell.tsx');
 assert.ok(shell.includes('isCurrentConversationRoute(location.pathname, currentId)'));
 assert.ok(shell.includes('canvas.hydrateFromSession(conversationCanvas.content'));
 assert.ok(!shell.includes('openWithContent('));
 const allWorkspace = readdirSync(new URL('src/workspace/', root)).map(name => read(`src/workspace/${name}`)).join('\n');
-assert.ok(!/WorkspaceDemo|sampleData|enterSampleWorkspace|WorkspaceLogin|signInWithPassword|workspace-public-config|VoiceModeController|VoiceModeOverlay|useVoiceModeStore/.test(allWorkspace));
+assert.ok(!/WorkspaceDemo|sampleData|enterSampleWorkspace|WorkspaceLogin|signInWithPassword|workspace-public-config/.test(allWorkspace));
 assert.ok(!existsSync(new URL('src/workspace/entry.tsx', root)));
 const css = read('src/workspace/workspace.css'); postcss.parse(css);
 assert.ok(css.includes('--ws-bg:#000000') && css.includes('--ws-sidebar:#000000'));
@@ -110,4 +111,4 @@ for (const path of changed) {
   const source = read(path); const ast = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   assert.deepEqual(ast.parseDiagnostics, [], `syntax ${path}`);
 }
-console.log('PASS Workspace rollout/rollback, public/auth routes, native platform matrix, per-conversation canvas guard, legacy composer DOM, static voice identity and syntax/CSS checks. No network, model, mic or audio calls.');
+console.log('PASS Workspace rollout/rollback, public/auth routes, native platform matrix, per-conversation canvas guard, legacy composer DOM, exclusive voice host ownership and syntax/CSS checks. No network, model, mic or audio calls.');

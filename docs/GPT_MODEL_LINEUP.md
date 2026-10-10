@@ -1,9 +1,10 @@
 # GPT model lineup: October 10, 2026 review candidate
 
 This describes the cloud release candidate based on
-`e562f1fdc5f1a729d083b3b95d5a190c9efc4f63`. It does not claim a production
-deployment or a live provider test. Billing catalog/copy work is tracked
-separately; do not publish new prices before checkout and entitlement support.
+`e562f1fdc5f1a729d083b3b95d5a190c9efc4f63`. The observation-only database
+and eight model bundles have been staged, as recorded below. This document
+does not claim a live provider test. Do not publish new prices before
+checkout and entitlement support.
 
 ## Approved model and allowance policy
 
@@ -83,8 +84,10 @@ Coming soon banner. It has no price, features, checkout or activated billing.
 - Deep `/search` + Luna synthesis and Ultra `/v1/agent` preset low remain
   unchanged, including the existing synchronous compatibility fallback.
   Perplexity remains the explicit research exception.
-- Voice source files, provider settings, audio, limits and tests remain
-  unchanged. Untagged camera analysis ignores raw premium overrides and uses
+- Voice provider settings, transport, audio, tuning, prompts and limits remain
+  unchanged. The separately approved Workspace voice presentation uses actual
+  live captions and a single stable host with captured-chat persistence; see
+  `docs/WORKSPACE_VOICE_ROLLOUT.md`. Untagged camera analysis ignores raw premium overrides and uses
   the exact legacy Luna contract. The narrow unparameterized voice reminder
   client uses Luna/low without the new ledger or usage notifications. Explicit
   typed text selections during a call remain normally metered. Old installed
@@ -147,8 +150,14 @@ facts. See `docs/qa/arc-usage-ledger.md`.
   or browser pass is claimed. The existing detached frontend-lifetime
   integration test also assumes macOS Homebrew PostgreSQL and requires the
   unavailable socket-based cluster; its first pure Git-routing case passes.
-- All 46 tracked voice/realtime/speech source and test files are byte-identical
-  to freshly fetched remote main `e562f1f`; dedicated voice tests pass.
+- The original model-only stage left all 46 tracked voice/realtime/speech
+  source and test files unchanged. The later approved voice presentation
+  changes only its view/host and reviewed conversation ownership. Fifteen
+  protected engine/model/entitlement files and controller prompt/tuning/control
+  declarations match the pre-voice commit byte-for-byte. Actual-controller
+  mocked fixtures cover route changes, restart ownership, logout, late tool
+  completion, rolling histories and late transcript order; dedicated voice
+  transport and composer tests pass. No microphone/audio test was performed.
 - Independent SQL review found account/pool advisory lock order consistent,
   private table grants/RLS correct, owner-only reads, service-role-only writes,
   revision-fenced reconciliation and retained totals across tier changes. Its

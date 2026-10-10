@@ -8,7 +8,8 @@ Native iOS (the explicit `arc-native-ios` marker or Capacitor iOS runtime) retai
 the existing layout. Ordinary Safari/iOS PWAs are web, not native iOS.
 
 Set `VITE_WORKSPACE_UI_ENABLED=false` and rebuild/release the frontend to restore
-the previous authenticated UI. This is the only Workspace flag. The flag has no
+the previous authenticated UI. The separate voice presentation flag is documented
+in `docs/WORKSPACE_VOICE_ROLLOUT.md`. These flags have no
 model, accounting, subscription, billing, provider, audio or database effects.
 It is a build-time rollback, so existing tabs must reload the rebuilt frontend.
 Do not disable model/accounting flags to roll back Workspace.
@@ -39,8 +40,10 @@ providers, Route elements and global theme controller remain in place.
 - The original single `CyclingGreeting` instance, strings and timing are
   unchanged. A Workspace-only positioning class places it in the empty-chat area.
 - `ComposerView` retains its exact legacy DOM when no Workspace footer is passed.
-- Voice overlay/controller component identity, mount position, model, transport,
-  limits, interruption and microphone permission paths are unchanged.
+- Voice model, transport, limits, interruption and microphone permission paths
+  are unchanged. The separately approved live-transcript presentation uses a
+  single authenticated host across route changes and captured-chat persistence.
+  Native iOS keeps the original routed voice mount. See the voice rollout guide.
 - Existing desktop drag/window controls stay in place; the Workspace header and
   sidebar reserve the existing titlebar, admin-banner and device safe areas.
 - Light/Dark/System use the existing theme store. Workspace only sets its scoped
@@ -52,7 +55,7 @@ Run `node scripts/test-workspace-rollout.mjs`. This checks the route/auth/rollba
 matrix, native runtime matrix, conversation ownership, legacy composer markup,
 voice-hidden composer state, parser correctness and scoped CSS. With an optional
 `WORKSPACE_BASELINE_DIR` pointing to the staged baseline, it also compares all
-original Route declarations, RootGate, the legacy composer DOM, voice mounts and
+original Route declarations, RootGate, the legacy composer DOM, exclusive voice host ownership and
 key existing chat handlers exactly.
 
 Also run `node scripts/test-gpt-lineup-frontend.mjs` and the existing composer

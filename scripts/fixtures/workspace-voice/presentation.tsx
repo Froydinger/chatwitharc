@@ -1,0 +1,11 @@
+import type { ReactNode } from 'react';
+export const useResolvedOrbTheme = () => 'dark';
+export const useVoiceOrbConfig = () => ({ listening: 'listening', thinking: 'thinking', speaking: 'speaking', connecting: 'thinking' });
+export const useThinkingOrbConfig = () => ({ web: 'searching', image: 'working' });
+export const useMotionConfig = () => ({ voiceSpeed: 1 });
+export const normalizedOrbSpeed = () => 1;
+export const ThinkingOrb = () => <span data-test-orb />;
+export const PRESETS = { silver: { modes: { dark: { speed: 1 }, light: { speed: 1 } } } };
+export const MetalFx = ({children}: {children: ReactNode}) => <>{children}</>;
+export const WeatherCard = () => <div>Weather</div>;
+export const useToast = () => ({toast: (value: unknown) => { (globalThis as typeof globalThis & { voiceTestToasts: unknown[] }).voiceTestToasts.push(value); }});

@@ -1,3 +1,4 @@
+import { isActiveVoiceConversation } from '@/lib/voiceConversationOwnership';
 import { loadOrdinaryChatTurns, mergeOrdinaryChatTurns, discardOrdinaryChatTurns } from '@/services/ordinaryChatPersistence';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -298,7 +299,7 @@ export interface ArcState {
 
   // Current Chat State
   messages: Message[];
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }, options?: { deferCloudPersistence?: boolean; sessionId?: string }) => Promise<string>;
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }, options?: { deferCloudPersistence?: boolean; sessionId?: string; beforeMessageId?: string }) => Promise<string>;
   replaceMessage: (messageId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>, options?: { sessionId?: string }) => Promise<void>;
   patchOwnedMessage: (sessionId: string, messageId: string, patch: Partial<Message>, persist?: boolean) => Promise<void>;
@@ -1344,6 +1345,11 @@ export const useArcStore = create<ArcState>()(
               return;
             }
 
+            // A captured voice/session save must never adopt a later login.
+            if (session.persistenceOwnerId && session.persistenceOwnerId !== user.id) {
+              throw new Error('Session owner changed before saving.');
+            }
+
             // CRITICAL: Check if we're about to overwrite non-empty data with empty data
             const { data: existingSession } = await supabase
               .from('chat_sessions')
@@ -1465,7 +1471,7 @@ export const useArcStore = create<ArcState>()(
         // If current session is empty, delete it first
         if (state.currentSessionId) {
           const currentSession = state.chatSessions.find(s => s.id === state.currentSessionId);
-          if (currentSession && currentSession.messages.length === 0) {
+          if (currentSession && currentSession.messages.length === 0 && !isActiveVoiceConversation(currentSession.id)) {
             console.log('🗑️ Auto-deleting empty session before creating new one:', state.currentSessionId);
             get().deleteSession(state.currentSessionId);
           }
@@ -1751,7 +1757,10 @@ export const useArcStore = create<ArcState>()(
             : newMessage;
           const previousMessages = isActiveSession ? state.messages
             : state.chatSessions.find(s => s.id === targetSessionId)?.messages || [];
-          const updatedMessages = [...previousMessages, messageForSession];
+          const beforeIndex = options?.beforeMessageId ? previousMessages.findIndex(item => item.id === options.beforeMessageId) : -1;
+          const updatedMessages = [...previousMessages];
+          if (beforeIndex >= 0) updatedMessages.splice(beforeIndex, 0, messageForSession);
+          else updatedMessages.push(messageForSession);
           
           // Update current session
           let updatedSessions = state.chatSessions;
