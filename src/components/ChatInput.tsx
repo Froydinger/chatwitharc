@@ -11,6 +11,7 @@ import { ComposerView } from "@/components/chat-input/ComposerView";
 import { ComposerSubmitControls } from "@/components/chat-input/ComposerSubmitControls";
 import { ComposerActions } from "@/components/chat-input/ComposerActions";
 import { ComposerOverlays } from "@/components/chat-input/ComposerOverlays";
+import { WorkspaceCreateDock } from "@/components/chat-input/WorkspaceCreateDock";
 import { AttachmentTray } from "@/components/chat-input/AttachmentTray";
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
@@ -2864,6 +2865,65 @@ ${safeCode}
       }
     : { left: "50%", top: "50%" };
 
+  // Share presentation nodes so Workspace and legacy keep the same callbacks.
+  const selectedImagesTray = selectedImages.length > 0 ? (
+    <AttachmentTray kind="images" files={selectedImages} previewUrls={imagePreviewUrls} onClear={clearSelected} onRemove={removeImage} workspaceUI={workspaceUI}>
+      <div className="mt-3 pt-2 border-t border-border/30">
+        <button
+          type="button"
+          onClick={() => {
+            if (!hasBoost) {
+              toast({
+                title: "Boost Premium Feature",
+                description: "Image editing and combining is only available on the Boost tier. Please upgrade to unlock editing!",
+                variant: "destructive"
+              });
+              openCheckout();
+              return;
+            }
+            setAllImagesEditMode(!allImagesEditMode);
+          }}
+          className={cn("w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80", workspaceUI && "ws-attachment-edit-mode")}
+          aria-pressed={allImagesEditMode}
+        >
+          {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
+        </button>
+        {canGenerateVideo && (
+          <button
+            type="button"
+            onClick={() => setAnimateAttachmentOpen(true)}
+            disabled={isGeneratingImage}
+            className={cn("mt-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 flex items-center justify-center gap-1.5", workspaceUI && "ws-attachment-animate")}
+          >
+            <Clapperboard className="w-3.5 h-3.5" />
+            Animate{selectedImages.length > 1 ? " an image" : ""}
+          </button>
+        )}
+      </div>
+      {(shouldShowBanana || allImagesEditMode) && (
+        <div className="mt-3 pt-2 border-t border-border/30">
+          <ImageOptionsContent editMode={allImagesEditMode} workspaceUI={workspaceUI} />
+        </div>
+      )}
+    </AttachmentTray>
+  ) : null;
+  const enhancerKind = shouldShowGitMode ? "git_plan" : (shouldShowBanana ? "image" : "chat");
+  const promptEnhancer = !isVoiceActive && inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 ? (
+    <PromptEnhancer
+      workspaceUI={workspaceUI}
+      text={inputValue}
+      kind={enhancerKind}
+      onAccept={(improved) => {
+        setInputValue(improved);
+        toast({
+          title: shouldShowGitMode ? "Git Plan formulated 📋" : "Prompt enhanced ✨",
+          duration: 2000,
+        });
+      }}
+      className="pointer-events-auto shadow-lg"
+    />
+  ) : null;
+
   /* ---------------- Render ---------------- */
   return (
     <div className="space-y-2 relative">
@@ -2892,9 +2952,19 @@ ${safeCode}
           portalRoot,
         )}
 
+      {workspaceUI && !isVoiceActive && (selectedDocuments.length > 0 || selectedImages.length > 0 || shouldShowBanana || shouldShowGitMode || promptEnhancer) && (
+        <WorkspaceCreateDock portalRoot={portalRoot} anchor={composerRect} inline={inline}>
+          {promptEnhancer && <div className="ws-create-enhancer-row">{promptEnhancer}</div>}
+          {selectedDocuments.length > 0 && <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} workspaceUI />}
+          {selectedImagesTray}
+          {shouldShowBanana && selectedImages.length === 0 && <div className="ws-create-mode ws-image-options-dock"><ImageOptionsContent workspaceUI /></div>}
+          {shouldShowGitMode && <GitModeDock workspaceUI />}
+        </WorkspaceCreateDock>
+      )}
+
       {/* Image options dock — visible whenever the user is in image-gen mode.
           Stacked above any selected-images / selected-documents previews. */}
-      {!inline &&
+      {!workspaceUI && !inline &&
         shouldShowBanana &&
         selectedImages.length === 0 &&
         (() => {
@@ -2908,12 +2978,13 @@ ${safeCode}
               bottomOffset={dockBottom}
               leftPx={rect?.left}
               widthPx={rect?.width}
+              workspaceUI={workspaceUI}
             />
           );
         })()}
 
       {/* Selected Documents preview - for non-inline, portal anchored above input */}
-      {!inline &&
+      {!workspaceUI && !inline &&
         selectedDocuments.length > 0 &&
         portalRoot &&
         (() => {
@@ -2922,14 +2993,14 @@ ${safeCode}
           const anchored = composerDockStyle(rect, window.innerHeight, 12 + imgStack, 110 + imgStack);
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
-              <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} />
+              <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} workspaceUI={workspaceUI} />
             </div>,
             portalRoot,
           );
         })()}
 
       {/* Selected Images preview - for non-inline, portal anchored above input */}
-      {!inline &&
+      {!workspaceUI && !inline &&
         selectedImages.length > 0 &&
         portalRoot &&
         (() => {
@@ -2937,53 +3008,14 @@ ${safeCode}
           const anchored = composerDockStyle(rect, window.innerHeight, 12, 110);
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
-              <AttachmentTray kind="images" files={selectedImages} previewUrls={imagePreviewUrls} onClear={clearSelected} onRemove={removeImage}>
-{selectedImages.length > 0 && (
-                  <div className="mt-3 pt-2 border-t border-border/30">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!hasBoost) {
-                          toast({
-                            title: "Boost Premium Feature",
-                            description: "Image editing and combining is only available on the Boost tier. Please upgrade to unlock editing!",
-                            variant: "destructive"
-                          });
-                          openCheckout();
-                          return;
-                        }
-                        setAllImagesEditMode(!allImagesEditMode);
-                      }}
-                      className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80"
-                    >
-                      {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
-                    </button>
-                    {canGenerateVideo && (
-                      <button
-                        type="button"
-                        onClick={() => setAnimateAttachmentOpen(true)}
-                        disabled={isGeneratingImage}
-                        className="mt-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 flex items-center justify-center gap-1.5"
-                      >
-                        <Clapperboard className="w-3.5 h-3.5" />
-                        Animate{selectedImages.length > 1 ? " an image" : ""}
-                      </button>
-                    )}
-                  </div>
-                )}
-{(shouldShowBanana || allImagesEditMode) && (
-                  <div className="mt-3 pt-2 border-t border-border/30">
-                    <ImageOptionsContent editMode={allImagesEditMode} />
-                  </div>
-                )}
-</AttachmentTray>
+              {selectedImagesTray}
             </div>,
             portalRoot,
           );
         })()}
 
       {/* Prompt enhancer / Plan chip — floats above input and Git bar (portal) */}
-      {!isVoiceActive &&
+      {!workspaceUI && !isVoiceActive &&
         inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 &&
         portalRoot &&
         (() => {
@@ -2994,25 +3026,13 @@ ${safeCode}
           const imageDockOffset = (shouldShowBanana && !hasImages) ? 116 : 0;
           const rect = composerRect;
           const anchored = composerDockStyle(rect, window.innerHeight, 8 + previewStack + gitOffset + imageDockOffset, 120 + previewStack + gitOffset + imageDockOffset);
-          const enhancerKind = shouldShowGitMode ? "git_plan" : (shouldShowBanana ? "image" : "chat");
           return createPortal(
             <div
               className={rect ? "fixed z-[70] pointer-events-none" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[70] pointer-events-none"}
               style={anchored}
             >
               <div className="px-4 flex justify-end mx-auto max-w-[760px]">
-                <PromptEnhancer
-                  text={inputValue}
-                  kind={enhancerKind}
-                  onAccept={(improved) => {
-                    setInputValue(improved);
-                    toast({
-                      title: shouldShowGitMode ? "Git Plan formulated 📋" : "Prompt enhanced ✨",
-                      duration: 2000,
-                    });
-                  }}
-                  className="pointer-events-auto shadow-lg"
-                />
+                {promptEnhancer}
               </div>
             </div>,
             portalRoot,
@@ -3020,7 +3040,7 @@ ${safeCode}
         })()}
 
       {/* Git mode dock — floats outside and directly above the input bar */}
-      {!inline &&
+      {!workspaceUI && !inline &&
         shouldShowGitMode &&
         portalRoot &&
         (() => {
@@ -3038,13 +3058,13 @@ ${safeCode}
               }
               style={anchored}
             >
-              <GitModeDock />
+              <GitModeDock workspaceUI={workspaceUI} />
             </div>,
             portalRoot,
           );
         })()}
 
-      {inline && shouldShowGitMode && <GitModeDock />}
+      {!workspaceUI && inline && shouldShowGitMode && <GitModeDock workspaceUI={workspaceUI} />}
       {shouldShowAppMode && (hasBoost || isAdmin) && <div className="mb-2 flex justify-center"><AppBuilderModelChoice ownerId={user?.id ?? null} disabled={isLoading} /></div>}
       <ComposerView
         footer={workspaceUI ? <div className="ws-live-footer">
@@ -3226,6 +3246,7 @@ ${safeCode}
         isOpen={showPromptLibrary}
         onClose={() => setShowPromptLibrary(false)}
         prompts={quickPrompts}
+        workspaceUI={workspaceUI}
         onSelectPrompt={(p) => {
           // Image presets are complete as written — send them. Everything else
           // waits in the composer, already switched into its mode, to be edited.

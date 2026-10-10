@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext";
+import "@/workspace/workspace-canvas-modes.css";
+
 import { CanvasVersionHistory } from "@/components/CanvasVersionHistory";
 import {
   Bold,
@@ -87,6 +90,7 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
     closeCanvas,
   } = useCanvasStore();
 
+  const workspaceUI = useWorkspaceUI();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const currentSessionId = useArcStore((state) => state.currentSessionId);
@@ -397,9 +401,9 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
 
 
   return (
-    <div ref={panelRef} className={cn("flex flex-col h-full bg-background", className)}>
+    <div ref={panelRef} className={cn("flex flex-col h-full bg-background", workspaceUI && "workspace-canvas-panel", className)}>
       {/* Header - Glassy style */}
-      <div className="flex min-h-16 items-center justify-between gap-2 px-3.5 py-2.5 border-b border-border/30 bg-background/85 backdrop-blur-xl" style={{
+      <div className="wsc-header flex min-h-16 items-center justify-between gap-2 px-3.5 py-2.5 border-b border-border/30 bg-background/85 backdrop-blur-xl" style={{
         paddingTop: isStandaloneApp && !embedded
           ? 'calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))'
           : isIOSPWA
@@ -408,8 +412,9 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
           ? 'var(--arcai-safe-area-top)'                  // iOS browser (viewport-fit=cover)
           : undefined                                        // Android / desktop
       }}>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="wsc-heading flex items-center gap-2 sm:gap-3">
           <Button
+            data-wsc-control={workspaceUI || undefined}
             variant="ghost"
             size="sm"
             onClick={handleCloseCanvas}
@@ -422,21 +427,21 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
 
           <div className="flex items-center gap-2.5">
             {isCodeMode ? (
-              <div className="p-1.5 rounded-lg bg-primary/15">
+              <div className="wsc-type-icon p-1.5 rounded-lg bg-primary/15">
                 <Code className="w-4 h-4 text-primary" />
               </div>
             ) : (
-              <div className="p-1.5 rounded-lg bg-primary/15">
+              <div className="wsc-type-icon p-1.5 rounded-lg bg-primary/15">
                 <FileText className="w-4 h-4 text-primary" />
               </div>
             )}
             {!isCompactToolbar && (
-              <span className="text-sm font-semibold text-foreground hidden sm:inline">
+              <span className="wsc-title text-sm font-semibold text-foreground hidden sm:inline">
                 {isCodeMode ? getLanguageDisplay(codeLanguage) : 'Canvas'}
               </span>
             )}
             {isAIWriting && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+              <div className="wsc-status flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 {!isCompactToolbar && (
                   <span className="text-xs font-medium hidden sm:inline">
@@ -449,7 +454,7 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="wsc-actions flex min-w-0 items-center gap-1.5">
           {!isCompactToolbar && (
             <span className="text-xs text-muted-foreground/80 mr-1 hidden sm:block font-medium">
               {isCodeMode ? `${lineCount} lines` : `${wordCount} words`}
@@ -458,12 +463,14 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
 
           {/* Toggle between Code and Preview for code mode */}
           {isCodeMode && supportsPreview && (
-            <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
+            <div className="wsc-segment flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
               <Button
+                data-wsc-control={workspaceUI || undefined}
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowCodeEditor(false)}
                 aria-label="Preview"
+                aria-pressed={!showCodeEditor}
                 title="Preview"
                 className={cn(
                   "h-8 w-8 rounded-lg transition-all",
@@ -475,10 +482,12 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
                 <Play className="w-3.5 h-3.5" />
               </Button>
               <Button
+                data-wsc-control={workspaceUI || undefined}
                 variant="ghost"
                 size="icon"
                 onClick={() => setShowCodeEditor(true)}
                 aria-label="Code"
+                aria-pressed={showCodeEditor}
                 title="Code"
                 className={cn(
                   "h-8 w-8 rounded-lg transition-all",
@@ -494,8 +503,9 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
 
           {/* Viewport toggle for code preview */}
           {!isMobile && !isCompactToolbar && isCodeMode && supportsPreview && !showCodeEditor && (
-            <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
+            <div className="wsc-segment flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
               <Button
+                data-wsc-control={workspaceUI || undefined}
                 variant="ghost"
                 size="sm"
                 onClick={() => setPreviewViewport('desktop')}
@@ -506,10 +516,13 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
                     : "text-muted-foreground hover:text-foreground hover:bg-white/10"
                 )}
                 title="Desktop view"
+                aria-label="Desktop view"
+                aria-pressed={previewViewport === 'desktop'}
               >
                 <Monitor className="w-3.5 h-3.5" />
               </Button>
               <Button
+                data-wsc-control={workspaceUI || undefined}
                 variant="ghost"
                 size="sm"
                 onClick={() => setPreviewViewport('mobile')}
@@ -520,6 +533,8 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
                     : "text-muted-foreground hover:text-foreground hover:bg-white/10"
                 )}
                 title="Mobile view"
+                aria-label="Mobile view"
+                aria-pressed={previewViewport === 'mobile'}
               >
                 <Smartphone className="w-3.5 h-3.5" />
               </Button>
@@ -531,6 +546,7 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
             {isCodeMode && (
               publishedSite ? (
                 <Button
+                  data-wsc-control={workspaceUI || undefined}
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowManageModal(true)}
@@ -542,6 +558,7 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
                 </Button>
               ) : (
                 <Button
+                  data-wsc-control={workspaceUI || undefined}
                   variant="ghost"
                   size="sm"
                   onClick={handlePublish}
@@ -559,6 +576,7 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
             {!isMobile && !isCompactToolbar && (
               <div className="flex items-center gap-1">
               <Button
+                data-wsc-control={workspaceUI || undefined}
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowHistory(!showHistory)}
@@ -567,28 +585,34 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
                   showHistory && "bg-white/10 text-foreground"
                 )}
                 title="History"
+                aria-label="History"
+                aria-pressed={showHistory}
               >
                 <History className="w-4 h-4" />
               </Button>
 
               <Button
+                data-wsc-control={workspaceUI || undefined}
                 variant="ghost"
                 size="sm"
                 onClick={handleCopy}
                 disabled={!content}
                 className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
                 title="Copy"
+                aria-label="Copy"
               >
                 {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
               </Button>
 
               <Button
+                data-wsc-control={workspaceUI || undefined}
                 variant="ghost"
                 size="sm"
                 onClick={handleDownload}
                 disabled={!content}
                 className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 disabled:opacity-40 transition-all"
                 title="Download"
+                aria-label="Download"
               >
                 <Download className="w-4 h-4" />
               </Button>
@@ -599,6 +623,7 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
             {(isMobile || isCompactToolbar) && (
             <div className="relative">
               <Button
+                data-wsc-control={workspaceUI || undefined}
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowMobileMenu(v => !v)}
@@ -608,11 +633,12 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
                 )}
                 aria-label="More Canvas actions"
                 title="More Canvas actions"
+                aria-expanded={showMobileMenu}
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>
               {showMobileMenu && (
-                <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-xl border border-border/30 bg-background/95 backdrop-blur-xl shadow-xl overflow-hidden">
+                <div className="wsc-menu absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-xl border border-border/30 bg-background/95 backdrop-blur-xl shadow-xl overflow-hidden">
                   {isCodeMode && supportsPreview && !showCodeEditor && (
                     <>
                       <button
@@ -673,15 +699,18 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
 
       {/* Toolbar - Only show for writing mode */}
       {!isCodeMode && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border/20 bg-muted/30">
+        <div className="wsc-format-toolbar flex items-center justify-between px-4 py-2 border-b border-border/20 bg-muted/30">
           <div className="flex items-center gap-0.5">
             {formatActions.map((action, index) => (
               <Button
+                data-wsc-control={workspaceUI || undefined}
                 key={index}
                 variant="ghost"
                 size="sm"
                 onClick={action.run}
                 title={action.label}
+                aria-label={action.label}
+                aria-pressed={action.active()}
                 disabled={isAIWriting || !isEditorReady}
                 className={cn(
                   "h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40",
@@ -695,21 +724,25 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
             <div className="w-px h-4 bg-border/50 mx-1" />
 
             <Button
+              data-wsc-control={workspaceUI || undefined}
               variant="ghost"
               size="sm"
               onClick={() => { if (editor && !editor.isDestroyed) editor.chain().focus().undo().run(); }}
               disabled={isAIWriting || !canUndo}
               title="Undo"
+              aria-label="Undo"
               className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
               <Undo2 className="w-3.5 h-3.5" />
             </Button>
             <Button
+              data-wsc-control={workspaceUI || undefined}
               variant="ghost"
               size="sm"
               onClick={() => { if (editor && !editor.isDestroyed) editor.chain().focus().redo().run(); }}
               disabled={isAIWriting || !canRedo}
               title="Redo"
+              aria-label="Redo"
               className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
               <Redo2 className="w-3.5 h-3.5" />
@@ -717,6 +750,7 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
           </div>
 
           <Button
+            data-wsc-control={workspaceUI || undefined}
             variant="ghost"
             size="sm"
             onClick={handleSaveVersion}
@@ -730,7 +764,7 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="wsc-body flex-1 flex overflow-hidden">
         {/* Loading State - shows when waiting for non-streaming generation */}
         {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4">
@@ -746,10 +780,10 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
           // Code mode: show either preview (full-width) or code editor (full-width)
           supportsPreview && !showCodeEditor ? (
             // Preview mode
-            <div className="flex-1 flex flex-col overflow-hidden items-center bg-muted/20">
+            <div className="wsc-preview-stage flex-1 flex flex-col overflow-hidden items-center bg-muted/20">
               <div
                 className={cn(
-                  "h-full transition-all duration-300",
+                  "wsc-preview-frame h-full transition-all duration-300",
                   previewViewport === 'mobile'
                     ? "w-[375px] border-x border-border/30 shadow-lg bg-background"
                     : "w-full"
@@ -768,13 +802,13 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
                 setLiveCanvasContent(code);
               }}
               readOnly={isAIWriting}
-              className="flex-1"
+              className="wsc-code-editor flex-1"
             />
           )
         ) : (
           // Writing mode
-          <ScrollArea className="flex-1">
-            <div className="px-6 py-5 pb-24 md:pb-5 min-h-[300px]">
+          <ScrollArea className="wsc-writing-scroll flex-1">
+            <div className="wsc-writing-page px-6 py-5 pb-24 md:pb-5 min-h-[300px]">
               <EditorContent
                 editor={isEditorReady ? editor : null}
                 className={cn(

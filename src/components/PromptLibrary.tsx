@@ -1,5 +1,8 @@
 import { Transition } from "@/components/transitions/Transition";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import * as Tabs from "@radix-ui/react-tabs";
+import "@/workspace/workspace-prompts.css";
 import { createPortal } from "react-dom";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { TransitionPart } from "@/components/transitions/TransitionPart";
@@ -23,12 +26,13 @@ interface PromptLibraryProps {
   onClose: () => void;
   prompts: QuickPrompt[];
   onSelectPrompt: (prompt: string) => void;
+  workspaceUI?: boolean;
 }
 
 // The library mirrors what ArcAI stands for: Ask, Reflect, Create.
 type TabType = 'ask' | 'reflect' | 'create';
 
-export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: PromptLibraryProps) {
+export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt, workspaceUI = false }: PromptLibraryProps) {
   const [activeTab, setActiveTab] = useState<TabType>('ask');
 
   // State for dynamically generated prompts (initialized immediately so tabs never show empty or wrong prompts)
@@ -193,6 +197,25 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
     },
   ];
 
+  if (workspaceUI) {
+    return (
+      <WorkspacePromptLibrary
+        isOpen={isOpen}
+        onClose={onClose}
+        onSelectPrompt={onSelectPrompt}
+        quickPrompts={prompts}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        currentPrompts={getCurrentPrompts()}
+        isLoading={isCurrentTabLoading()}
+        onRefresh={async () => {
+          await refreshPrompts(activeTab, true);
+          toast.success('Prompts refreshed!');
+        }}
+      />
+    );
+  }
+
   return createPortal(
     <ConditionalTransition preset="fade">
       {isOpen && (
@@ -294,7 +317,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
               {/* Prompt Grid - beautiful cards with single scroll container */}
               <div 
-                className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6" 
+                className="flex-1 overflow-y-auto px-6 sm:px-8 pb-6"
                 style={{ 
                   WebkitOverflowScrolling: 'touch',
                   touchAction: 'pan-y',
@@ -356,5 +379,146 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       )}
     </ConditionalTransition>,
     document.body
+  );
+}
+
+
+/** Workspace-only presentation. The parent owns the real prompt service and cache. */
+function WorkspacePromptLibrary({
+  isOpen, onClose, onSelectPrompt, quickPrompts, activeTab, onTabChange,
+  currentPrompts, isLoading, onRefresh,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectPrompt: (prompt: string) => void;
+  quickPrompts: QuickPrompt[];
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+  currentPrompts: QuickPrompt[];
+  isLoading: boolean;
+  onRefresh: () => Promise<void>;
+}) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const fallbackFocusRef = useRef<HTMLButtonElement | null>(null);
+  const pendingSelection = useRef<{ prompt: string; select: (prompt: string) => void } | null>(null);
+  const openRef = useRef(isOpen);
+  openRef.current = isOpen;
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    pendingSelection.current = null;
+    returnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement : null;
+    // The Create popover item is removed/hidden when it opens this dialog.
+    // Keep the real composer launcher as a fallback for that specific entry path.
+    fallbackFocusRef.current = document.querySelector<HTMLButtonElement>('.workspace-live-composer .ci-menu-btn');
+  }, [isOpen]);
+
+  const selectPrompt = (prompt: string) => {
+    if (pendingSelection.current) return;
+    pendingSelection.current = { prompt, select: onSelectPrompt };
+    onClose();
+  };
+
+  const restoreFocusOrSelect = (event: Event) => {
+    event.preventDefault();
+    // Radix schedules focus cleanup. An older dismissal must not interrupt a reopen.
+    if (openRef.current) return;
+    const selection = pendingSelection.current;
+    pendingSelection.current = null;
+    if (selection) {
+      // Wait until the modal focus trap is released before the live callback
+      // prefills/focuses the composer (or handles an image preset).
+      selection.select(selection.prompt);
+      return;
+    }
+    const focused = document.activeElement;
+    if (focused && focused !== document.body
+      && !(event.target instanceof HTMLElement && event.target.contains(focused))) return;
+    const canFocus = (element: HTMLElement | null) => element?.isConnected && element !== document.body
+      && !element.matches(':disabled')
+      && !element.closest('[hidden], [inert], [aria-hidden="true"]');
+    const target = canFocus(returnFocusRef.current) ? returnFocusRef.current : fallbackFocusRef.current;
+    if (canFocus(target)) target?.focus({ preventScroll: true });
+  };
+
+  const categoryLabel = activeTab === 'ask' ? 'Ask' : activeTab === 'reflect' ? 'Reflect' : 'Create';
+  const renderPrompt = (prompt: QuickPrompt, index: number, group: string) => (
+    <button
+      key={`${group}-${index}-${prompt.label}`}
+      type="button"
+      className="ws-prompt-option"
+      onClick={() => selectPrompt(prompt.prompt)}
+    >
+      <span className="ws-prompt-option-label">{prompt.label}</span>
+      <span className="ws-prompt-option-preview">{prompt.prompt}</span>
+    </button>
+  );
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="workspace-ui ws-prompt-overlay" />
+        <Dialog.Content
+          className="workspace-ui ws-prompt-dialog"
+          data-testid="arc-prompt-library"
+          aria-modal="true"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            headingRef.current?.focus({ preventScroll: true });
+          }}
+          onCloseAutoFocus={restoreFocusOrSelect}
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <div className="ws-prompt-heading">
+            <div>
+              <Dialog.Title ref={headingRef} tabIndex={-1} className="ws-prompt-title">Prompts & ideas</Dialog.Title>
+              <Dialog.Description className="ws-prompt-description">Find a starting point for your next conversation.</Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <button type="button" className="ws-prompt-icon-button" aria-label="Close prompt library"><X aria-hidden="true" /></button>
+            </Dialog.Close>
+          </div>
+          <Tabs.Root value={activeTab} onValueChange={(value) => onTabChange(value as TabType)} className="ws-prompt-body">
+            <div className="ws-prompt-toolbar">
+              <Tabs.List className="ws-prompt-tabs" aria-label="Prompt categories">
+                <Tabs.Trigger value="ask" className="ws-prompt-tab">Ask</Tabs.Trigger>
+                <Tabs.Trigger value="reflect" className="ws-prompt-tab">Reflect</Tabs.Trigger>
+                <Tabs.Trigger value="create" className="ws-prompt-tab">Create</Tabs.Trigger>
+              </Tabs.List>
+              <button
+                type="button"
+                className="ws-prompt-icon-button"
+                aria-label={`Refresh ${categoryLabel} prompts`}
+                title={`Refresh ${categoryLabel} prompts`}
+                data-prompt-refresh
+                disabled={isLoading}
+                onClick={() => { if (!isLoading) void onRefresh(); }}
+              ><RefreshCw aria-hidden="true" /></button>
+            </div>
+            <div className="ws-prompt-list">
+              <Tabs.Content value={activeTab} className="ws-prompt-panel" aria-busy={isLoading}>
+                <p className="ws-prompt-count" role="status" aria-live="polite">
+                  {isLoading ? 'Refreshing prompts…' : `${currentPrompts.length} ${categoryLabel.toLowerCase()} prompts`}
+                </p>
+                <div className="ws-prompt-grid">
+                  {currentPrompts.map((prompt, index) => renderPrompt(prompt, index, activeTab))}
+                </div>
+              </Tabs.Content>
+              {quickPrompts.length > 0 && (
+                <details className="ws-prompt-quick">
+                  <summary>More starting points<span>{quickPrompts.length}</span></summary>
+                  <div className="ws-prompt-grid">
+                    {quickPrompts.map((prompt, index) => renderPrompt(prompt, index, 'quick'))}
+                  </div>
+                </details>
+              )}
+            </div>
+          </Tabs.Root>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

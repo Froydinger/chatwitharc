@@ -1,3 +1,4 @@
+import { WorkspaceModeDialog } from '@/workspace/WorkspaceModeDialog';
 import { useState } from 'react';
 import {
   Check, Copy, ExternalLink, Globe, Loader2, RefreshCw, Trash2, X, AlertTriangle,
@@ -114,11 +115,12 @@ export function SiteManageModal({
   const busy = unpublishing || updating;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={busy ? undefined : onClose} />
+    <WorkspaceModeDialog open={open} onClose={onClose} title="Live site" dismissDisabled={busy}>
+    <div className="wcm-legacy-frame fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="wcm-legacy-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={busy ? undefined : onClose} />
 
-      <div className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border/20">
+      <div className="wcm-card relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden">
+        <div className="wcm-heading flex items-center justify-between px-5 pt-5 pb-4 border-b border-border/20">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-1.5 rounded-lg bg-emerald-500/15">
               <Globe className="w-4 h-4 text-emerald-400" />
@@ -131,27 +133,28 @@ export function SiteManageModal({
           <button
             onClick={onClose}
             disabled={busy}
+            aria-label="Close site manager"
             className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors flex-shrink-0 disabled:opacity-50"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="px-5 py-5 space-y-4">
+        <div className="wcm-body px-5 py-5 space-y-4">
           {/* URL bar */}
-          <div className="flex items-center gap-2 bg-muted/30 border border-border/30 rounded-xl px-4 py-3">
+          <div className="wcm-url-bar flex items-center gap-2 bg-muted/30 border border-border/30 rounded-xl px-4 py-3">
             <Globe className="w-4 h-4 text-emerald-400 flex-shrink-0" />
             <span className="flex-1 text-sm font-mono truncate text-foreground">{site.url.replace('https://', '')}</span>
-            <button onClick={copyUrl} className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0" title="Copy URL">
+            <button onClick={copyUrl} className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0" title="Copy URL" aria-label="Copy URL">
               {urlCopied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
             </button>
-            <a href={site.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
+            <a aria-label="Open live site" href={site.url} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
               <ExternalLink className="w-4 h-4" />
             </a>
           </div>
 
           {/* Update notice */}
-          <div className="rounded-xl border border-border/40 bg-muted/20 p-3 text-xs text-muted-foreground space-y-1.5">
+          <div className="wcm-notice rounded-xl border border-border/40 bg-muted/20 p-3 text-xs text-muted-foreground space-y-1.5">
             <p>
               <span className="text-foreground font-medium">Update site</span> pushes the latest code to the same URL.
               The link, subdomain, and any shared references stay the same.
@@ -163,7 +166,8 @@ export function SiteManageModal({
 
           {/* Confirm-unpublish warning */}
           {confirmUnpublish && (
-            <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive flex gap-2 items-start">
+            <div role="alert"
+              className="wcm-warning rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive flex gap-2 items-start">
               <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium">Are you sure?</p>
@@ -176,7 +180,7 @@ export function SiteManageModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-5 pt-3 border-t border-border/20 flex flex-wrap items-center justify-between gap-2">
+        <div className="wcm-footer px-5 pb-5 pt-3 border-t border-border/20 flex flex-wrap items-center justify-between gap-2">
           <Button variant="ghost" onClick={onClose} disabled={busy} className="rounded-xl">
             Close
           </Button>
@@ -205,5 +209,6 @@ export function SiteManageModal({
         </div>
       </div>
     </div>
+    </WorkspaceModeDialog>
   );
 }

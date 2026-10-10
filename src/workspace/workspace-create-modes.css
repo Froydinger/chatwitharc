@@ -1,0 +1,104 @@
+/* Workspace-only creation controls. Tokens and proportions follow preview.css. */
+.ws-create-mode { color:var(--ws-text); font-family:inherit; border:1px solid var(--ws-line); background:var(--ws-canvas); box-shadow:0 12px 34px #0004; }
+.ws-git-mode-dock { display:flex; flex-direction:column; align-items:stretch; gap:12px; width:min(760px,calc(100vw - 24px)); max-width:100%; padding:13px; border-radius:17px; font-size:13px; }
+.ws-git-mode-heading { display:flex; align-items:center; gap:12px; min-width:0; }
+.ws-git-mode-brand { display:flex; align-items:center; gap:9px; min-width:0; font-size:14px; font-weight:560; }
+.ws-git-mode-brand svg { color:var(--ws-text); flex:none; }
+.ws-git-model-controls { height:40px; margin-left:auto; border-color:var(--ws-line); background:var(--ws-bg); padding:3px; }
+.ws-git-model-option { height:32px; min-width:60px; padding:0 12px; border-radius:8px; color:var(--ws-muted); }
+.ws-git-model-option[aria-pressed=true] { color:var(--ws-bg); background:var(--ws-text); box-shadow:none; }
+.ws-git-connect-row { display:flex; align-items:center; gap:10px; min-width:0; color:var(--ws-muted); font-size:12px; }
+.ws-git-connect { min-height:42px; padding:9px 15px; border:1px solid var(--ws-text); border-radius:10px; font-size:13px!important; }
+.ws-git-connected-row { display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap; }
+.ws-git-connected-row>span { max-width:150px; color:var(--ws-muted); }
+.ws-git-repository-picker { flex:1 1 220px; min-width:150px; }
+.ws-git-repository-picker>div:first-child { min-height:42px; padding:0 12px; border-color:var(--ws-line); background:var(--ws-bg); border-radius:10px; color:var(--ws-text); font-size:13px; }
+.ws-git-repository-picker>select { font-size:16px; }
+.ws-git-branch { padding:0 4px; font-size:11px; }
+.ws-git-repository-actions { gap:2px; }
+.ws-git-repository-actions .ws-icon-button { width:42px; min-width:42px; height:42px; min-height:42px; border:1px solid var(--ws-line); border-radius:10px; color:var(--ws-muted); }
+.ws-git-repository-actions .ws-icon-button:hover { background:var(--ws-hover); color:var(--ws-text); }
+.ws-image-options-dock { width:100%; padding:13px; border-radius:17px; border-color:var(--ws-line); background:var(--ws-canvas); box-shadow:0 12px 34px #0004; }
+.ws-image-options-content { color:var(--ws-text); }
+.ws-image-options-heading { margin:0 0 10px; padding-bottom:9px; border-bottom:1px solid var(--ws-line); font-size:14px; font-weight:560; }
+.ws-image-credit-row { color:var(--ws-muted); }
+.ws-image-models { gap:6px; margin-bottom:12px; }
+.ws-image-model-option { min-height:40px; padding:8px 12px; border-color:var(--ws-line)!important; border-radius:9px; color:var(--ws-muted); background:transparent; font-size:12px; }
+.ws-image-model-option[aria-pressed=true] { color:var(--ws-bg)!important; background:var(--ws-text)!important; border-color:var(--ws-text)!important; }
+.ws-image-model-option:hover { border-color:var(--ws-text)!important; color:var(--ws-text); background:var(--ws-hover); }
+.ws-image-settings { gap:10px; }
+.ws-image-setting>span { color:var(--ws-muted); padding-left:2px; font-size:10px; letter-spacing:.08em; }
+.ws-image-setting-trigger { min-height:42px; height:42px; border-color:var(--ws-line); border-radius:10px; background:var(--ws-bg); color:var(--ws-text); }
+.ws-image-option-menu { z-index:13000; padding:5px; border-color:var(--ws-line); border-radius:12px; background:var(--ws-canvas); color:var(--ws-text); box-shadow:0 14px 40px #0006; }
+.ws-image-option-item { min-height:42px; border-radius:8px; }
+.ws-image-option-item:hover,.ws-image-option-item:focus-visible { background:var(--ws-hover)!important; }
+.ws-attachment-tray { width:100%; max-width:760px; padding:13px; border-radius:17px; border:1px solid var(--ws-line); color:var(--ws-text); background:var(--ws-canvas); box-shadow:0 12px 34px #0004; }
+.ws-attachment-tray>div:first-child { margin-bottom:10px; }
+.ws-attachment-clear { min-height:40px; padding:7px 10px; border-radius:9px; color:var(--ws-muted); font-size:12px; }
+.ws-attachment-clear:hover { color:var(--ws-text); background:var(--ws-hover); }
+.ws-attachment-item { display:flex; align-items:center; gap:10px; min-width:0; padding:9px 10px; border:1px solid var(--ws-line); border-radius:10px; background:var(--ws-bg); }
+.ws-attachment-item>svg { color:var(--ws-muted); }
+.ws-attachment-thumbnail { width:56px; height:56px; object-fit:cover; border:1px solid var(--ws-line); border-radius:10px; }
+.ws-attachment-remove { display:inline-flex; align-items:center; justify-content:center; width:40px; min-width:40px; height:40px; min-height:40px; border:1px solid var(--ws-line); border-radius:10px; color:var(--ws-muted); background:transparent; }
+.ws-attachment-remove:hover { color:var(--ws-text); background:var(--ws-hover); }
+
+.ws-create-stack { position:fixed; z-index:70; display:flex; flex-direction:column; gap:8px; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; padding:2px; border-radius:19px; background:transparent; }
+.ws-create-stack>* { flex-shrink:0; }
+.ws-create-stack-unanchored { left:50%; transform:translateX(-50%); width:min(760px,92vw); }
+.ws-create-stack-inline { position:relative; z-index:auto; width:100%; max-height:60dvh; transform:none; left:auto; }
+.ws-create-enhancer-row { display:flex; justify-content:flex-end; padding:0 2px; }
+.ws-create-mode { background-image:none; backdrop-filter:none; }
+.ws-git-mode-dock { width:100%; }
+.ws-git-model-controls { border-radius:10px; }
+.ws-git-model-option { height:34px; min-width:64px; font-size:12px!important; }
+.ws-git-model-option:hover:not(:disabled):not([aria-pressed=true]) { color:var(--ws-text); background:var(--ws-hover); }
+.ws-git-connected-row .ws-git-branch { display:block; max-width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ws-git-repository-picker:focus-within>div:first-child { outline:2px solid var(--ws-text); outline-offset:2px; }
+.ws-image-options-content.workspace-ui { background:transparent; }
+.ws-image-settings { display:flex; flex-wrap:wrap; gap:12px; }
+.ws-image-setting { display:flex; flex:1 1 140px; flex-direction:column; gap:6px; min-width:0; }
+.ws-image-setting>span { font-size:12px; letter-spacing:0; padding:0; }
+.workspace-ui.ws-image-options-content .ws-image-setting>select { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--ws-line)!important; border-radius:10px!important; color:var(--ws-text)!important; background:var(--ws-bg)!important; box-shadow:none!important; font:inherit; font-size:16px!important; color-scheme:dark; }
+html[data-workspace-theme=light] .workspace-ui.ws-image-options-content .ws-image-setting>select { color-scheme:light; }
+.ws-attachment-image-item { display:flex; flex:none; align-items:center; gap:8px; padding:7px; border:1px solid var(--ws-line); border-radius:12px; background:var(--ws-bg); }
+.ws-attachment-remove { background:var(--ws-bg); }
+.workspace-ui .ws-attachment-edit-mode,.workspace-ui .ws-attachment-animate { min-height:44px; border:1px solid var(--ws-line); border-radius:10px; color:var(--ws-text); background:var(--ws-bg); }
+.workspace-ui .ws-attachment-edit-mode[aria-pressed=true] { color:var(--ws-bg); background:var(--ws-text); }
+.workspace-ui .ws-attachment-edit-mode:hover,.workspace-ui .ws-attachment-animate:hover { opacity:.85; }
+.ws-create-stack button:focus-visible,.ws-create-stack select:focus-visible { outline:2px solid var(--ws-text); outline-offset:2px; }
+@media(max-width:650px) {
+  .ws-git-mode-dock { padding:11px; gap:10px; }
+  .ws-git-connect-row { align-items:stretch; flex-direction:column; gap:8px; }
+  .ws-git-connect { width:100%; }
+  .ws-git-connected-row { gap:6px; }
+  .ws-git-repository-picker { flex:1 1 100%; }
+  .ws-git-repository-actions { margin-left:auto; }
+  .ws-image-options-dock { padding:11px; }
+  .ws-image-model-option { min-height:44px; padding:7px 9px; }
+  .ws-attachment-item { flex-wrap:wrap; }
+  .ws-attachment-item>span:first-of-type { min-width:80px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .ws-create-stack,.ws-create-stack * { animation:none!important; transition:none!important; }
+}
+.workspace-ui.ws-prompt-enhancer-trigger { min-height:40px; padding:8px 12px; border:1px solid var(--ws-line); border-radius:10px; color:var(--ws-muted); background:var(--ws-canvas); box-shadow:0 4px 16px #0002; backdrop-filter:none; font-size:12px; }
+.workspace-ui.ws-prompt-enhancer-trigger:hover { color:var(--ws-text); background:var(--ws-hover); transform:none; }
+.workspace-ui.ws-prompt-enhancer-preview { z-index:13000; width:min(360px,calc(100vw - 24px)); max-height:var(--radix-popover-content-available-height); overflow:auto; padding:16px; border:1px solid var(--ws-line); border-radius:19px; color:var(--ws-text); background:var(--ws-canvas); box-shadow:0 24px 80px #0005; }
+.ws-prompt-enhancer-preview .ws-prompt-enhancer-text { padding:12px; border:1px solid var(--ws-line); border-radius:10px; color:var(--ws-text); background:var(--ws-bg); font-size:14px; line-height:1.65; overflow-wrap:anywhere; }
+/* Portal roots must outrank the base .workspace-ui token surface regardless of
+   route/chunk stylesheet order. This does not reach native/legacy renderers. */
+.workspace-ui.ws-create-mode { color:var(--ws-text); background:var(--ws-canvas); }
+.workspace-ui.ws-create-stack { background:transparent; }
+.workspace-ui .ws-image-model-option { font-size:13px!important; }
+.workspace-ui .ws-attachment-clear { font-size:12px; }
+/* Existing Noir rules match every class containing "bg-primary", including
+   legacy hover utilities. Keep selected Workspace controls neutral in either
+   resolved theme without weakening those rules outside these surfaces. */
+.workspace-ui.ws-git-mode-dock .ws-git-model-controls .ws-git-model-option[aria-pressed=true],
+.workspace-ui.ws-git-mode-dock .ws-git-model-controls .ws-git-model-option[aria-pressed=true]:hover,
+.workspace-ui.ws-image-options-content .ws-image-models .ws-image-model-option[aria-pressed=true],
+.workspace-ui.ws-image-options-content .ws-image-models .ws-image-model-option[aria-pressed=true]:hover,
+.workspace-ui.ws-prompt-enhancer-preview .ws-primary-button.ws-primary-button.ws-primary-button,
+.workspace-ui.ws-prompt-enhancer-preview .ws-primary-button.ws-primary-button.ws-primary-button:hover { background:var(--ws-text)!important; color:var(--ws-bg)!important; border-color:var(--ws-text)!important; }
+.workspace-ui.ws-prompt-enhancer-trigger.ws-prompt-enhancer-trigger.ws-prompt-enhancer-trigger.ws-prompt-enhancer-trigger { background:var(--ws-canvas)!important; color:var(--ws-muted)!important; border-color:var(--ws-line)!important; }
+.workspace-ui.ws-prompt-enhancer-trigger.ws-prompt-enhancer-trigger.ws-prompt-enhancer-trigger.ws-prompt-enhancer-trigger:hover { background:var(--ws-hover)!important; color:var(--ws-text)!important; border-color:var(--ws-line)!important; }
